@@ -36,7 +36,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
   };
 
   return (
-    <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col p-6 text-slate-900 dark:text-white" onClick={e => e.stopPropagation()}>
         
         <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
