@@ -1,5 +1,5 @@
-import ViewResourcesSuppliers from "@/pages/ViewResourcesSuppliers";
+import ViewInventory from "@/pages/ViewInventory";
 
-export default function ResourcesSuppliersPage() {
-  return <ViewResourcesSuppliers />;
+export default function InventoryPage() {
+  return <ViewInventory />;
 }

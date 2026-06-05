@@ -752,3 +752,7 @@ span.flatpickr-weekday,
 .search-input::placeholder {
   color: #667085;
 }
+
+header {
+  z-index: 100 !important;
+}
