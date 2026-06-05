@@ -61,12 +61,12 @@ function Modal({ open, title, onClose, children }: { open: boolean; title: strin
   
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-4xl overflow-y-auto max-h-[95vh] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-5">
+      <div className="w-full max-w-4xl max-h-[95vh] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex-shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-red-500"><X size={22} /></button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto">{children}</div>
       </div>
     </div>,
     document.body
@@ -112,12 +112,15 @@ export default function ResourcesSuppliersPage() {
 
   const fetchData = async () => {
     try {
-      const [itemsRes, suppliersRes, recipesRes, fpRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.get("/api/scms/api/Items"),
         api.get("/api/scms/api/Suppliers"),
         api.get("/api/scms/api/Recipes"),
-        api.get("/api/scms/api/FinishedProducts").catch(() => null)
+        api.get("/api/scms/api/FinishedProducts")
       ]);
+
+      const [itemsRes, suppliersRes, recipesRes, fpRes] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+
       if (itemsRes?.data?.success) setSupplyData((itemsRes.data.data || []).sort((a: any, b: any) => a.itemId - b.itemId));
       if (suppliersRes?.data?.success) setSupplierData((suppliersRes.data.data || []).sort((a: any, b: any) => a.supplierId - b.supplierId));
       if (recipesRes?.data?.success) setRecipeData((recipesRes.data.data || []).sort((a: any, b: any) => a.recipeId - b.recipeId));
@@ -596,7 +599,7 @@ export default function ResourcesSuppliersPage() {
                       <input type="number" placeholder="e.g. 500" value={ingredient.quantity} onChange={(e) => updateIngredient(ingredient.id, "quantity", e.target.value)} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none" />
                     </div>
                     <div className="md:col-span-3">
-                      <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">UoM</label>
+                      <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Unit</label>
                       <select value={ingredient.uomId} onChange={(e) => updateIngredient(ingredient.id, "uomId", Number(e.target.value))} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none">
                         <option value={1}>kg</option>
                         <option value={2}>pcs</option>
