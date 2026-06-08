@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import api from "../lib/api";
+import { MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, Eye } from "lucide-react";
 
 type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled";
 type PaymentType = "Payable" | "Paid";
@@ -89,6 +90,14 @@ interface NewOrderModalContentProps {
   itemsList: ItemResponse[];
   suppliersList: SupplierResponse[];
   isEdit?: boolean;
+  supplierError?: string;
+  setSupplierError?: (value: string) => void;
+  itemError?: string;
+  setItemError?: (value: string) => void;
+  quantityError?: string;
+  setQuantityError?: (value: string) => void;
+  etaError?: string;
+  setEtaError?: (value: string) => void;
 }
 
 function StatusBadge({ status }: { status: OrderStatus }) {
@@ -140,8 +149,48 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
   const [status, setStatus] = useState<OrderStatus>("Pending");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
+  const [supplierError, setSupplierError] = useState("");
+  const [itemError, setItemError] = useState("");
+  const [quantityError, setQuantityError] = useState("");
+  const [etaError, setEtaError] = useState("");
+
   async function handleSave() {
-    if (!supplierId || !itemId || !quantity || !eta) return;
+    let hasError = false;
+    if (!supplierId) {
+      setSupplierError("Supplier is required.");
+      hasError = true;
+    } else {
+      setSupplierError("");
+    }
+    
+    if (!itemId) {
+      setItemError("Item is required.");
+      hasError = true;
+    } else {
+      setItemError("");
+    }
+    
+    if (!quantity || quantity.trim() === "") {
+      setQuantityError("Quantity cannot be blank.");
+      hasError = true;
+    } else {
+      const quantityNum = Number(quantity);
+      if (isNaN(quantityNum) || quantityNum <= 0) {
+        setQuantityError("Quantity must be greater than 0.");
+        hasError = true;
+      } else {
+        setQuantityError("");
+      }
+    }
+    
+    if (!eta) {
+      setEtaError("Expected Arrival (ETA) is required.");
+      hasError = true;
+    } else {
+      setEtaError("");
+    }
+
+    if (hasError) return;
     
     try {
       const response = await api.post("/api/scms/api/PurchaseOrders", {
@@ -180,12 +229,20 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
     <NewOrderModalContent
       supplierId={supplierId}
       setSupplierId={setSupplierId}
+      supplierError={supplierError}
+      setSupplierError={setSupplierError}
       itemId={itemId}
       setItemId={setItemId}
+      itemError={itemError}
+      setItemError={setItemError}
       quantity={quantity}
       setQuantity={setQuantity}
+      quantityError={quantityError}
+      setQuantityError={setQuantityError}
       eta={eta}
       setEta={setEta}
+      etaError={etaError}
+      setEtaError={setEtaError}
       payment={payment}
       setPayment={setPayment}
       status={status}
@@ -273,8 +330,21 @@ function NewOrderModalContent({
   handleSave,
   itemsList,
   suppliersList,
-  isEdit
+  isEdit,
+  supplierError,
+  setSupplierError,
+  itemError,
+  setItemError,
+  quantityError,
+  setQuantityError,
+  etaError,
+  setEtaError
 }: NewOrderModalContentProps) {
+  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["-", "+", "e", "E", "."].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
   return (
     <Modal onClose={onClose}>
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{isEdit ? "Edit Order" : "Create New Order"}</h2>
@@ -282,45 +352,104 @@ function NewOrderModalContent({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier *</label>
-          <select disabled={isEdit} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={supplierId} onChange={e => setSupplierId(e.target.value)}>
+          <select 
+            disabled={isEdit} 
+            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${supplierError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
+            value={supplierId} 
+            onChange={e => {
+              const val = e.target.value;
+              setSupplierId(val);
+              if (setSupplierError) {
+                if (!val) setSupplierError("Supplier is required.");
+                else setSupplierError("");
+              }
+            }}
+          >
             <option value="" disabled hidden>Select supplier...</option>
             {suppliersList.map(s => <option key={s.supplierId} value={s.supplierId}>{s.companyName}</option>)}
           </select>
+          {supplierError && <p className="mt-1 text-xs text-red-500">{supplierError}</p>}
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Item *</label>
-          <select disabled={isEdit} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={itemId} onChange={e => setItemId(e.target.value)}>
+          <select 
+            disabled={isEdit} 
+            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${itemError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
+            value={itemId} 
+            onChange={e => {
+              const val = e.target.value;
+              setItemId(val);
+              if (setItemError) {
+                if (!val) setItemError("Item is required.");
+                else setItemError("");
+              }
+            }}
+          >
             <option value="" disabled hidden>Select item...</option>
             {itemsList.map(i => <option key={i.itemId} value={i.itemId}>{i.itemName} ({i.category}) - {i.unitOfMeasure}</option>)}
           </select>
+          {itemError && <p className="mt-1 text-xs text-red-500">{itemError}</p>}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Quantity *</label>
-            <input disabled={isEdit} type="number" className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" placeholder="e.g., 100" value={quantity} onChange={e => setQuantity(e.target.value)} />
+            <input 
+              disabled={isEdit} 
+              type="number" 
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
+              placeholder="e.g., 100" 
+              value={quantity} 
+              onKeyDown={handleNumberKeyDown}
+              onChange={e => {
+                let rawVal = e.target.value;
+                if (rawVal.startsWith("-") || (rawVal !== "" && Number(rawVal) < 0)) {
+                  rawVal = "0";
+                }
+                let cleanVal = rawVal.replace(/\D/g, "");
+                if (cleanVal.startsWith("0") && cleanVal.length > 1) {
+                  cleanVal = cleanVal.replace(/^0+/, "");
+                  if (cleanVal === "") cleanVal = "0";
+                }
+                setQuantity(cleanVal);
+                if (setQuantityError) {
+                  if (!cleanVal || cleanVal.trim() === "") {
+                    setQuantityError("Quantity cannot be blank.");
+                  } else if (Number(cleanVal) <= 0) {
+                    setQuantityError("Quantity must be greater than 0.");
+                  } else {
+                    setQuantityError("");
+                  }
+                }
+              }} 
+            />
+            {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Expected Arrival (ETA) *</label>
-            <input disabled={isEdit} type="date" className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" placeholder="MM/DD/YYYY" value={eta} onChange={e => setEta(e.target.value)} />
+            <input 
+              disabled={isEdit} 
+              type="date" 
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${etaError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
+              placeholder="MM/DD/YYYY" 
+              value={eta} 
+              onChange={e => {
+                const val = e.target.value;
+                setEta(val);
+                if (setEtaError) {
+                  if (!val) setEtaError("Expected Arrival (ETA) is required.");
+                  else setEtaError("");
+                }
+              }} 
+            />
+            {etaError && <p className="mt-1 text-xs text-red-500">{etaError}</p>}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Type *</label>
-            <select disabled={isEdit} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
-              <option value="Payable">Payable</option>
-              <option value="Paid">Paid</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Status *</label>
-            <select className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={status} onChange={e => setStatus(e.target.value as OrderStatus)}>
-              <option value="Pending">Pending</option>
-              <option value="Arrived">Arrived</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Type *</label>
+          <select disabled={isEdit} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
+            <option value="Payable">Payable</option>
+            <option value="Paid">Paid</option>
+          </select>
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction *</label>
@@ -556,6 +685,8 @@ export default function ViewOrdersProcurement() {
   const [editOrder, setEditOrder] = useState<Order | null>(null);
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [qaOrder, setQaOrder] = useState<Order | null>(null);
+  const [activeDropdownPoId, setActiveDropdownPoId] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -622,7 +753,7 @@ export default function ViewOrdersProcurement() {
     completed: orders.filter(o => o.status === "Completed").length,
   };
 
-  function handleSaveNew(o: PurchaseOrderResponse) {
+  function handleSaveNew(o: any) {
     fetchOrders(); // Refresh all to get correctly mapped data
   }
 
@@ -648,7 +779,7 @@ export default function ViewOrdersProcurement() {
     }
   }
 
-  function handleQAComplete(o: PurchaseOrderResponse) {
+  function handleQAComplete(o: any) {
     fetchOrders();
   }
 
@@ -708,7 +839,7 @@ export default function ViewOrdersProcurement() {
                 <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDER DATE</th>
                 <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ETA</th>
                 <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">STATUS</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
+                <th className="px-2 py-2 text-center font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -725,45 +856,102 @@ export default function ViewOrdersProcurement() {
                     </span>
                   </td>
                   <td className="px-2 py-2.5"><StatusBadge status={order.status} /></td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex items-center gap-2 whitespace-nowrap min-w-max">
-                      {order.status === "Arrived" && (
-                        <button
-                          onClick={() => setQaOrder(order)}
-                          className="h-9 px-4 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          QA Inspection
-                        </button>
-                      )}
-                      {order.status === "Pending" && (
+                   <td className="px-2 py-2.5 text-center relative">
+                    <div className="relative inline-block text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (activeDropdownPoId === order.poId) {
+                            setActiveDropdownPoId(null);
+                          } else {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const leftPos = rect.right - 176 + window.scrollX;
+                            setDropdownPosition({
+                              top: rect.bottom + window.scrollY,
+                              left: Math.max(8, leftPos)
+                            });
+                            setActiveDropdownPoId(order.poId);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                      
+                      {activeDropdownPoId === order.poId && dropdownPosition && createPortal(
                         <>
-                          <button
-                            onClick={() => setEditOrder(order)}
-                            className="h-9 px-4 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors whitespace-nowrap"
+                          <div 
+                            className="fixed inset-0 z-[9998] cursor-default" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDropdownPoId(null);
+                            }}
+                          />
+                          <div 
+                            style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
+                            className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
                           >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleMarkArrived(order.id, order.poId)}
-                            className="h-9 px-4 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors whitespace-nowrap"
-                          >
-                            Mark Arrived
-                          </button>
-                          <button
-                            onClick={() => handleCancel(order.id, order.poId)}
-                            className="h-9 px-4 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors whitespace-nowrap"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                      {(order.status === "Completed" || order.status === "Cancelled") && (
-                        <button
-                          onClick={() => setViewOrder(order)}
-                          className="h-9 px-4 text-xs font-semibold text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors whitespace-nowrap"
-                        >
-                          View Details
-                        </button>
+                            {order.status === "Arrived" && (
+                              <button
+                                onClick={() => {
+                                  setQaOrder(order);
+                                  setActiveDropdownPoId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <ClipboardCheck size={14} className="text-purple-600 dark:text-purple-400" />
+                                QA Inspection
+                              </button>
+                            )}
+                            {order.status === "Pending" && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditOrder(order);
+                                    setActiveDropdownPoId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <Pencil size={14} className="text-blue-600 dark:text-blue-400" />
+                                  Edit Order
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleMarkArrived(order.id, order.poId);
+                                    setActiveDropdownPoId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <Truck size={14} className="text-green-600 dark:text-green-400" />
+                                  Mark Arrived
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleCancel(order.id, order.poId);
+                                    setActiveDropdownPoId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                                >
+                                  <XCircle size={14} />
+                                  Cancel Order
+                                </button>
+                              </>
+                            )}
+                            {(order.status === "Completed" || order.status === "Cancelled") && (
+                              <button
+                                onClick={() => {
+                                  setViewOrder(order);
+                                  setActiveDropdownPoId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <Eye size={14} className="text-blue-600 dark:text-blue-400" />
+                                View Details
+                              </button>
+                            )}
+                          </div>
+                        </>,
+                        document.body
                       )}
                     </div>
                   </td>
