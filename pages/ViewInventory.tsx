@@ -64,15 +64,6 @@ export default function ViewInventory() {
         </p>
       </div>
 
-      <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
-        <Package className="text-blue-600 dark:text-blue-400 mt-0.5" size={20} />
-        <div>
-          <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300">Auto-Updated Inventory</h3>
-          <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-            Stock levels automatically increase when orders arrive and decrease when production batches are created. This is a view-only dashboard for monitoring.
-          </p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-8">
         {tabs.map((tab) => {
