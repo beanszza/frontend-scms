@@ -137,7 +137,7 @@ export default function ViewInventory() {
                   <td colSpan={8} className="text-center py-10 text-gray-500">No inventory found for this category.</td>
                 </tr>
               ) : (
-                currentTabItems.map((inv) => {
+                currentTabItems.map((inv, index) => {
                   const isCritical = inv.currentStock <= inv.minStockLevel || inv.isLowStock;
                   const percent = inv.minStockLevel > 0 ? Math.round((inv.currentStock / inv.minStockLevel) * 100) : 100;
                   const barWidth = Math.min(100, percent);
@@ -145,7 +145,7 @@ export default function ViewInventory() {
                   return (
                     <tr key={inv.inventoryId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white">
-                        {inv.itemId}
+                        {index + 1}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                         {inv.itemName}

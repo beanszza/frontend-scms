@@ -207,7 +207,7 @@ function InventoryTable({ items, title, subtitle, c }: {
                   borderBottom: idx < items.length - 1 ? `1px solid ${c.rowDivider}` : "none",
                   background: c.cardBg,
                 }}>
-                  <td style={{ padding: "18px 24px", color: c.bodyText, fontSize: 15 }}>{item.id}</td>
+                  <td style={{ padding: "18px 24px", color: c.bodyText, fontSize: 15 }}>{idx + 1}</td>
                   <td style={{ padding: "18px 24px", fontWeight: 500, color: c.headingText, whiteSpace: "nowrap", fontSize: 15 }}>{item.name}</td>
                   <td style={{ padding: "18px 24px", color: c.mutedText, fontSize: 15 }}>{item.unit}</td>
                   <td style={{ padding: "18px 24px", color: getStockColor(item.status), fontWeight: 700, fontSize: 15 }}>{item.currentStock}</td>
