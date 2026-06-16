@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search, Plus, Pencil, X, Trash2 } from "lucide-react";
 import api from "../lib/api";
+import Pagination from "@/components/Pagination";
 
 type SupplyItem = {
   itemId: number;
@@ -96,9 +97,17 @@ export default function ResourcesSuppliersPage() {
 
   const [supplyFilter, setSupplyFilter] = useState<"All" | "Raw Materials" | "Tools and Supplies">("All");
   const [supplySearchQuery, setSupplySearchQuery] = useState("");
+  const [supplyPage, setSupplyPage] = useState(1);
+  const [supplyTotalPages, setSupplyTotalPages] = useState(1);
+  const [supplyTotalCount, setSupplyTotalCount] = useState(0);
+
   const [recipeSearchQuery, setRecipeSearchQuery] = useState("");
+  
   const [supplierFilter, setSupplierFilter] = useState<"All" | "Active" | "Inactive">("All");
   const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
+  const [supplierPage, setSupplierPage] = useState(1);
+  const [supplierTotalPages, setSupplierTotalPages] = useState(1);
+  const [supplierTotalCount, setSupplierTotalCount] = useState(0);
 
   const [openSupplyModal, setOpenSupplyModal] = useState(false);
   const [openSupplierModal, setOpenSupplierModal] = useState(false);
@@ -305,19 +314,36 @@ export default function ResourcesSuppliersPage() {
 
   const fetchData = async () => {
     try {
+      const itemCat = supplyFilter === "All" ? "" : supplyFilter === "Tools and Supplies" ? "Tools" : supplyFilter;
+      const suppActive = supplierFilter === "All" ? "" : supplierFilter === "Active" ? "true" : "false";
+
       const results = await Promise.allSettled([
-        api.get("/api/scms/api/Items"),
-        api.get("/api/scms/api/Suppliers"),
+        api.get(`/api/scms/api/Items?page=1&pageSize=1000`),
+        api.get(`/api/scms/api/Suppliers?page=${supplierPage}&pageSize=10&supplierName=${supplierSearchQuery}&isActive=${suppActive}`),
         api.get("/api/scms/api/Recipes"),
         api.get("/api/scms/api/FinishedProducts")
       ]);
 
       const [itemsRes, suppliersRes, recipesRes, fpRes] = results.map(r => r.status === 'fulfilled' ? r.value : null);
 
-      if (itemsRes?.data?.success) setSupplyData((itemsRes.data.data || []).sort((a: any, b: any) => a.itemId - b.itemId));
-      if (suppliersRes?.data?.success) setSupplierData((suppliersRes.data.data || []).sort((a: any, b: any) => a.supplierId - b.supplierId));
-      if (recipesRes?.data?.success) setRecipeData((recipesRes.data.data || []).sort((a: any, b: any) => a.recipeId - b.recipeId));
-      if (fpRes?.data?.success) setFinishedProductData((fpRes.data.data || []).sort((a: any, b: any) => a.productId - b.productId));
+      if (itemsRes?.data?.success) {
+        const itemsList = itemsRes.data.data.items || itemsRes.data.data || [];
+        setSupplyData(itemsList);
+      }
+      if (suppliersRes?.data?.success) {
+        const suppliersList = suppliersRes.data.data.items || suppliersRes.data.data || [];
+        setSupplierTotalPages(suppliersRes.data.data.totalPages || 1);
+        setSupplierTotalCount(suppliersRes.data.data.totalCount || suppliersList.length);
+        setSupplierData(suppliersList);
+      }
+      if (recipesRes?.data?.success) {
+        const recipesList = recipesRes.data.data.items || recipesRes.data.data || [];
+        setRecipeData(recipesList.sort((a: any, b: any) => a.recipeId - b.recipeId));
+      }
+      if (fpRes?.data?.success) {
+        const fpList = fpRes.data.data.items || fpRes.data.data || [];
+        setFinishedProductData(fpList.sort((a: any, b: any) => a.productId - b.productId));
+      }
     } catch (e) {
       console.error(e);
     }
@@ -325,7 +351,7 @@ export default function ResourcesSuppliersPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [supplyPage, supplierPage, supplyFilter, supplierFilter, supplySearchQuery, supplierSearchQuery]);
 
   const baseSupplies = useMemo(() => {
     return supplyData.filter(item => 
@@ -342,26 +368,20 @@ export default function ResourcesSuppliersPage() {
       const q = supplySearchQuery.toLowerCase();
       result = result.filter((item) => item.itemName.toLowerCase().includes(q) || item.itemId.toString().includes(q));
     }
-    return result;
+    return result.sort((a, b) => a.itemId - b.itemId);
   }, [supplyFilter, supplySearchQuery, baseSupplies]);
 
-  const filteredSuppliers = useMemo(() => {
-    let result = supplierData;
-    if (supplierFilter !== "All") {
-      const targetActive = supplierFilter === "Active";
-      result = result.filter(s => s.isActive === targetActive);
-    }
-    if (supplierSearchQuery.trim() !== "") {
-      const q = supplierSearchQuery.toLowerCase();
-      result = result.filter(s =>
-        s.companyName.toLowerCase().includes(q) ||
-        s.contactPerson.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q) ||
-        s.phone.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [supplierFilter, supplierSearchQuery, supplierData]);
+  useEffect(() => {
+    setSupplyTotalCount(filteredSupplies.length);
+    setSupplyTotalPages(Math.ceil(filteredSupplies.length / 10) || 1);
+  }, [filteredSupplies]);
+
+  const paginatedSupplies = useMemo(() => {
+    const startIndex = (supplyPage - 1) * 10;
+    return filteredSupplies.slice(startIndex, startIndex + 10);
+  }, [filteredSupplies, supplyPage]);
+
+  const filteredSuppliers = supplierData; // Filtered on backend
 
   const filteredRecipes = useMemo(() => {
     let result = recipeData;
@@ -727,19 +747,19 @@ export default function ResourcesSuppliersPage() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
               <button
-                onClick={() => setSupplyFilter("All")}
+                onClick={() => { setSupplyFilter("All"); setSupplyPage(1); }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "All" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               >
                 All
               </button>
               <button
-                onClick={() => setSupplyFilter("Raw Materials")}
+                onClick={() => { setSupplyFilter("Raw Materials"); setSupplyPage(1); }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Raw Materials" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               >
                 Raw Materials
               </button>
               <button
-                onClick={() => setSupplyFilter("Tools and Supplies")}
+                onClick={() => { setSupplyFilter("Tools and Supplies"); setSupplyPage(1); }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Tools and Supplies" || supplyFilter as any === "Tools & Supplies" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               >
                 Tools & Supplies
@@ -752,7 +772,7 @@ export default function ResourcesSuppliersPage() {
                 type="text"
                 placeholder="Search supplies..."
                 value={supplySearchQuery}
-                onChange={(e) => setSupplySearchQuery(e.target.value)}
+                onChange={(e) => { setSupplySearchQuery(e.target.value); setSupplyPage(1); }}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -765,16 +785,16 @@ export default function ResourcesSuppliersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSupplies.length === 0 ? (
+                {paginatedSupplies.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
                       No Results Found
                     </td>
                   </tr>
                 ) : (
-                  filteredSupplies.map((item, index) => (
+                  paginatedSupplies.map((item, index) => (
                     <tr key={item.itemId} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{index + 1}</td>
+                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{index + 1 + (supplyPage - 1) * 10}</td>
                       <td className="px-5 py-5 text-sm font-medium text-gray-900 dark:text-white">{item.itemName}</td>
                       <td className="px-5 py-5"><span className="rounded-lg bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{item.categoryName}</span></td>
                       <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.uomName}</td>
@@ -788,6 +808,13 @@ export default function ResourcesSuppliersPage() {
               </tbody>
             </table>
           </div>
+          
+          <Pagination 
+            currentPage={supplyPage} 
+            totalPages={supplyTotalPages} 
+            totalCount={supplyTotalCount} 
+            onPageChange={setSupplyPage} 
+          />
         </div>
       )}
 
@@ -805,19 +832,19 @@ export default function ResourcesSuppliersPage() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
               <button
-                onClick={() => setSupplierFilter("All")}
+                onClick={() => { setSupplierFilter("All"); setSupplierPage(1); }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplierFilter === "All" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               >
                 All
               </button>
               <button
-                onClick={() => setSupplierFilter("Active")}
+                onClick={() => { setSupplierFilter("Active"); setSupplierPage(1); }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplierFilter === "Active" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               >
                 Active
               </button>
               <button
-                onClick={() => setSupplierFilter("Inactive")}
+                onClick={() => { setSupplierFilter("Inactive"); setSupplierPage(1); }}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplierFilter === "Inactive" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               >
                 Inactive
@@ -830,7 +857,7 @@ export default function ResourcesSuppliersPage() {
                 type="text"
                 placeholder="Search suppliers..."
                 value={supplierSearchQuery}
-                onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                onChange={(e) => { setSupplierSearchQuery(e.target.value); setSupplierPage(1); }}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -871,6 +898,13 @@ export default function ResourcesSuppliersPage() {
               </tbody>
             </table>
           </div>
+          
+          <Pagination 
+            currentPage={supplierPage} 
+            totalPages={supplierTotalPages} 
+            totalCount={supplierTotalCount} 
+            onPageChange={setSupplierPage} 
+          />
         </div>
       )}
 

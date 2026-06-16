@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { History, Search, Filter, Plus, Calendar, Edit3, Eye, CheckCircle, PackageOpen, FileText, ChevronDown, Check, X, ShieldCheck, MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle } from "lucide-react";
 import api from "../lib/api";
-import { MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, Eye, History } from "lucide-react";
+import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
 
 type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled";
@@ -735,10 +737,14 @@ export default function ViewOrdersProcurement() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: "arrived" | "cancel"; orderId: string; poId: number; message: string } | null>(null);
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   useEffect(() => {
     fetchOrders();
     fetchItemsAndSuppliers();
-  }, []);
+  }, [page, filter, search]);
 
   async function fetchItemsAndSuppliers() {
     try {
@@ -746,8 +752,8 @@ export default function ViewOrdersProcurement() {
         api.get("/api/scms/api/Items"),
         api.get("/api/scms/api/Suppliers")
       ]);
-      if (itemsRes.data.success) setItemsList(itemsRes.data.data);
-      if (suppliersRes.data.success) setSuppliersList(suppliersRes.data.data);
+      if (itemsRes.data.success) setItemsList(itemsRes.data.data.items || itemsRes.data.data || []);
+      if (suppliersRes.data.success) setSuppliersList(suppliersRes.data.data.items || suppliersRes.data.data || []);
     } catch (err) {
       console.error("Error fetching items or suppliers", err);
     }
@@ -755,9 +761,13 @@ export default function ViewOrdersProcurement() {
 
   async function fetchOrders() {
     try {
-      const response = await api.get("/api/scms/api/PurchaseOrders");
+      const statusFilter = filter === "All" ? "" : filter;
+      const response = await api.get(`/api/scms/api/PurchaseOrders?page=${page}&pageSize=10&status=${statusFilter}&search=${search}`);
       if (response.data.success) {
-        const fetchedOrders: Order[] = response.data.data.map((o: PurchaseOrderResponse) => ({
+        const ordersList = response.data.data.items || response.data.data || [];
+        setTotalPages(response.data.data.totalPages || 1);
+        setTotalCount(response.data.data.totalCount || ordersList.length);
+        const fetchedOrders: Order[] = ordersList.map((o: PurchaseOrderResponse) => ({
           id: `ORD-${o.poId.toString().padStart(3, '0')}`,
           poId: o.poId,
           item: o.items.length > 0 ? o.items[0].itemName : "Unknown",
@@ -787,12 +797,8 @@ export default function ViewOrdersProcurement() {
     }
   }
 
-  const filtered = orders.filter(o =>
-    (filter === "All" || o.status === filter) &&
-    (o.id.toLowerCase().includes(search.toLowerCase()) ||
-      o.item.toLowerCase().includes(search.toLowerCase()) ||
-      o.supplier.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Data is filtered on backend
+  const filtered = orders;
 
   const stats = {
     total: orders.length,
@@ -872,13 +878,13 @@ export default function ViewOrdersProcurement() {
         <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
           <div className="flex flex-wrap gap-1.5">
             {(["All", "Pending", "Arrived", "Completed", "Cancelled"] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${filter === f ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"}`}>
+              <button key={f} onClick={() => { setFilter(f); setPage(1); }} className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${filter === f ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"}`}>
                 {f}
               </button>
             ))}
           </div>
           <div className="relative flex-1 min-w-0">
-            <input className="w-full px-4 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search by Order No., Item, or Supplier..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="w-full px-4 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search by Order No., Item, or Supplier..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
         </div>
 

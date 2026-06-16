@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Package, AlertCircle, TrendingUp, ShoppingCart } from "lucide-react";
 import api from "../lib/api";
 import Link from "next/link";
+import Pagination from "@/components/Pagination";
 
 type InventoryResponse = {
   inventoryId: number;
@@ -21,14 +22,20 @@ type InventoryResponse = {
 export default function ViewInventory() {
   const [inventories, setInventories] = useState<InventoryResponse[]>([]);
   const [activeTab, setActiveTab] = useState("Raw Materials");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchInventories = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get("/api/scms/api/Inventories");
+      const categoryFilter = activeTab === "Raw Materials" ? "Raw Material" : activeTab === "Tools" ? "Tool" : "Finished Good";
+      const res = await api.get(`/api/scms/api/Inventories?categoryName=${categoryFilter}&page=${page}&pageSize=10`);
       if (res.data.success) {
-        setInventories(res.data.data || []);
+        setInventories(res.data.data.items || res.data.data || []);
+        setTotalPages(res.data.data.totalPages || 1);
+        setTotalCount(res.data.data.totalCount || res.data.data.length || 0);
       }
     } catch (error) {
       console.error("Error fetching inventories", error);
@@ -39,11 +46,13 @@ export default function ViewInventory() {
 
   useEffect(() => {
     fetchInventories();
-  }, []);
+  }, [activeTab, page]);
 
-  const rawMaterials = inventories.filter(i => i.categoryName.toLowerCase().includes("raw material"));
-  const tools = inventories.filter(i => i.categoryName.toLowerCase().includes("tool") || i.categoryName.toLowerCase().includes("equipment"));
-  const finishedGoods = inventories.filter(i => i.categoryName.toLowerCase().includes("finished good") || i.categoryName.toLowerCase().includes("product"));
+  // For the active tab, we use the fetched inventories. 
+  // Inactive tabs will temporarily show 0 since we're now paginating from the backend.
+  const rawMaterials = activeTab === "Raw Materials" ? inventories : [];
+  const tools = activeTab === "Tools" ? inventories : [];
+  const finishedGoods = activeTab === "Finished Goods" ? inventories : [];
 
   const tabs = [
     { name: "Raw Materials", data: rawMaterials },
@@ -93,7 +102,7 @@ export default function ViewInventory() {
         {tabs.map((tab) => (
           <button
             key={tab.name}
-            onClick={() => setActiveTab(tab.name)}
+            onClick={() => { setActiveTab(tab.name); setPage(1); }}
             className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
               activeTab === tab.name
                 ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
@@ -197,6 +206,13 @@ export default function ViewInventory() {
             </tbody>
           </table>
         </div>
+        
+        <Pagination 
+          currentPage={page} 
+          totalPages={totalPages} 
+          totalCount={totalCount} 
+          onPageChange={setPage} 
+        />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import LocationManager from "@/components/LocationManager";
 import CreateTransferModal from "@/components/CreateTransferModal";
 import DispatchModal from "@/components/DispatchModal";
 import api from "@/lib/api";
+import Pagination from "@/components/Pagination";
 
 type TabState = "Stock Transfer" | "Locations" | "Supplier Analytics";
 
@@ -44,24 +45,26 @@ export default function DistributionAnalyticsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredTransfers = transfers.filter(t => 
-    (filterStatus === "All" || t.status === filterStatus) &&
-    (t.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     t.product.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     t.to.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     t.from.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const filteredTransfers = transfers; // filtered on backend
 
   const fetchData = async () => {
     try {
+      const statusParam = filterStatus === "All" ? "" : filterStatus;
       const [transRes, locRes, dashRes] = await Promise.all([
-        api.get("/api/scms/api/StockTransfers"),
-        api.get("/api/scms/api/Locations"),
+        api.get(`/api/scms/api/StockTransfers?page=${page}&pageSize=10&status=${statusParam}&search=${searchQuery}`),
+        api.get("/api/scms/api/Locations?pageSize=100"),
         api.get("/api/scms/api/StockTransfers/dashboard")
       ]);
 
       if (transRes.data.success) {
-        setTransfers(transRes.data.data.map((t: any) => ({
+        const transfersList = transRes.data.data.items || transRes.data.data || [];
+        setTotalPages(transRes.data.data.totalPages || 1);
+        setTotalCount(transRes.data.data.totalCount || transfersList.length);
+        setTransfers(transfersList.map((t: any) => ({
           id: `TRF-${t.transferId.toString().padStart(3, "0")}`,
           product: t.productName,
           from: t.sourceLocationName,
@@ -73,7 +76,8 @@ export default function DistributionAnalyticsPage() {
       }
 
       if (locRes.data.success) {
-        setLocations(locRes.data.data.map((l: any) => ({
+        const locList = locRes.data.data.items || locRes.data.data || [];
+        setLocations(locList.map((l: any) => ({
           id: `LOC-${l.locationId.toString().padStart(3, "0")}`,
           name: l.locationName,
           type: l.locationType,
@@ -98,7 +102,7 @@ export default function DistributionAnalyticsPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page, filterStatus, searchQuery]);
 
   const handleDispatchConfirm = async (id: string) => {
     const transferId = parseInt(id.replace("TRF-", ""), 10);
@@ -205,7 +209,7 @@ export default function DistributionAnalyticsPage() {
               {['All', 'Pending', 'In Transit', 'Completed', 'Cancelled'].map(status => (
                 <button
                   key={status}
-                  onClick={() => setFilterStatus(status)}
+                  onClick={() => { setFilterStatus(status); setPage(1); }}
                   className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${filterStatus === status ? 'bg-[#1c5dfd] text-white' : 'bg-[#f1f5f9] dark:bg-[#24303f] text-[#1e293b] dark:text-slate-300 hover:bg-[#e2e8f0] dark:hover:bg-slate-700'}`}
                 >
                   {status}
@@ -218,7 +222,7 @@ export default function DistributionAnalyticsPage() {
                 type="text"
                 placeholder="Search by Transfer ID, Product, or Location..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
                 className="w-full pl-9 pr-4 py-1.5 h-full min-h-[34px] text-sm bg-white dark:bg-[#24303f] border border-gray-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -231,6 +235,13 @@ export default function DistributionAnalyticsPage() {
               onCompleteClick={handleCompleteTransfer} 
             />
           </div>
+          
+          <Pagination 
+            currentPage={page} 
+            totalPages={totalPages} 
+            totalCount={totalCount} 
+            onPageChange={setPage} 
+          />
         </>
       )}
 
