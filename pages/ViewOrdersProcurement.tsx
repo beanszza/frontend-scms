@@ -7,7 +7,7 @@ import { MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, Eye, History } 
 import ConfirmModal from "../components/ConfirmModal";
 
 type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled";
-type PaymentType = "Payab le" | "Paid";
+type PaymentType = "Payable" | "Paid";
 
 type Order = {
   id: string;
@@ -82,8 +82,6 @@ interface NewOrderModalContentProps {
   setEta: (value: string) => void;
   payment: PaymentType;
   setPayment: (value: PaymentType) => void;
-  status: OrderStatus;
-  setStatus: (value: OrderStatus) => void;
   receiptFile: File | null;
   setReceiptFile: (file: File | null) => void;
   onClose: () => void;
@@ -118,17 +116,13 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   );
 }
 
-function CategoryBadge({ cat }: { cat: string }) {
-  return (
-    <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 whitespace-nowrap">
-      {cat}
-    </span>
-  );
-}
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   if (!mounted) return null;
 
@@ -150,7 +144,6 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
   const [quantity, setQuantity] = useState("");
   const [eta, setEta] = useState("");
   const [payment, setPayment] = useState<PaymentType>("Payable");
-  const [status, setStatus] = useState<OrderStatus>("Pending");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const [supplierError, setSupplierError] = useState("");
@@ -224,10 +217,6 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
           });
           setUploadStatus("Upload complete!");
         }
-        if (status !== "Pending") {
-          setUploadStatus("Updating status...");
-          await api.put(`/api/scms/api/PurchaseOrders/${poId}/status`, { status });
-        }
         onSave(response.data.data);
       }
       onClose();
@@ -260,8 +249,6 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
       setEtaError={setEtaError}
       payment={payment}
       setPayment={setPayment}
-      status={status}
-      setStatus={setStatus}
       receiptFile={receiptFile}
       setReceiptFile={setReceiptFile}
       onClose={onClose}
@@ -280,7 +267,6 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
   const [quantity, setQuantity] = useState(order.quantity?.toString() || "");
   const [eta, setEta] = useState(new Date(order.eta).toISOString().split('T')[0] || "");
   const [payment, setPayment] = useState<PaymentType>(order.payment || "Payable");
-  const [status, setStatus] = useState<OrderStatus>(order.status || "Pending");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -289,10 +275,6 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
   async function handleSave() {
     setIsSaving(true);
     try {
-      if (status !== order.status) {
-        setUploadStatus("Updating status...");
-        await api.put(`/api/scms/api/PurchaseOrders/${order.poId}/status`, { status });
-      }
       onSave();
       onClose();
     } catch (err) {
@@ -316,8 +298,6 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
       setEta={setEta}
       payment={payment}
       setPayment={setPayment}
-      status={status}
-      setStatus={setStatus}
       receiptFile={receiptFile}
       setReceiptFile={setReceiptFile}
       onClose={onClose}
@@ -343,8 +323,6 @@ function NewOrderModalContent({
   setEta,
   payment,
   setPayment,
-  status,
-  setStatus,
   receiptFile,
   setReceiptFile,
   onClose,
@@ -504,6 +482,7 @@ function NewOrderModalContent({
               ) : (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Current uploaded receipt:</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} 
                     alt="Receipt Proof" 
@@ -721,7 +700,7 @@ function QAModal({ order, onClose, onComplete }: { order: Order; onClose: () => 
             Important Guidelines:
           </p>
           <ul className="text-xs text-orange-700 dark:text-orange-500 space-y-1 list-disc list-inside">
-            <li>Only orders that pass QA with "Good" or acceptable "Partial" condition can be marked as Completed</li>
+            <li>Only orders that pass QA with &quot;Good&quot; or acceptable &quot;Partial&quot; condition can be marked as Completed</li>
             <li>If actual quantity is less than ordered, note the shortage and reason in discrepancy notes</li>
             <li>Failed inspections will require follow-up with the supplier for replacement/refund</li>
             <li>Document all findings thoroughly for traceability and future supplier evaluation</li>
@@ -822,7 +801,7 @@ export default function ViewOrdersProcurement() {
     completed: orders.filter(o => o.status === "Completed").length,
   };
 
-  function handleSaveNew(o: Order) {
+  function handleSaveNew() {
     fetchOrders(); // Refresh all to get correctly mapped data
   }
 
@@ -848,7 +827,7 @@ export default function ViewOrdersProcurement() {
     }
   }
 
-  function handleQAComplete(o: Order) {
+  function handleQAComplete() {
     fetchOrders();
   }
 
