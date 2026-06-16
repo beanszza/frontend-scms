@@ -8,7 +8,7 @@ import api from "../lib/api";
 import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
 
-type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled";
+type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled" | "Rejected";
 type PaymentType = "Payable" | "Paid";
 
 type Order = {
@@ -34,6 +34,62 @@ type Order = {
   unit: string;
   proofImageUrl?: string;
 };
+
+const formatDateToMDY = (dateInput: string | Date) => {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const y = d.getFullYear();
+  return `${m}/${day}/${y}`;
+};
+
+function validateEtaDate(value: string): string {
+  if (!value) {
+    return "Expected Arrival (ETA) is required.";
+  }
+
+  // Format validation
+  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+  if (!regex.test(value)) {
+    return "Format must be MM/DD/YYYY.";
+  }
+
+  const parts = value.split("/");
+  const month = parseInt(parts[0], 10);
+  const day = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+
+  if (month < 1 || month > 12) {
+    return "Invalid month (must be 01-12).";
+  }
+
+  const daysInMonth = [
+    31,
+    (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 29 : 28,
+    31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+  ];
+
+  if (day < 1 || day > daysInMonth[month - 1]) {
+    return `Invalid day for month ${month}.`;
+  }
+
+  if (year < 1000 || year > 9999) {
+    return "Invalid year.";
+  }
+
+  // Check past date
+  const inputDate = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (inputDate < today) {
+    return "ETA cannot be in the past.";
+  }
+
+  return "";
+}
 
 // Also define API response types to map to Order
 interface PurchaseOrderResponse {
@@ -92,6 +148,7 @@ interface NewOrderModalContentProps {
   suppliersList: SupplierResponse[];
   isEdit?: boolean;
   proofImageUrl?: string;
+  setProofImageUrl?: (value: string) => void;
   isSaving?: boolean;
   uploadStatus?: string;
   supplierError?: string;
@@ -102,6 +159,8 @@ interface NewOrderModalContentProps {
   setQuantityError?: (value: string) => void;
   etaError?: string;
   setEtaError?: (value: string) => void;
+  receiptError?: string;
+  setReceiptError?: (value: string) => void;
 }
 
 function StatusBadge({ status }: { status: OrderStatus }) {
@@ -110,6 +169,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     Arrived: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
     Completed: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
     Cancelled: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+    Rejected: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${styles[status]}`}>
@@ -152,6 +212,7 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
   const [itemError, setItemError] = useState("");
   const [quantityError, setQuantityError] = useState("");
   const [etaError, setEtaError] = useState("");
+  const [receiptError, setReceiptError] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -164,14 +225,14 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
     } else {
       setSupplierError("");
     }
-    
+
     if (!itemId) {
       setItemError("Item is required.");
       hasError = true;
     } else {
       setItemError("");
     }
-    
+
     if (!quantity || quantity.trim() === "") {
       setQuantityError("Quantity cannot be blank.");
       hasError = true;
@@ -184,22 +245,36 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
         setQuantityError("");
       }
     }
-    
-    if (!eta) {
-      setEtaError("Expected Arrival (ETA) is required.");
+
+    const etaErr = validateEtaDate(eta);
+    if (etaErr) {
+      setEtaError(etaErr);
       hasError = true;
     } else {
       setEtaError("");
     }
 
+    if (!receiptFile) {
+      setReceiptError("Receipt / Proof of Transaction is required.");
+      hasError = true;
+    } else {
+      setReceiptError("");
+    }
+
     if (hasError) return;
-    
+
     setIsSaving(true);
     setUploadStatus("Creating order...");
     try {
+      const parts = eta.split("/");
+      const month = parseInt(parts[0], 10);
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      const dateObj = new Date(year, month - 1, day, 23, 59, 59);
+
       const response = await api.post("/api/scms/api/PurchaseOrders", {
         supplierId: Number(supplierId),
-        expectedArrivalDate: new Date(eta).toISOString(),
+        expectedArrivalDate: dateObj.toISOString(),
         paymentType: payment,
         totalAmount: 0,
         items: [{
@@ -207,7 +282,7 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
           poItemQuantity: Number(quantity)
         }]
       });
-      
+
       if (response.data.success) {
         const poId = response.data.data.poId;
         if (receiptFile) {
@@ -259,6 +334,8 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
       suppliersList={suppliersList}
       isSaving={isSaving}
       uploadStatus={uploadStatus}
+      receiptError={receiptError}
+      setReceiptError={setReceiptError}
     />
   );
 }
@@ -267,17 +344,105 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
   const [supplierId, setSupplierId] = useState(order.supplierId?.toString() || "");
   const [itemId, setItemId] = useState(order.itemId?.toString() || "");
   const [quantity, setQuantity] = useState(order.quantity?.toString() || "");
-  const [eta, setEta] = useState(new Date(order.eta).toISOString().split('T')[0] || "");
+  const [eta, setEta] = useState(formatDateToMDY(order.eta) || "");
   const [payment, setPayment] = useState<PaymentType>(order.payment || "Payable");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [currentProofUrl, setCurrentProofUrl] = useState(order.proofImageUrl || "");
+
+  const [supplierError, setSupplierError] = useState("");
+  const [itemError, setItemError] = useState("");
+  const [quantityError, setQuantityError] = useState("");
+  const [etaError, setEtaError] = useState("");
+  const [receiptError, setReceiptError] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
 
   async function handleSave() {
+    let hasError = false;
+    if (!supplierId) {
+      setSupplierError("Supplier is required.");
+      hasError = true;
+    } else {
+      setSupplierError("");
+    }
+
+    if (!itemId) {
+      setItemError("Item is required.");
+      hasError = true;
+    } else {
+      setItemError("");
+    }
+
+    if (!quantity || quantity.trim() === "") {
+      setQuantityError("Quantity cannot be blank.");
+      hasError = true;
+    } else {
+      const quantityNum = Number(quantity);
+      if (isNaN(quantityNum) || quantityNum <= 0) {
+        setQuantityError("Quantity must be greater than 0.");
+        hasError = true;
+      } else {
+        setQuantityError("");
+      }
+    }
+
+    const etaErr = validateEtaDate(eta);
+    if (etaErr) {
+      setEtaError(etaErr);
+      hasError = true;
+    } else {
+      setEtaError("");
+    }
+
+    if (!currentProofUrl && !receiptFile) {
+      setReceiptError("Receipt / Proof of Transaction is required.");
+      hasError = true;
+    } else {
+      setReceiptError("");
+    }
+
+    if (hasError) return;
+
     setIsSaving(true);
+    setUploadStatus("Saving changes...");
     try {
-      onSave();
+      const parts = eta.split("/");
+      const month = parseInt(parts[0], 10);
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      const dateObj = new Date(year, month - 1, day, 23, 59, 59);
+
+      // Save order updates
+      const response = await api.put(`/api/scms/api/PurchaseOrders/${order.poId}`, {
+        supplierId: Number(supplierId),
+        expectedArrivalDate: dateObj.toISOString(),
+        paymentType: payment,
+        totalAmount: 0,
+        items: [{
+          itemId: Number(itemId),
+          poItemQuantity: Number(quantity)
+        }]
+      });
+
+      if (response.data.success) {
+        // Handle receipt removal
+        if (!currentProofUrl && !receiptFile && order.proofImageUrl) {
+          setUploadStatus("Removing receipt...");
+          await api.delete(`/api/scms/api/PurchaseOrders/${order.poId}/receipt`);
+        }
+
+        // Handle receipt upload/re-upload
+        if (receiptFile) {
+          setUploadStatus("Uploading new receipt...");
+          const formData = new FormData();
+          formData.append("file", receiptFile);
+          await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+          });
+        }
+        onSave();
+      }
       onClose();
     } catch (err) {
       console.error(err);
@@ -292,12 +457,20 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
     <NewOrderModalContent
       supplierId={supplierId}
       setSupplierId={setSupplierId}
+      supplierError={supplierError}
+      setSupplierError={setSupplierError}
       itemId={itemId}
       setItemId={setItemId}
+      itemError={itemError}
+      setItemError={setItemError}
       quantity={quantity}
       setQuantity={setQuantity}
+      quantityError={quantityError}
+      setQuantityError={setQuantityError}
       eta={eta}
       setEta={setEta}
+      etaError={etaError}
+      setEtaError={setEtaError}
       payment={payment}
       setPayment={setPayment}
       receiptFile={receiptFile}
@@ -307,9 +480,12 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
       itemsList={itemsList}
       suppliersList={suppliersList}
       isEdit={true}
-      proofImageUrl={order.proofImageUrl}
+      proofImageUrl={currentProofUrl}
+      setProofImageUrl={setCurrentProofUrl}
       isSaving={isSaving}
       uploadStatus={uploadStatus}
+      receiptError={receiptError}
+      setReceiptError={setReceiptError}
     />
   );
 }
@@ -333,6 +509,7 @@ function NewOrderModalContent({
   suppliersList,
   isEdit,
   proofImageUrl,
+  setProofImageUrl,
   isSaving,
   uploadStatus,
   supplierError,
@@ -342,7 +519,9 @@ function NewOrderModalContent({
   quantityError,
   setQuantityError,
   etaError,
-  setEtaError
+  setEtaError,
+  receiptError,
+  setReceiptError
 }: NewOrderModalContentProps) {
   const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (["-", "+", "e", "E", "."].includes(e.key)) {
@@ -356,10 +535,10 @@ function NewOrderModalContent({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier *</label>
-          <select 
-            disabled={isEdit} 
-            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${supplierError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
-            value={supplierId} 
+          <select
+            disabled={isSaving}
+            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${supplierError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+            value={supplierId}
             onChange={e => {
               const val = e.target.value;
               setSupplierId(val);
@@ -376,10 +555,10 @@ function NewOrderModalContent({
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Item *</label>
-          <select 
-            disabled={isEdit} 
-            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${itemError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
-            value={itemId} 
+          <select
+            disabled={isSaving}
+            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${itemError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+            value={itemId}
             onChange={e => {
               const val = e.target.value;
               setItemId(val);
@@ -397,12 +576,12 @@ function NewOrderModalContent({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Quantity *</label>
-            <input 
-              disabled={isEdit} 
-              type="number" 
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
-              placeholder="e.g., 100" 
-              value={quantity} 
+            <input
+              disabled={isSaving}
+              type="number"
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+              placeholder="e.g., 100"
+              value={quantity}
               onKeyDown={handleNumberKeyDown}
               onChange={e => {
                 let rawVal = e.target.value;
@@ -424,70 +603,198 @@ function NewOrderModalContent({
                     setQuantityError("");
                   }
                 }
-              }} 
+              }}
             />
             {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Expected Arrival (ETA) *</label>
-            <input 
-              disabled={isEdit} 
-              type="date" 
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${etaError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`} 
-              placeholder="MM/DD/YYYY" 
-              value={eta} 
+            <input
+              disabled={isSaving}
+              type="text"
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${etaError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+              placeholder="MM/DD/YYYY"
+              value={eta}
               onChange={e => {
                 const val = e.target.value;
-                setEta(val);
-                if (setEtaError) {
-                  if (!val) setEtaError("Expected Arrival (ETA) is required.");
-                  else setEtaError("");
+
+                // If they are deleting, just let them delete
+                if (val.length < eta.length) {
+                  let formatted = val;
+                  if (eta.endsWith("/") && (eta.length - val.length === 1)) {
+                    formatted = val.substring(0, val.length - 1);
+                  }
+                  setEta(formatted);
+                  if (setEtaError) {
+                    if (!formatted) {
+                      setEtaError("Expected Arrival (ETA) is required.");
+                    } else {
+                      setEtaError("");
+                    }
+                  }
+                  return;
                 }
-              }} 
+
+                // Extract all digits
+                const rawDigits = val.replace(/\D/g, "");
+                let digits = "";
+
+                // 1. Process Month (first 2 digits)
+                if (rawDigits.length > 0) {
+                  const m1 = rawDigits[0];
+                  if (m1 === '0' || m1 === '1') {
+                    digits += m1;
+                    if (rawDigits.length > 1) {
+                      const m2 = rawDigits[1];
+                      if (m1 === '0' && m2 >= '1' && m2 <= '9') {
+                        digits += m2;
+                      } else if (m1 === '1' && m2 >= '0' && m2 <= '2') {
+                        digits += m2;
+                      }
+                    }
+                  } else if (m1 >= '2' && m1 <= '9') {
+                    digits += '0' + m1;
+                  }
+                }
+
+                // 2. Process Day (next 2 digits) only if month is complete
+                if (digits.length === 2 && rawDigits.length > digits.length) {
+                  const d1 = rawDigits[digits.length];
+                  if (d1 >= '0' && d1 <= '3') {
+                    digits += d1;
+                    const nextIdx = digits.length;
+                    if (rawDigits.length > nextIdx) {
+                      const d2 = rawDigits[nextIdx];
+                      if (d1 === '0' && d2 >= '1' && d2 <= '9') {
+                        digits += d2;
+                      } else if ((d1 === '1' || d1 === '2') && d2 >= '0' && d2 <= '9') {
+                        digits += d2;
+                      } else if (d1 === '3' && (d2 === '0' || d2 === '1')) {
+                        digits += d2;
+                      }
+                    }
+                  } else if (d1 >= '4' && d1 <= '9') {
+                    digits += '0' + d1;
+                  }
+                }
+
+                // 3. Process Year (next 4 digits) only if month and day are complete
+                if (digits.length === 4 && rawDigits.length > digits.length) {
+                  const remaining = rawDigits.substring(4, 8);
+                  digits += remaining;
+                }
+
+                // Format digits with slashes
+                let result = "";
+                if (digits.length > 0) {
+                  result += digits.substring(0, 2);
+                }
+                if (digits.length > 2) {
+                  result += "/" + digits.substring(2, 4);
+                }
+                if (digits.length > 4) {
+                  result += "/" + digits.substring(4, 8);
+                }
+
+                setEta(result);
+
+                if (setEtaError) {
+                  if (!result) {
+                    setEtaError("Expected Arrival (ETA) is required.");
+                  } else if (result.length === 10) {
+                    const err = validateEtaDate(result);
+                    setEtaError(err);
+                  } else {
+                    setEtaError("");
+                  }
+                }
+              }}
+              onBlur={e => {
+                if (setEtaError) {
+                  const err = validateEtaDate(e.target.value);
+                  setEtaError(err);
+                }
+              }}
             />
             {etaError && <p className="mt-1 text-xs text-red-500">{etaError}</p>}
           </div>
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Type *</label>
-          <select disabled={isEdit} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
+          <select disabled={isSaving} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
             <option value="Payable">Payable</option>
             <option value="Paid">Paid</option>
           </select>
         </div>
-        {!isEdit && (
+        {(!isEdit || !proofImageUrl) && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction *</label>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden">
-              <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setReceiptFile(e.target.files?.[0] || null)} />
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+              Receipt / Proof of Transaction {!isEdit && " *"}
+            </label>
+            <div className={`border-2 border-dashed ${receiptError ? 'border-red-500 bg-red-50/10 dark:bg-red-950/10' : 'border-gray-300 dark:border-gray-600'} rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden`}>
+              <input
+                type="file"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setReceiptFile(file);
+                  if (file && setReceiptError) {
+                    setReceiptError("");
+                  }
+                }}
+              />
               <div className="flex flex-col items-center pointer-events-none">
-                <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                <svg className={`w-8 h-8 ${receiptError ? 'text-red-400' : 'text-gray-400'} mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span className={`text-sm font-medium ${receiptError ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
                   {receiptFile ? receiptFile.name : "Upload Order Receipt or Purchase Order"}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG, PDF (max 5MB)</span>
               </div>
             </div>
+            {receiptError && <p className="mt-1.5 text-xs text-red-500">{receiptError}</p>}
           </div>
         )}
-        {isEdit && proofImageUrl && (
+        {proofImageUrl && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction</label>
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               {proofImageUrl.toLowerCase().endsWith('.pdf') ? (
-                <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                  <ClipboardCheck size={18} />
-                  <a href={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} target="_blank" rel="noreferrer" className="hover:underline">
-                    View Uploaded PDF Receipt
-                  </a>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    <ClipboardCheck size={18} />
+                    <a href={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} target="_blank" rel="noreferrer" className="hover:underline">
+                      View Uploaded PDF Receipt
+                    </a>
+                  </div>
+                  {isEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setProofImageUrl && setProofImageUrl("")}
+                      className="px-2.5 py-1 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Current uploaded receipt:</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Current uploaded receipt:</p>
+                    {isEdit && (
+                      <button
+                        type="button"
+                        onClick={() => setProofImageUrl && setProofImageUrl("")}
+                        className="px-2.5 py-1 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} 
-                    alt="Receipt Proof" 
+                  <img
+                    src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`}
+                    alt="Receipt Proof"
                     className="max-h-36 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white"
                   />
                 </div>
@@ -502,9 +809,9 @@ function NewOrderModalContent({
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} disabled={isSaving} className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">Cancel</button>
-          <button 
-            onClick={handleSave} 
-            disabled={isSaving} 
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
             className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {isSaving && (
@@ -577,149 +884,383 @@ function OrderDetailsModal({ order, onClose }: { order: Order; onClose: () => vo
     </Modal>
   );
 }
+function QAInspectionPage({
+  order,
+  onClose,
+  onComplete
+}: {
+  order: Order;
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  const [checklist, setChecklist] = useState({
+    quantityMatch: false,
+    goodCondition: false,
+    specsMatch: false,
+    docsCorrect: false
+  });
+  const [comment, setComment] = useState("");
+  const [pictureFile, setPictureFile] = useState<File | null>(null);
+  const [commentError, setCommentError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-function QAModal({ order, onClose, onComplete }: { order: Order; onClose: () => void; onComplete: (o: Order) => void }) {
-  const [actualGood, setActualGood] = useState("");
-  const [damaged, setDamaged] = useState("0");
-  const [qaStatus, setQaStatus] = useState("");
-  const [condition, setCondition] = useState("");
-  const [inspector, setInspector] = useState("");
-  const [discrepancyNotes, setDiscrepancyNotes] = useState("");
-  const [generalNotes, setGeneralNotes] = useState("");
+  const isAllChecked = checklist.quantityMatch && checklist.goodCondition && checklist.specsMatch && checklist.docsCorrect;
+  const result = isAllChecked ? "good" : "bad";
 
-  const shortage = actualGood && damaged ? order.quantity - Number(actualGood) - Number(damaged) : null;
-
-  async function handleComplete() {
-    if (!actualGood || !qaStatus || !condition || !inspector) return;
-    
-    try {
-      const response = await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/qa`, {
-        actualGoodQuantity: Number(actualGood),
-        qaStatus: qaStatus,
-        conditionAssessment: condition,
-        inspectorName: inspector,
-        discrepancyNotes: discrepancyNotes,
-        generalNotes: generalNotes
-      });
-      if (response.data.success) {
-        onComplete(response.data.data);
+  async function handleQAComplete() {
+    if (result === "bad") {
+      let hasError = false;
+      if (!comment.trim()) {
+        setCommentError("Comment / Rejection notes are required.");
+        hasError = true;
+      } else {
+        setCommentError("");
       }
-      onClose();
+      if (!pictureFile) {
+        setPhotoError("Proof photo of damaged or incomplete items is required.");
+        hasError = true;
+      } else {
+        setPhotoError("");
+      }
+      if (hasError) return;
+    }
+    setShowConfirm(true);
+  }
+
+  async function performQAInspectionSubmit() {
+    setIsSaving(true);
+    try {
+      const targetStatus = result === "good" ? "Completed" : "Rejected";
+
+      // 1. Update status to Completed or Rejected
+      const res = await api.put(`/api/scms/api/PurchaseOrders/${order.poId}/status`, {
+        status: targetStatus
+      });
+
+      if (res.data.success) {
+        // 2. If a photo/picture file is selected, upload it as proof (works for both pass and fail)
+        if (pictureFile) {
+          const formData = new FormData();
+          formData.append("file", pictureFile);
+          await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+          });
+        }
+        onComplete();
+      }
     } catch (error) {
-      console.error("Error completing QA", error);
-      alert("Failed to complete QA");
+      console.error("Error completing QA inspection", error);
+      alert("Failed to complete QA inspection. Please try again.");
+    } finally {
+      setIsSaving(false);
+      setShowConfirm(false);
     }
   }
 
   return (
-    <Modal onClose={onClose}>
-      <div className="flex items-start justify-between mb-4">
+    <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+      {/* Header with back navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4 gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quality Assurance Inspection</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Order {order.id} - {order.item}</p>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-2"
+          >
+            ← Back to Orders
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quality Assurance Inspection</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Order {order.id} &bull; Supplier: {order.supplier}</p>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold leading-none">✕</button>
+        <div>
+          <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-xs font-bold">
+            QA Status: Pending Inspection
+          </span>
+        </div>
       </div>
 
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-5">
-        <p className="text-sm font-bold text-yellow-800 dark:text-yellow-400 mb-1">
-          QA Inspection Required
-        </p>
-        <p className="text-xs text-yellow-700 dark:text-yellow-500">Verify that the received materials match the order specifications and are in good condition.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-5 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-        <div><p className="text-xs text-gray-500 dark:text-gray-400">Item</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.item}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400">Supplier</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.supplier}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400">Ordered Quantity</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.quantity}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400">Initially Received</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.quantity}</p></div>
-      </div>
-
-      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 mb-5">
-        <p className="text-xs font-bold text-amber-800 dark:text-amber-400 mb-0.5">
-          Quantity Verification
-        </p>
-        <p className="text-xs text-amber-700 dark:text-amber-500">During inspection, verify the actual usable quantity. Exclude damaged, items.</p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Actual Good Quantity * <span className="text-red-500">(Required)</span></label>
-            <input type="number" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="100" value={actualGood} onChange={e => setActualGood(e.target.value)} />
-            <p className="text-xs text-gray-400 mt-0.5">Items in good condition</p>
+      {/* Dual column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left column - Order Summary & Checklist (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Order Details Card */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Order Details Summary</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Item</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{order.item}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Supplier</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{order.supplier}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Ordered Quantity</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{order.quantity}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">ETA</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{order.eta}</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Damaged/Missing</label>
-            <input type="number" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" value={damaged} onChange={e => setDamaged(e.target.value)} />
-            <p className="text-xs text-gray-400 mt-0.5">Items not usable</p>
+
+          {/* QA Checklist Card */}
+          <div className="p-5 border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Inspection Checklist</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  const allChecked = !isAllChecked;
+                  setChecklist({
+                    quantityMatch: allChecked,
+                    goodCondition: allChecked,
+                    specsMatch: allChecked,
+                    docsCorrect: allChecked
+                  });
+                  setCommentError("");
+                  setPhotoError("");
+                }}
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {isAllChecked ? "Uncheck All" : "Check All"}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                {
+                  key: "quantityMatch",
+                  label: "Quantity Verification",
+                  desc: "Delivered quantity matches the ordered quantity."
+                },
+                {
+                  key: "goodCondition",
+                  label: "Condition & Quality",
+                  desc: "Materials arrived in good condition with no visible damage or defects."
+                },
+                {
+                  key: "specsMatch",
+                  label: "Specification Match",
+                  desc: "Item name and specifications match the purchase order."
+                },
+                {
+                  key: "docsCorrect",
+                  label: "Documentation Check",
+                  desc: "Delivery receipts and invoices are present and correct."
+                }
+              ].map(item => {
+                const isChecked = checklist[item.key as keyof typeof checklist];
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => {
+                      setChecklist(prev => ({ ...prev, [item.key]: !isChecked }));
+                      setCommentError("");
+                      setPhotoError("");
+                    }}
+                    className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 select-none ${
+                      isChecked
+                        ? "border-green-500 bg-green-50/5 dark:bg-green-950/5"
+                        : "border-gray-250 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-350 dark:hover:border-gray-700"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-md flex items-center justify-center border-2 mt-0.5 transition-colors ${
+                        isChecked
+                          ? "bg-green-500 border-green-500 text-white"
+                          : "border-gray-300 dark:border-gray-600 bg-transparent"
+                      }`}
+                    >
+                      {isChecked && <Check size={14} strokeWidth={3} />}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-bold transition-colors ${isChecked ? "text-green-800 dark:text-green-400" : "text-gray-900 dark:text-white"}`}>
+                        {item.label}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Shortage/Excess</label>
-            <input className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" readOnly value={shortage !== null ? (shortage > 0 ? `-${shortage}` : shortage < 0 ? `+${Math.abs(shortage)}` : "0") : "Auto-calculated"} />
-            <p className="text-xs text-gray-400 mt-0.5">Difference from order</p>
+        </div>
+
+        {/* Right column - Decision and rejection inputs (5 cols) */}
+        <div className="lg:col-span-5">
+          <div className="p-5 border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 space-y-4 h-full flex flex-col justify-between">
+            <div className="space-y-4 flex-1">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Inspection Result</h3>
+
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Status:</span>
+                {result === "good" ? (
+                  <span className="px-2.5 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-lg text-xs font-bold">
+                    ✓ Passed
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-lg text-xs font-bold">
+                    ⚠ Failed (Rejected)
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Inspection Notes / Comments {result === "bad" && "*"}
+                  </label>
+                  <textarea
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg border ${
+                      commentError ? "border-red-500 focus:ring-red-500" : "border-gray-300 dark:border-gray-600"
+                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none`}
+                    rows={4}
+                    placeholder={result === "bad" ? "Explain the issues found (required)" : "Optional notes about the inspection"}
+                    value={comment}
+                    onChange={e => {
+                      setComment(e.target.value);
+                      if (e.target.value.trim()) setCommentError("");
+                    }}
+                  />
+                  {commentError && <p className="mt-1 text-xs text-red-500 font-medium">⚠ {commentError}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Inspection Photo / Proof {result === "bad" && "*"}
+                  </label>
+                  <div
+                    className={`border-2 border-dashed ${
+                      photoError ? "border-red-500 bg-red-50/5 dark:bg-red-950/5" : "border-gray-300 dark:border-gray-650"
+                    } rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden`}
+                  >
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0] || null;
+                        setPictureFile(file);
+                        if (file) setPhotoError("");
+                      }}
+                    />
+                    <div className="flex flex-col items-center pointer-events-none">
+                      <svg className={`w-8 h-8 ${photoError ? "text-red-400" : "text-gray-400"} mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      <span className={`text-sm font-semibold ${photoError ? "text-red-550" : "text-gray-700 dark:text-gray-300"}`}>
+                        {pictureFile ? pictureFile.name : "Upload photo of items / delivery"}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG (max 5MB)</span>
+                    </div>
+                  </div>
+                  {photoError && <p className="mt-1 text-xs text-red-500 font-medium">⚠ {photoError}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-6 border-t border-gray-100 dark:border-gray-800 mt-6">
+              <button
+                onClick={onClose}
+                disabled={isSaving}
+                className="flex-1 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQAComplete}
+                disabled={isSaving}
+                className="flex-2 min-w-[160px] px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {isSaving && (
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                {isSaving ? "Saving..." : "Submit QA Inspection"}
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">QA Status * <span className="text-red-500">(Required)</span></label>
-          <select className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={qaStatus} onChange={e => setQaStatus(e.target.value)}>
-            <option value="">Select QA status...</option>
-            <option value="Passed">Passed</option>
-            <option value="Failed">Failed</option>
-            <option value="Partial">Partial</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Condition Assessment * <span className="text-red-500">(Required)</span></label>
-          <select className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={condition} onChange={e => setCondition(e.target.value)}>
-            <option value="">Select condition...</option>
-            <option value="Passed - Good">Passed - Good</option>
-            <option value="Passed - Acceptable">Passed - Acceptable</option>
-            <option value="Failed - Poor Quality">Failed - Poor Quality</option>
-            <option value="Failed - Damaged">Failed - Damaged</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">QA Inspector Name * <span className="text-red-500">(Required)</span></label>
-          <input type="text" className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter name of the person conducting inspection" value={inspector} onChange={e => setInspector(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Quantity Discrepancy Notes (if applicable)</label>
-          <textarea className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={2} placeholder="Explain any shortage, damaged items. E.g., '5 units damaged during transport, packaging was wet'" value={discrepancyNotes} onChange={e => setDiscrepancyNotes(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">General QA Notes & Observations *</label>
-          <textarea className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={3} placeholder="Describe overall condition: materials quality, packaging integrity, expiration dates, storage condition on arrival, visual inspection results, smell/appearance check, etc." value={generalNotes} onChange={e => setGeneralNotes(e.target.value)} />
-        </div>
-
-        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
-          <p className="text-xs font-bold text-orange-800 dark:text-orange-400 mb-2">
-            Important Guidelines:
-          </p>
-          <ul className="text-xs text-orange-700 dark:text-orange-500 space-y-1 list-disc list-inside">
-            <li>Only orders that pass QA with &quot;Good&quot; or acceptable &quot;Partial&quot; condition can be marked as Completed</li>
-            <li>If actual quantity is less than ordered, note the shortage and reason in discrepancy notes</li>
-            <li>Failed inspections will require follow-up with the supplier for replacement/refund</li>
-            <li>Document all findings thoroughly for traceability and future supplier evaluation</li>
-          </ul>
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 mt-6">
-        <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-        <button
-          onClick={handleComplete}
-          className="min-w-[220px] px-5 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-        >
-          Complete QA & Mark as Completed
-        </button>
-      </div>
-    </Modal>
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <Modal onClose={() => setShowConfirm(false)}>
+          <div className="text-center p-4">
+            {result === "good" ? (
+              <>
+                <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/30 flex items-center justify-center mx-auto mb-4 text-green-600">
+                  <CheckCircle size={30} />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Confirm QA Approval</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  Are you sure you want to approve order <b>{order.id}</b> as Passed? This will mark the order as Completed.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={performQAInspectionSubmit}
+                    disabled={isSaving}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    {isSaving && (
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    Yes, Approve Order
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4 text-red-600">
+                  <XCircle size={30} />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Confirm Order Rejection</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  Are you sure you want to reject order <b>{order.id}</b>? This status update will notify the procurement team.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={performQAInspectionSubmit}
+                    disabled={isSaving}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    {isSaving && (
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    Yes, Reject Order
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 
@@ -767,8 +1308,8 @@ export default function ViewOrdersProcurement() {
         const ordersList = response.data.data.items || response.data.data || [];
         setTotalPages(response.data.data.totalPages || 1);
         setTotalCount(response.data.data.totalCount || ordersList.length);
-        const fetchedOrders: Order[] = ordersList.map((o: PurchaseOrderResponse) => ({
-          id: `ORD-${o.poId.toString().padStart(3, '0')}`,
+        const fetchedOrders: Order[] = ordersList.map((o: PurchaseOrderResponse, idx: number) => ({
+          id: ((page - 1) * 10 + idx + 1).toString(),
           poId: o.poId,
           item: o.items.length > 0 ? o.items[0].itemName : "Unknown",
           itemId: o.items.length > 0 ? o.items[0].itemId : 0,
@@ -837,6 +1378,16 @@ export default function ViewOrdersProcurement() {
     fetchOrders();
   }
 
+  if (qaOrder) {
+    return (
+      <QAInspectionPage
+        order={qaOrder}
+        onClose={() => setQaOrder(null)}
+        onComplete={handleQAComplete}
+      />
+    );
+  }
+
   return (
     <div className="p-4 space-y-4 max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -877,7 +1428,7 @@ export default function ViewOrdersProcurement() {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
           <div className="flex flex-wrap gap-1.5">
-            {(["All", "Pending", "Arrived", "Completed", "Cancelled"] as const).map(f => (
+            {(["All", "Pending", "Arrived", "Completed", "Cancelled", "Rejected"] as const).map(f => (
               <button key={f} onClick={() => { setFilter(f); setPage(1); }} className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${filter === f ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"}`}>
                 {f}
               </button>
@@ -916,7 +1467,7 @@ export default function ViewOrdersProcurement() {
                     </span>
                   </td>
                   <td className="px-2 py-2.5"><StatusBadge status={order.status} /></td>
-                   <td className="px-2 py-2.5 text-center relative">
+                  <td className="px-2 py-2.5 text-center relative">
                     <div className="relative inline-block text-center">
                       <button
                         onClick={(e) => {
@@ -937,17 +1488,17 @@ export default function ViewOrdersProcurement() {
                       >
                         <MoreHorizontal size={18} />
                       </button>
-                      
+
                       {activeDropdownPoId === order.poId && dropdownPosition && createPortal(
                         <>
-                          <div 
-                            className="fixed inset-0 z-[9998] cursor-default" 
+                          <div
+                            className="fixed inset-0 z-[9998] cursor-default"
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveDropdownPoId(null);
                             }}
                           />
-                          <div 
+                          <div
                             style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
                             className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
                           >
@@ -1007,7 +1558,7 @@ export default function ViewOrdersProcurement() {
                                 </button>
                               </>
                             )}
-                            {(order.status === "Completed" || order.status === "Cancelled") && (
+                            {(order.status === "Completed" || order.status === "Cancelled" || order.status === "Rejected") && (
                               <button
                                 onClick={() => {
                                   setViewOrder(order);
@@ -1030,12 +1581,17 @@ export default function ViewOrdersProcurement() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          onPageChange={setPage}
+        />
       </div>
 
       {showNew && <NewOrderModal onClose={() => setShowNew(false)} onSave={handleSaveNew} itemsList={itemsList} suppliersList={suppliersList} />}
       {editOrder && <EditOrderModal order={editOrder} onClose={() => setEditOrder(null)} onSave={() => fetchOrders()} itemsList={itemsList} suppliersList={suppliersList} />}
       {viewOrder && <OrderDetailsModal order={viewOrder} onClose={() => setViewOrder(null)} />}
-      {qaOrder && <QAModal order={qaOrder} onClose={() => setQaOrder(null)} onComplete={handleQAComplete} />}
       {confirmAction && (
         <ConfirmModal
           message={confirmAction.message}
