@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StockTransferTable from "@/components/StockTransferTable";
 import LocationManager from "@/components/LocationManager";
 import CreateTransferModal from "@/components/CreateTransferModal";
 import DispatchModal from "@/components/DispatchModal";
+import api from "@/lib/api";
 
 type TabState = "Stock Transfer" | "Locations" | "Supplier Analytics";
 
@@ -36,52 +37,105 @@ export default function DistributionAnalyticsPage() {
   const [newLocType, setNewLocType] = useState("");
   const [newLocAddress, setNewLocAddress] = useState("");
 
-  const [transfers, setTransfers] = useState<TransferItem[]>([
-    { id: "TRF-001", product: "Ube Halaya (500g Jar)", from: "Main Warehouse", to: "Branch 1 - Quezon City", quantity: 50, date: "4/14/2026", status: "Completed" },
-    { id: "TRF-002", product: "Ube Jam (250g Jar)", from: "Main Warehouse", to: "Bazaar Booth - SM North", quantity: 30, date: "4/15/2026", status: "In Transit" },
-    { id: "TRF-003", product: "Coconut Ube Halaya (500g Jar)", from: "Main Warehouse", to: "Branch 2 - Makati", quantity: 25, date: "4/16/2026", status: "Pending" },
-  ]);
+  const [transfers, setTransfers] = useState<TransferItem[]>([]);
+  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, inTransit: 0, completed: 0 });
 
-  const [locations, setLocations] = useState<LocationItem[]>([
-    { id: "LOC-001", name: "Main Warehouse", type: "Warehouse", address: "123 Industrial Ave, Metro Manila", status: "Active" },
-    { id: "LOC-002", name: "Branch 1 - Quezon City", type: "Branch", address: "456 QC Road, Quezon City", status: "Active" },
-    { id: "LOC-003", name: "Branch 2 - Makati", type: "Branch", address: "789 Makati Blvd, Makati City", status: "Active" },
-    { id: "LOC-004", name: "Bazaar Booth - SM North", type: "Bazaar", address: "SM North EDSA, Quezon City", status: "Active" },
-  ]);
+  const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const stats = {
-    total: transfers.length,
-    pending: transfers.filter(t => t.status === "Pending").length,
-    inTransit: transfers.filter(t => t.status === "In Transit").length,
-    completed: transfers.filter(t => t.status === "Completed").length,
+  const filteredTransfers = transfers.filter(t => 
+    (filterStatus === "All" || t.status === filterStatus) &&
+    (t.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     t.product.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     t.to.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     t.from.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const fetchData = async () => {
+    try {
+      const [transRes, locRes, dashRes] = await Promise.all([
+        api.get("/api/scms/api/StockTransfers"),
+        api.get("/api/scms/api/Locations"),
+        api.get("/api/scms/api/StockTransfers/dashboard")
+      ]);
+
+      if (transRes.data.success) {
+        setTransfers(transRes.data.data.map((t: any) => ({
+          id: `TRF-${t.transferId.toString().padStart(3, "0")}`,
+          product: t.productName,
+          from: t.sourceLocationName,
+          to: t.destLocationName,
+          quantity: t.transferQuantity,
+          date: new Date(t.transferDate).toLocaleDateString(),
+          status: t.status,
+        })));
+      }
+
+      if (locRes.data.success) {
+        setLocations(locRes.data.data.map((l: any) => ({
+          id: `LOC-${l.locationId.toString().padStart(3, "0")}`,
+          name: l.locationName,
+          type: l.locationType,
+          address: "Integrated from POS",
+          status: l.status,
+        })));
+      }
+
+      if (dashRes.data.success) {
+        const { pendingCount, inTransitCount, completedCount } = dashRes.data.data;
+        setStats({
+          total: pendingCount + inTransitCount + completedCount,
+          pending: pendingCount,
+          inTransit: inTransitCount,
+          completed: completedCount,
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching data", err);
+    }
   };
 
-  const handleDispatchConfirm = (id: string) => {
-    setTransfers(prev => prev.map(t => t.id === id ? { ...t, status: "In Transit" as const } : t));
-    setSelectedDispatch(null);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleDispatchConfirm = async (id: string) => {
+    const transferId = parseInt(id.replace("TRF-", ""), 10);
+    try {
+      await api.put(`/api/scms/api/StockTransfers/${transferId}/status`, { status: "In Transit" });
+      setSelectedDispatch(null);
+      fetchData();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleCompleteTransfer = (id: string) => {
-    setTransfers(prev => prev.map(t => t.id === id ? { ...t, status: "Completed" as const } : t));
+  const handleCompleteTransfer = async (id: string) => {
+    const transferId = parseInt(id.replace("TRF-", ""), 10);
+    try {
+      await api.put(`/api/scms/api/StockTransfers/${transferId}/status`, { status: "Completed" });
+      fetchData();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleAddLocationSubmit = (e: React.FormEvent) => {
+  const handleAddLocationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLocName || !newLocType || !newLocAddress) return;
-
-    const newLoc: LocationItem = {
-      id: `LOC-${String(Date.now()).slice(-3)}`,
-      name: newLocName,
-      type: newLocType,
-      address: newLocAddress,
-      status: "Active"
-    };
-
-    setLocations(prev => [...prev, newLoc]);
-    setNewLocName("");
-    setNewLocType("");
-    setNewLocAddress("");
-    setShowLocationModal(false);
+    try {
+      // NOTE: Location creation is not implemented in LocationsController yet based on backend instructions,
+      // but if an endpoint exists it would be api.post("/api/Locations", {...})
+      // For now, clear the form.
+      setNewLocName("");
+      setNewLocType("");
+      setNewLocAddress("");
+      setShowLocationModal(false);
+      fetchData();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -113,7 +167,7 @@ export default function DistributionAnalyticsPage() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {activeTab === "Stock Transfer" && (
             <>
-              <button className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-bold border border-gray-300 dark:border-slate-700 rounded-lg bg-white text-slate-900 dark:text-slate-900 hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm text-center">
+              <button onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_SCMS_URL || 'http://localhost:5033'}/api/scms/api/StockTransfers/export-history`} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-bold border border-gray-300 dark:border-slate-700 rounded-lg bg-white text-slate-900 dark:text-slate-900 hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm text-center">
                 Transfer History
               </button>
               <button onClick={() => setShowCreateModal(true)} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors whitespace-nowrap shadow-md text-center">
@@ -146,9 +200,33 @@ export default function DistributionAnalyticsPage() {
             ))}
           </div>
 
+          <div className="flex flex-col sm:flex-row gap-4 mt-6 mb-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              {['All', 'Pending', 'In Transit', 'Completed', 'Cancelled'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${filterStatus === status ? 'bg-[#1c5dfd] text-white' : 'bg-[#f1f5f9] dark:bg-[#24303f] text-[#1e293b] dark:text-slate-300 hover:bg-[#e2e8f0] dark:hover:bg-slate-700'}`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input
+                type="text"
+                placeholder="Search by Transfer ID, Product, or Location..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 h-full min-h-[34px] text-sm bg-white dark:bg-[#24303f] border border-gray-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
           <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-strokedark shadow-sm">
             <StockTransferTable 
-              transfers={transfers} 
+              transfers={filteredTransfers} 
               onDispatchClick={setSelectedDispatch} 
               onCompleteClick={handleCompleteTransfer} 
             />
@@ -164,7 +242,7 @@ export default function DistributionAnalyticsPage() {
         <CreateTransferModal 
           locations={locations} 
           onClose={() => setShowCreateModal(false)} 
-          onSave={(t) => setTransfers(prev => [...prev, t as TransferItem])} 
+          onSave={() => { setShowCreateModal(false); fetchData(); }} 
         />
       )}
 

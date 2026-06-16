@@ -58,15 +58,12 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
           <div className="col-span-2 border-t border-slate-200 dark:border-slate-700 pt-2"><p className="text-[10px] text-slate-400 font-medium">Transfer Date</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.date}</p></div>
         </div>
 
-        <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3.5 mb-4">
-          <p className="text-xs font-bold text-blue-500 mb-0.5">Dispatch Transfer Action</p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">Mark this transfer branch entry asset row row sequence tracking state as In Transit.</p>
-        </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dispatch Date *</label>
-            <input type="text" placeholder="MM/DD/YYYY" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" value={dispatchDate} onChange={e => setDispatchDate(e.target.value)} required />
+            <input type="date" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" value={dispatchDate} onChange={e => setDispatchDate(e.target.value)} required />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
