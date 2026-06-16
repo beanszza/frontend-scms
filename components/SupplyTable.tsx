@@ -162,7 +162,7 @@ export default function SupplyTable() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
 
                 <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
-                  ITEM ID
+                  ITEM NO.
                 </th>
 
                 <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">

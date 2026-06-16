@@ -21,7 +21,7 @@ export default function RecipeCard() {
           </div>
 
           <p className="text-sm text-gray-500 mt-2">
-            Recipe ID: RCP-001
+            Recipe No.: RCP-001
           </p>
 
           <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">

@@ -15,7 +15,7 @@ export default function LocationManagement({ locations }: { locations: Location[
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-              {["LOCATION ID", "NAME", "TYPE", "ADDRESS", "STATUS", "ACTIONS"].map(h => (
+              {["LOCATION NO.", "NAME", "TYPE", "ADDRESS", "STATUS", "ACTIONS"].map(h => (
                 <th key={h} className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>

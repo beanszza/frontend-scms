@@ -622,7 +622,7 @@ export default function ViewOrdersProcurement() {
     completed: orders.filter(o => o.status === "Completed").length,
   };
 
-  function handleSaveNew(o: PurchaseOrderResponse) {
+  function handleSaveNew(o: Order) {
     fetchOrders(); // Refresh all to get correctly mapped data
   }
 
@@ -648,7 +648,7 @@ export default function ViewOrdersProcurement() {
     }
   }
 
-  function handleQAComplete(o: PurchaseOrderResponse) {
+  function handleQAComplete(o: Order) {
     fetchOrders();
   }
 
@@ -693,7 +693,7 @@ export default function ViewOrdersProcurement() {
             ))}
           </div>
           <div className="relative flex-1 min-w-0">
-            <input className="w-full px-4 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search by Order ID, Item, or Supplier..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="w-full px-4 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search by Order No., Item, or Supplier..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
 
@@ -701,7 +701,7 @@ export default function ViewOrdersProcurement() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDER ID</th>
+                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDER NO.</th>
                 <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ITEM</th>
                 <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">SUPPLIER</th>
                 <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">QUANTITY</th>

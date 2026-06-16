@@ -117,7 +117,7 @@ export default function ViewInventory() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                <th className="px-6 py-4">Item ID</th>
+                <th className="px-6 py-4">Item No.</th>
                 <th className="px-6 py-4">Item Name</th>
                 <th className="px-6 py-4">Unit</th>
                 <th className="px-6 py-4">Current Stock</th>

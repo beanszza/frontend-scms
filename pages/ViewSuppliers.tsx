@@ -757,7 +757,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Item ID</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -913,7 +913,7 @@ export default function ResourcesSuppliersPage() {
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by Product Name or ID..."
+                placeholder="Search by Product Name or No...."
                 value={recipeSearchQuery}
                 onChange={(e) => setRecipeSearchQuery(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -925,7 +925,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Recipe ID</th>
+                  <th className="px-5 py-4">Recipe No.</th>
                   <th className="px-5 py-4">Finished Product</th>
                   <th className="px-5 py-4">Target Yield</th>
                   <th className="px-5 py-4">Ingredients Count</th>

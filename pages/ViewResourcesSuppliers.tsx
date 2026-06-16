@@ -183,7 +183,7 @@ function InventoryTable({ items, title, subtitle, c }: {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${c.cardBorder}` }}>
-              {["ITEM ID", "ITEM NAME", "UNIT", "CURRENT STOCK", "MIN STOCK", "STOCK LEVEL", "STATUS", "ACTIONS"].map((col) => (
+              {["ITEM NO.", "ITEM NAME", "UNIT", "CURRENT STOCK", "MIN STOCK", "STOCK LEVEL", "STATUS", "ACTIONS"].map((col) => (
                 <th key={col} style={{
                   padding: "14px 24px",
                   textAlign: "left",
