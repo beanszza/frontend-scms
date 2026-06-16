@@ -202,18 +202,6 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Batch Type
-              </label>
-              <select
-                value={batchType}
-                onChange={(e) => setBatchType(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
-              >
-                <option value="Retail">Retail</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Assigned Cook
               </label>
               <select

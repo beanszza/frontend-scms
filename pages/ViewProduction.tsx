@@ -1,33 +1,21 @@
+// web-scms\pages\ViewProduction.tsx
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
 import {
-  Package,
-  AlertTriangle,
-  CheckCircle,
-  Search,
-  Plus,
-  Eye,
-  Upload,
-  Check,
-  X,
-  ChevronLeft,
-  ClipboardCheck,
-  MoreHorizontal,
-  Trash2, // added for delete
-  ChevronRight,
+  Package, AlertTriangle, CheckCircle, Search, Plus, Upload, Check, X,
+  ChevronRight, ChevronLeft, ClipboardCheck, MoreHorizontal, Trash2,
+  Loader2, XCircle,
 } from "lucide-react";
 import api from "../lib/api";
 import CreateBatchModal from "../components/CreateBatchModal";
 import UploadImagesModal from "../components/UploadImagesModal";
-import QAChecklistModal from "../components/QAChecklistModal";
-import ConfirmModal from "../components/ConfirmModal"; // adjust path
+import ConfirmModal from "../components/ConfirmModal";
 
 // ---------- Types ----------
 type ProductionBatch = {
   batchId: number;
   productName: string;
-  batchType: "Retail" | "Institutional";
   quantity: number;
   scheduleDate: string;
   assignedCook: string;
@@ -46,8 +34,7 @@ type SummaryCounts = {
 let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1001,
-    productName: "Longganisa",
-    batchType: "Retail",
+    productName: "Ube Halaya Yam Pudding with tidbits",
     quantity: 100,
     scheduleDate: "2026-06-09",
     assignedCook: "Juan Dela Cruz",
@@ -57,7 +44,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1002,
     productName: "Tocino",
-    batchType: "Retail",
     quantity: 200,
     scheduleDate: "2026-06-07",
     assignedCook: "Maria Santos",
@@ -67,7 +53,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1043,
     productName: "Longganisa",
-    batchType: "Retail",
     quantity: 500,
     scheduleDate: "2026-06-12",
     assignedCook: "Pedro Reyes",
@@ -75,19 +60,8 @@ let MOCK_BATCHES: ProductionBatch[] = [
     currentStage: "Peeling",
   },
   {
-    batchId: 1201,
-    productName: "Longganisa",
-    batchType: "Retail",
-    quantity: 100,
-    scheduleDate: "2026-06-09",
-    assignedCook: "Juan Dela Cruz",
-    status: "In progress",
-    currentStage: "QA Review",
-  },
-  {
     batchId: 1202,
     productName: "Tocino",
-    batchType: "Retail",
     quantity: 200,
     scheduleDate: "2026-06-07",
     assignedCook: "Maria Santos",
@@ -97,7 +71,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1003,
     productName: "Longganisa",
-    batchType: "Retail",
     quantity: 500,
     scheduleDate: "2026-06-12",
     assignedCook: "Pedro Reyes",
@@ -107,7 +80,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1011,
     productName: "Longganisa",
-    batchType: "Retail",
     quantity: 100,
     scheduleDate: "2026-06-09",
     assignedCook: "Juan Dela Cruz",
@@ -117,7 +89,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1032,
     productName: "Tocino",
-    batchType: "Retail",
     quantity: 200,
     scheduleDate: "2026-06-07",
     assignedCook: "Maria Santos",
@@ -127,7 +98,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1005,
     productName: "Tocino",
-    batchType: "Retail",
     quantity: 150,
     scheduleDate: "2026-06-05",
     assignedCook: "Juan Dela Cruz",
@@ -137,7 +107,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1006,
     productName: "Empanada",
-    batchType: "Retail",
     quantity: 80,
     scheduleDate: "2026-06-10",
     assignedCook: "Rosa Diaz",
@@ -147,7 +116,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1007,
     productName: "Longganisa",
-    batchType: "Retail",
     quantity: 300,
     scheduleDate: "2026-06-11",
     assignedCook: "Carlos Reyes",
@@ -157,7 +125,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1008,
     productName: "Tocino",
-    batchType: "Retail",
     quantity: 250,
     scheduleDate: "2026-06-01",
     assignedCook: "Maria Santos",
@@ -167,7 +134,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1009,
     productName: "Siomai",
-    batchType: "Retail",
     quantity: 600,
     scheduleDate: "2026-06-14",
     assignedCook: "Pedro Reyes",
@@ -177,7 +143,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
   {
     batchId: 1010,
     productName: "Empanada",
-    batchType: "Retail",
     quantity: 90,
     scheduleDate: "2026-06-15",
     assignedCook: "Ana Gonzales",
@@ -185,9 +150,8 @@ let MOCK_BATCHES: ProductionBatch[] = [
     currentStage: "Peeling",
   },
   {
-    batchId: 1012, // fixed duplicate
+    batchId: 1012,
     productName: "Longganisa",
-    batchType: "Retail",
     quantity: 120,
     scheduleDate: "2026-06-13",
     assignedCook: "Rosa Diaz",
@@ -213,18 +177,25 @@ function useDarkMode() {
   return isDark;
 }
 
+// ---------- Stage definitions ----------
+const STAGES = ["Peeling", "Steaming", "Mixing", "Cooking", "Cooling", "Packaging"] as const;
+const STAGE_ICONS: Record<string, React.ReactNode> = {
+  Peeling: <Package size={16} />,
+  Steaming: <Upload size={16} />,
+  Mixing: <Package size={16} />,
+  Cooking: <Package size={16} />,
+  Cooling: <Package size={16} />,
+  Packaging: <Package size={16} />,
+};
+
 export default function ProductionPage() {
   useDarkMode();
 
-  // Data & Pagination
   const [batches, setBatches] = useState<ProductionBatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"Retail">("Retail");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Summary counts
   const [summary, setSummary] = useState<SummaryCounts>({
     active: 0,
     completed: 0,
@@ -232,20 +203,28 @@ export default function ProductionPage() {
     rejected: 0,
   });
 
-  // Modal states
+  const [activeMainTab, setActiveMainTab] = useState<"planning" | "tracking" | "quality">("planning");
+  const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
+
+  const [pendingQaConfirm, setPendingQaConfirm] = useState<ProductionBatch | null>(null);
+  const [pendingTrackingConfirm, setPendingTrackingConfirm] = useState<ProductionBatch | null>(null);
+
+  // QA form state
+  const [taste, setTaste] = useState("Pass");
+  const [texture, setTexture] = useState("Pass");
+  const [packagingQA, setPackagingQA] = useState("Pass");
+  const [appearance, setAppearance] = useState("Pass");
+  const [qaNotes, setQaNotes] = useState("");
+  const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [submittingQA, setSubmittingQA] = useState(false);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState<number | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState<number | null>(null);
-  const [showQaModal, setShowQaModal] = useState<number | null>(null);
-
-  // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-
-  // Dropdown state
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -256,11 +235,11 @@ export default function ProductionPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ---------- Fetch / refresh ----------
+  // ---------- Fetch / refresh (no batchType filter) ----------
   const fetchBatches = () => {
     setIsLoading(true);
     setTimeout(() => {
-      let filtered = MOCK_BATCHES.filter((b) => b.batchType === activeTab);
+      let filtered = MOCK_BATCHES;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         filtered = filtered.filter(
@@ -302,13 +281,8 @@ export default function ProductionPage() {
 
   useEffect(() => {
     fetchBatches();
-  }, [activeTab, currentPage, searchQuery]);
+  }, [currentPage, searchQuery]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
-
-  // Helper: is batch overdue?
   const isOverdue = (batch: ProductionBatch) => {
     const scheduleDate = new Date(batch.scheduleDate);
     const today = new Date();
@@ -323,24 +297,83 @@ export default function ProductionPage() {
   // ---------- Delete handler ----------
   const handleDelete = (batchId: number) => {
     setDeleteTarget(batchId);
-    setOpenDropdownId(null); // close dropdown
+    setOpenDropdownId(null);
   };
 
   const confirmDelete = async () => {
     if (deleteTarget === null) return;
-    // Mock deletion: filter out the batch from MOCK_BATCHES
     MOCK_BATCHES = MOCK_BATCHES.filter((b) => b.batchId !== deleteTarget);
     setDeleteTarget(null);
-    // Refetch data
     fetchBatches();
-    // Optionally adjust current page if it becomes empty
   };
 
   const cancelDelete = () => {
     setDeleteTarget(null);
   };
 
-  // Summary cards
+  // ---------- Navigation handlers ----------
+  const handleQaChecklistClick = (batch: ProductionBatch) => {
+    setOpenDropdownId(null);
+    setPendingQaConfirm(batch);
+  };
+
+  const handleUpdateStageClick = (batch: ProductionBatch) => {
+    setOpenDropdownId(null);
+    setPendingTrackingConfirm(batch);
+  };
+
+  const confirmNavigateToQA = () => {
+    if (pendingQaConfirm) {
+      setSelectedBatchId(pendingQaConfirm.batchId);
+      setActiveMainTab("quality");
+      setTaste("Pass");
+      setTexture("Pass");
+      setPackagingQA("Pass");
+      setAppearance("Pass");
+      setQaNotes("");
+      setDecision(null);
+      setRejectionReason("");
+    }
+    setPendingQaConfirm(null);
+  };
+
+  const confirmNavigateToTracking = () => {
+    if (pendingTrackingConfirm) {
+      setSelectedBatchId(pendingTrackingConfirm.batchId);
+      setActiveMainTab("tracking");
+    }
+    setPendingTrackingConfirm(null);
+  };
+
+  // ---------- QA Submission ----------
+  const selectedBatch = selectedBatchId
+    ? MOCK_BATCHES.find((b) => b.batchId === selectedBatchId) ?? null
+    : null;
+
+  const handleQaSubmit = async () => {
+    if (!selectedBatch || !decision) return;
+    if (decision === "reject" && !rejectionReason.trim()) return;
+
+    setSubmittingQA(true);
+    try {
+      const qaPayload = { taste, texture, packaging: packagingQA, appearance, notes: qaNotes };
+      await api.put(`/api/scms/api/ProductionBatches/${selectedBatch.batchId}/qa`, qaPayload);
+
+      const endpoint = `/api/scms/api/ProductionBatches/${selectedBatch.batchId}/${decision}`;
+      const decisionPayload = decision === "reject" ? { reason: rejectionReason } : {};
+      await api.put(endpoint, decisionPayload);
+
+      setSelectedBatchId(null);
+      setActiveMainTab("planning");
+      fetchBatches();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmittingQA(false);
+    }
+  };
+
+  // ---------- Summary cards ----------
   const summaryCards = [
     {
       label: "Active Batches",
@@ -409,206 +442,405 @@ export default function ProductionPage() {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="mb-5 flex items-center gap-2">
-        {(["Retail"] as const).map((tab) => (
+      {/* Main Tabs */}
+      <div className="mb-6 flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        {[
+          { key: "planning", label: "Production Planning" },
+          { key: "tracking", label: "Production Tracking" },
+          { key: "quality", label: "Quality Control" },
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium rounded-xl border transition-colors ${
-              activeTab === tab
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white dark:bg-[#1D2939] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            key={tab.key}
+            onClick={() => {
+              setActiveMainTab(tab.key as typeof activeMainTab);
+              if (tab.key === "planning") setSelectedBatchId(null);
+            }}
+            className={`px-5 py-3 text-sm font-medium rounded-t-xl transition-colors ${
+              activeMainTab === tab.key
+                ? "bg-white dark:bg-[#1D2939] text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Search */}
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by product or cook..."
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-3 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          Page {currentPage} of {totalPages}
-        </div>
-      </div>
+      {/* ========== PRODUCTION PLANNING TAB ========== */}
+      {activeMainTab === "planning" && (
+        <>
+          {/* Search */}
+          <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by product or cook..."
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-3 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Page {currentPage} of {totalPages}
+            </div>
+          </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
-        <table className="w-full min-w-[900px]">
-          <thead className="border-b border-gray-200 dark:border-gray-700">
-            <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1D2939]">
-              <th className="px-5 py-4">Batch No.</th>
-              <th className="px-5 py-4">Product</th>
-              <th className="px-5 py-4">Quantity</th>
-              <th className="px-5 py-4">Schedule Date</th>
-              <th className="px-5 py-4">Assigned Cook</th>
-              <th className="px-5 py-4">Current Stage</th>
-              <th className="px-5 py-4">Status</th>
-              <th className="px-5 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="text-center py-10 text-gray-500">
-                  Loading batches...
-                </td>
-              </tr>
-            ) : batches.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center py-10 text-gray-500">
-                  No production batches found.
-                </td>
-              </tr>
-            ) : (
-              batches.map((batch) => {
-                const highlightRed = batch.status === "Delayed";
-                const showWarning = isOverdue(batch) || batch.status === "Delayed";
-                return (
-                  <tr
-                    key={batch.batchId}
-                    className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                      highlightRed ? "bg-red-50 dark:bg-red-500/5" : ""
-                    }`}
-                  >
-                    <td className="px-5 py-5 text-sm font-medium text-gray-900 dark:text-white">
-                      #{batch.batchId}
-                    </td>
-                    <td className="px-5 py-5 text-sm text-gray-900 dark:text-white">
-                      {batch.productName}
-                    </td>
-                    <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
-                      {batch.quantity}
-                    </td>
-                    <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
-                      <span className="flex items-center gap-1">
-                        {batch.scheduleDate}
-                        {showWarning && (
-                          <AlertTriangle size={14} className="text-red-500" />
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
-                      {batch.assignedCook}
-                    </td>
-                    <td className="px-5 py-5">
-                      <span className="rounded-lg bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
-                        {batch.currentStage}
-                      </span>
-                    </td>
-                    <td className="px-5 py-5">
-                      <span
-                        className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full w-max ${
-                          batch.status === "Completed"
-                            ? "text-green-600 bg-green-50 dark:bg-green-500/10"
-                            : batch.status === "Rejected"
-                            ? "text-red-600 bg-red-50 dark:bg-red-500/10"
-                            : batch.status === "Delayed"
-                            ? "text-amber-600 bg-amber-50 dark:bg-amber-500/10"
-                            : "text-blue-600 bg-blue-50 dark:bg-blue-500/10"
-                        }`}
-                      >
-                        {batch.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-5">
-                      {/* Dropdown Actions */}
-                      <div className="relative flex justify-end" ref={openDropdownId === batch.batchId ? dropdownRef : undefined}>
-                        <button
-                          onClick={() =>
-                            setOpenDropdownId(
-                              openDropdownId === batch.batchId ? null : batch.batchId
-                            )
-                          }
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                          <MoreHorizontal size={18} />
-                        </button>
-
-                        {openDropdownId === batch.batchId && (
-                          <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] shadow-lg z-50 py-1">
-                            <button
-                              onClick={() => {
-                                setShowQaModal(batch.batchId);
-                                setOpenDropdownId(null);
-                              }}
-                              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            >
-                              <ClipboardCheck size={16} /> QA Checklist
-                            </button>
-                            {batch.status === "QA Review" && (
-                              <button
-                                onClick={() => {
-                                  setShowQaModal(batch.batchId);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                              >
-                                <Check size={16} /> Approve / Reject
-                              </button>
-                            )}
-                            {batch.status !== "Completed" &&
-                              batch.status !== "Rejected" && (
-                                <button
-                                  onClick={() => {
-                                    setShowUploadModal(batch.batchId);
-                                    setOpenDropdownId(null);
-                                  }}
-                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                >
-                                  <ChevronRight size={16} /> Update Stage
-                                </button>
-                              )}
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => handleDelete(batch.batchId)}
-                              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-                            >
-                              <Trash2 size={16} /> Delete Batch
-                            </button>
-                          </div>
-                        )}
-                      </div>
+          {/* Table */}
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
+            <table className="w-full min-w-[900px]">
+              <thead className="border-b border-gray-200 dark:border-gray-700">
+                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1D2939]">
+                  <th className="px-5 py-4">Batch No.</th>
+                  <th className="px-5 py-4">Product</th>
+                  <th className="px-5 py-4">Quantity</th>
+                  <th className="px-5 py-4">Schedule Date</th>
+                  <th className="px-5 py-4">Assigned Cook</th>
+                  <th className="px-5 py-4">Current Stage</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-10 text-gray-500">
+                      Loading batches...
                     </td>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                ) : batches.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-10 text-gray-500">
+                      No production batches found.
+                    </td>
+                  </tr>
+                ) : (
+                  batches.map((batch) => {
+                    const highlightRed = batch.status === "Delayed";
+                    const showWarning = isOverdue(batch) || batch.status === "Delayed";
+                    return (
+                      <tr
+                        key={batch.batchId}
+                        className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                          highlightRed ? "bg-red-50 dark:bg-red-500/5" : ""
+                        }`}
+                      >
+                        <td className="px-5 py-5 text-sm font-medium text-gray-900 dark:text-white">
+                          #{batch.batchId}
+                        </td>
+                        <td className="px-5 py-5 text-sm text-gray-900 dark:text-white">
+                          {batch.productName}
+                        </td>
+                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
+                          {batch.quantity}
+                        </td>
+                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
+                          <span className="flex items-center gap-1">
+                            {batch.scheduleDate}
+                            {showWarning && (
+                              <AlertTriangle size={14} className="text-red-500" />
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
+                          {batch.assignedCook}
+                        </td>
+                        <td className="px-5 py-5">
+                          <span className="rounded-lg bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            {batch.currentStage}
+                          </span>
+                        </td>
+                        <td className="px-5 py-5">
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full w-max ${
+                              batch.status === "Completed"
+                                ? "text-green-600 bg-green-50 dark:bg-green-500/10"
+                                : batch.status === "Rejected"
+                                ? "text-red-600 bg-red-50 dark:bg-red-500/10"
+                                : batch.status === "Delayed"
+                                ? "text-amber-600 bg-amber-50 dark:bg-amber-500/10"
+                                : "text-blue-600 bg-blue-50 dark:bg-blue-500/10"
+                            }`}
+                          >
+                            {batch.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-5">
+                          <div className="relative flex justify-end" ref={openDropdownId === batch.batchId ? dropdownRef : undefined}>
+                            <button
+                              onClick={() =>
+                                setOpenDropdownId(
+                                  openDropdownId === batch.batchId ? null : batch.batchId
+                                )
+                              }
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              <MoreHorizontal size={18} />
+                            </button>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-5">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] disabled:opacity-50 flex items-center gap-1 text-gray-700 dark:text-gray-300"
-          >
-            <ChevronLeft size={16} /> Previous
-          </button>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] disabled:opacity-50 flex items-center gap-1 text-gray-700 dark:text-gray-300"
-          >
-            Next <ChevronRight size={16} />
-          </button>
+                            {openDropdownId === batch.batchId && (
+                              <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] shadow-lg z-50 py-1">
+                                <button
+                                  onClick={() => handleQaChecklistClick(batch)}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                >
+                                  <ClipboardCheck size={16} /> QA Checklist
+                                </button>
+                                {batch.status === "QA Review" && (
+                                  <button
+                                    onClick={() => handleQaChecklistClick(batch)}
+                                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  >
+                                    <Check size={16} /> Approve / Reject
+                                  </button>
+                                )}
+                                {batch.status !== "Completed" &&
+                                  batch.status !== "Rejected" && (
+                                    <button
+                                      onClick={() => handleUpdateStageClick(batch)}
+                                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                    >
+                                      <ChevronRight size={16} /> Update Stage
+                                    </button>
+                                  )}
+                                <button
+                                  onClick={() => handleDelete(batch.batchId)}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                >
+                                  <Trash2 size={16} /> Delete Batch
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] disabled:opacity-50 flex items-center gap-1 text-gray-700 dark:text-gray-300"
+              >
+                <ChevronLeft size={16} /> Previous
+              </button>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] disabled:opacity-50 flex items-center gap-1 text-gray-700 dark:text-gray-300"
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ========== PRODUCTION TRACKING TAB ========== */}
+      {activeMainTab === "tracking" && (
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-6">
+          {selectedBatch ? (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Tracking Batch #{selectedBatch.batchId}
+                </h2>
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {selectedBatch.productName} – {selectedBatch.quantity} units • Assigned to{" "}
+                    {selectedBatch.assignedCook}
+                  </p>
+
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    OVERALL PROGRESS:
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 mb-8">
+                {STAGES.map((stage, idx) => {
+                  const currentIdx = STAGES.indexOf(selectedBatch.currentStage as any);
+                  const isCompleted = idx < currentIdx;
+                  const isCurrent = stage === selectedBatch.currentStage;
+                  return (
+                    <div key={stage} className="flex items-center gap-2">
+                      <div
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${
+                          isCurrent
+                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+                            : isCompleted
+                            ? "bg-green-50 border-green-500 text-green-700 dark:bg-green-500/10 dark:text-green-300"
+                            : "bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400"
+                        }`}
+                      >
+                        {isCompleted ? <CheckCircle size={14} /> : STAGE_ICONS[stage]}
+                        {stage}
+                      </div>
+                      {idx < STAGES.length - 1 && (
+                        <ChevronRight size={17} className="text-gray-300 dark:text-gray-700" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setShowUploadModal(selectedBatch.batchId)}
+                disabled={selectedBatch.status === "Completed" || selectedBatch.status === "Rejected"}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Upload size={16} />
+                Update Stage & Upload Images
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <Package size={32} className="mx-auto mb-3 opacity-50" />
+              <p>Select a batch from Production Planning and use <strong>Update Stage</strong> to view tracking.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========== QUALITY CONTROL TAB ========== */}
+      {activeMainTab === "quality" && (
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-6">
+          {selectedBatch ? (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Quality Control – Batch #{selectedBatch.batchId}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedBatch.productName} • Stage: {selectedBatch.currentStage}
+                </p>
+              </div>
+
+              <div className="space-y-3 max-w-xl">
+                {[
+                  { label: "Taste", value: taste, setter: setTaste },
+                  { label: "Texture", value: texture, setter: setTexture },
+                  { label: "Packaging", value: packagingQA, setter: setPackagingQA },
+                  { label: "Appearance", value: appearance, setter: setAppearance },
+                ].map((field) => {
+                  const isPassed = field.value === "Pass";
+                  return (
+                    <div
+                      key={field.label}
+                      className={`flex items-center justify-between rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
+                        isPassed
+                          ? "border-green-400 bg-green-50 dark:border-green-500 dark:bg-green-500/10"
+                          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828]"
+                      }`}
+                      onClick={() => field.setter(isPassed ? "Fail" : "Pass")}
+                    >
+                      <span className={`text-sm font-medium ${
+                        isPassed
+                          ? "text-green-700 dark:text-green-300"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}>
+                        {field.label}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-semibold ${
+                          isPassed ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
+                        }`}>
+                          {isPassed ? "Pass" : "Fail"}
+                        </span>
+                        <div
+                          className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
+                            isPassed
+                              ? "bg-green-500 border-green-500"
+                              : "bg-white dark:bg-[#101828] border-gray-300 dark:border-gray-600"
+                          }`}
+                        >
+                          {isPassed && <Check size={12} className="text-white" strokeWidth={3} />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Final Decision
+                  </label>
+                  <div className="flex gap-3 mb-3">
+                    <button
+                      onClick={() => setDecision("approve")}
+                      className={`flex-1 py-2.5 rounded-xl border font-medium text-sm flex items-center justify-center gap-2
+                        ${decision === "approve" ? "bg-green-50 border-green-500 text-green-700 dark:bg-green-500/10 dark:text-green-300" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"}
+                      `}
+                    >
+                      <CheckCircle size={16} /> Approve
+                    </button>
+                    <button
+                      onClick={() => setDecision("reject")}
+                      className={`flex-1 py-2.5 rounded-xl border font-medium text-sm flex items-center justify-center gap-2
+                        ${decision === "reject" ? "bg-red-50 border-red-500 text-red-700 dark:bg-red-500/10 dark:text-red-300" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"}
+                      `}
+                    >
+                      <XCircle size={16} /> Reject
+                    </button>
+                  </div>
+
+                  {decision === "reject" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Rejection Reason *
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Explain why this batch is rejected..."
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setSelectedBatchId(null);
+                      setActiveMainTab("planning");
+                    }}
+                    className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    Back to Planning
+                  </button>
+                  <button
+                    onClick={handleQaSubmit}
+                    disabled={
+                      !decision ||
+                      (decision === "reject" && !rejectionReason.trim()) ||
+                      submittingQA
+                    }
+                    className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {submittingQA && <Loader2 size={16} className="animate-spin" />}
+                    Submit QA & Decision
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <ClipboardCheck size={32} className="mx-auto mb-3 opacity-50" />
+              <p>Select a batch from Production Planning and use <strong>QA Checklist</strong> to begin quality control.</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -629,28 +861,32 @@ export default function ProductionPage() {
           open={!!showUploadModal}
           batchId={showUploadModal}
           batchStatus={
-            batches.find((b) => b.batchId === showUploadModal)?.status
+            MOCK_BATCHES.find((b) => b.batchId === showUploadModal)?.status
           }
           onClose={() => setShowUploadModal(null)}
           onStageUpdated={() => {
             fetchBatches();
+            setShowUploadModal(null);
           }}
         />
       )}
 
-      {showQaModal && (
-        <QAChecklistModal
-          open={!!showQaModal}
-          batchId={showQaModal}
-          onClose={() => setShowQaModal(null)}
-          onSubmit={() => {
-            setShowQaModal(null);
-            fetchBatches();
-          }}
+      {pendingQaConfirm && (
+        <ConfirmModal
+          message={`Are you sure you want to go to Quality Check the batch #${pendingQaConfirm.batchId} – ${pendingQaConfirm.productName}?`}
+          onConfirm={confirmNavigateToQA}
+          onCancel={() => setPendingQaConfirm(null)}
         />
       )}
 
-      {/* Delete Confirmation Modal */}
+      {pendingTrackingConfirm && (
+        <ConfirmModal
+          message={`Are you sure you want to track production for batch #${pendingTrackingConfirm.batchId} – ${pendingTrackingConfirm.productName}?`}
+          onConfirm={confirmNavigateToTracking}
+          onCancel={() => setPendingTrackingConfirm(null)}
+        />
+      )}
+
       {deleteTarget !== null && (
         <ConfirmModal
           message={`Are you sure you want to permanently delete batch #${deleteTarget}? This action cannot be undone.`}
