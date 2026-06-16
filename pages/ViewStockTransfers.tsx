@@ -185,7 +185,7 @@ export default function ViewStockTransfers() {
         <table className="w-full min-w-[900px]">
           <thead className="border-b border-gray-200 dark:border-gray-700">
             <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1D2939]">
-              <th className="px-5 py-4">Transfer ID</th>
+              <th className="px-5 py-4">Transfer No.</th>
               <th className="px-5 py-4">Product</th>
               <th className="px-5 py-4">Source Location</th>
               <th className="px-5 py-4">Dest Location</th>
@@ -255,7 +255,7 @@ export default function ViewStockTransfers() {
           )}
           
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Product ID</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Product No.</label>
             <input
               type="number"
               required
@@ -268,7 +268,7 @@ export default function ViewStockTransfers() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Source Location ID</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Source Location No.</label>
               <input
                 type="number"
                 required
@@ -279,7 +279,7 @@ export default function ViewStockTransfers() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Dest Location ID</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Dest Location No.</label>
               <input
                 type="number"
                 required

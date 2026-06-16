@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
 
 type LocationItem = {
   id: string;
@@ -31,22 +32,45 @@ export default function CreateTransferModal({ onClose, onSave, locations }: Crea
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [quantityError, setQuantityError] = useState("");
   const [date, setDate] = useState("");
+  const [products, setProducts] = useState<any[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Fetch FinishedProducts directly since StockTransfers expects ProductId
+        const res = await api.get("/api/scms/api/FinishedProducts");
+        if (res.data.success) {
+          setProducts(res.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching products", err);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!product || !from || !to || !quantity || !date) return;
+    if (!product || !to || !quantity) return;
+    
+    if (Number(quantity) <= 0) {
+      setQuantityError("Quantity must be greater than 0.");
+      return;
+    }
 
-    onSave({
-      id: `TRF-${String(Date.now()).slice(-3)}`,
-      product,
-      from,
-      to,
-      quantity: Number(quantity),
-      date,
-      status: "Pending",
-    });
-    onClose();
+    try {
+      await api.post("/api/scms/api/StockTransfers", {
+        productId: Number(product),
+        sourceLocationId: 1, // Fixed to Commissary Kitchen
+        destLocationId: Number(to.replace("LOC-", "")),
+        transferQuantity: Number(quantity),
+      });
+      onSave({} as any);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -67,37 +91,63 @@ export default function CreateTransferModal({ onClose, onSave, locations }: Crea
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Finished Product *</label>
             <select className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={product} onChange={e => setProduct(e.target.value)} required>
               <option value="" className="dark:bg-[#24303f]">Select product...</option>
-              <option value="Ube Halaya (500g Jar)" className="dark:bg-[#24303f]">Ube Halaya (500g Jar)</option>
-              <option value="Ube Jam (250g Jar)" className="dark:bg-[#24303f]">Ube Jam (250g Jar)</option>
-              <option value="Coconut Ube Halaya (500g Jar)" className="dark:bg-[#24303f]">Coconut Ube Halaya (500g Jar)</option>
+              {products.map(p => <option key={p.productId} value={p.productId} className="dark:bg-[#24303f]">{p.itemName}</option>)}
+              {products.length === 0 && (
+                <>
+                  <option value="1" className="dark:bg-[#24303f]">Test Final Product</option>
+                  <option value="2" className="dark:bg-[#24303f]">Ube Halaya (500g Jar)</option>
+                  <option value="3" className="dark:bg-[#24303f]">Ube Jam (250g Jar)</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">To Location *</label>
+            <select className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={to} onChange={e => setTo(e.target.value)} required>
+              <option value="" className="dark:bg-[#24303f]">Select destination...</option>
+              {locations.filter(loc => loc.id !== "LOC-001" && loc.name !== "Commissary Kitchen").map(loc => <option key={loc.id} value={loc.id} className="dark:bg-[#24303f]">{loc.name}</option>)}
+              {locations.filter(loc => loc.id !== "LOC-001" && loc.name !== "Commissary Kitchen").length === 0 && (
+                <>
+                  <option value="2" className="dark:bg-[#24303f]">Branch 1 - Quezon City</option>
+                  <option value="3" className="dark:bg-[#24303f]">Branch 2 - Makati</option>
+                  <option value="4" className="dark:bg-[#24303f]">Bazaar Booth - SM North</option>
+                </>
+              )}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">From Location *</label>
-              <select className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={from} onChange={e => setFrom(e.target.value)} required>
-                <option value="" className="dark:bg-[#24303f]">Select source...</option>
-                {locations.map(loc => <option key={loc.id} value={loc.name} className="dark:bg-[#24303f]">{loc.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">To Location *</label>
-              <select className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value={to} onChange={e => setTo(e.target.value)} required>
-                <option value="" className="dark:bg-[#24303f]">Select destination...</option>
-                {locations.map(loc => <option key={loc.id} value={loc.name} className="dark:bg-[#24303f]">{loc.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Quantity *</label>
-              <input type="number" placeholder="e.g., 50" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+              <input 
+                type="number" 
+                min="1"
+                placeholder="e.g., 50" 
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500`} 
+                value={quantity} 
+                onKeyDown={e => {
+                  if (e.key === "-" || e.key === "e") e.preventDefault();
+                }}
+                onChange={e => {
+                  let val = e.target.value;
+                  if (val.startsWith("-") || (val !== "" && Number(val) < 0)) {
+                    val = "0";
+                  }
+                  setQuantity(val);
+                  if (val === "0") {
+                    setQuantityError("Quantity must be greater than 0.");
+                  } else {
+                    setQuantityError("");
+                  }
+                }} 
+                required 
+              />
+              {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Transfer Date *</label>
-              <input type="text" placeholder="MM/DD/YYYY" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" value={date} onChange={e => setDate(e.target.value)} required />
+              <input type="date" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" value={date} onChange={e => setDate(e.target.value)} required />
             </div>
           </div>
 

@@ -327,10 +327,14 @@ export default function ResourcesSuppliersPage() {
     fetchData();
   }, []);
 
-  const filteredSupplies = useMemo(() => {
-    let result = supplyData.filter(item => 
+  const baseSupplies = useMemo(() => {
+    return supplyData.filter(item => 
       !finishedProductData.some(fp => fp.itemId === item.itemId || fp.itemName?.toLowerCase() === item.itemName?.toLowerCase())
     );
+  }, [supplyData, finishedProductData]);
+
+  const filteredSupplies = useMemo(() => {
+    let result = baseSupplies;
     if (supplyFilter !== "All") {
       result = result.filter((item) => item.categoryName === supplyFilter || (supplyFilter === 'Tools and Supplies' && item.categoryName === 'Tools & Supplies') || ((supplyFilter as string) === 'Tools & Supplies' && item.categoryName === 'Tools and Supplies'));
     }
@@ -339,7 +343,7 @@ export default function ResourcesSuppliersPage() {
       result = result.filter((item) => item.itemName.toLowerCase().includes(q) || item.itemId.toString().includes(q));
     }
     return result;
-  }, [supplyFilter, supplySearchQuery, supplyData, finishedProductData]);
+  }, [supplyFilter, supplySearchQuery, baseSupplies]);
 
   const filteredSuppliers = useMemo(() => {
     let result = supplierData;
@@ -703,18 +707,18 @@ export default function ResourcesSuppliersPage() {
           <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-3">
             <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
               <p className="text-sm text-gray-500 dark:text-gray-400">Total Items</p>
-              <h2 className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{supplyData.length}</h2>
+              <h2 className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{baseSupplies.length}</h2>
             </div>
             <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
               <p className="text-sm text-gray-500 dark:text-gray-400">Raw Materials</p>
               <h2 className="mt-2 text-3xl font-bold text-blue-600">
-                {supplyData.filter(i => i.categoryName === "Raw Materials").length}
+                {baseSupplies.filter(i => i.categoryName === "Raw Materials").length}
               </h2>
             </div>
             <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
               <p className="text-sm text-gray-500 dark:text-gray-400">Tools & Supplies</p>
               <h2 className="mt-2 text-3xl font-bold text-green-600">
-                {supplyData.filter(i => i.categoryName === "Tools and Supplies" || i.categoryName === "Tools & Supplies").length}
+                {baseSupplies.filter(i => i.categoryName === "Tools and Supplies" || i.categoryName === "Tools & Supplies").length}
               </h2>
             </div>
           </div>
@@ -757,7 +761,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Item ID</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -768,9 +772,9 @@ export default function ResourcesSuppliersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredSupplies.map(item => (
+                  filteredSupplies.map((item, index) => (
                     <tr key={item.itemId} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.itemId}</td>
+                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{index + 1}</td>
                       <td className="px-5 py-5 text-sm font-medium text-gray-900 dark:text-white">{item.itemName}</td>
                       <td className="px-5 py-5"><span className="rounded-lg bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{item.categoryName}</span></td>
                       <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.uomName}</td>
@@ -913,7 +917,7 @@ export default function ResourcesSuppliersPage() {
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by Product Name or ID..."
+                placeholder="Search by Product Name or No...."
                 value={recipeSearchQuery}
                 onChange={(e) => setRecipeSearchQuery(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
@@ -925,7 +929,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Recipe ID</th>
+                  <th className="px-5 py-4">Recipe No.</th>
                   <th className="px-5 py-4">Finished Product</th>
                   <th className="px-5 py-4">Target Yield</th>
                   <th className="px-5 py-4">Ingredients Count</th>
@@ -941,11 +945,11 @@ export default function ResourcesSuppliersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredRecipes.map((recipe) => {
+                  filteredRecipes.map((recipe, index) => {
                     const fp = finishedProductData.find(p => p.productId === recipe.productId);
                     return (
                       <tr key={recipe.recipeId} className="border-b border-gray-100 dark:border-gray-800">
-                        <td className="px-5 py-5 text-sm font-semibold text-gray-900 dark:text-white">{recipe.recipeId}</td>
+                        <td className="px-5 py-5 text-sm font-semibold text-gray-900 dark:text-white">{index + 1}</td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
                           {fp ? fp.itemName : `Product #${recipe.productId}`}
                         </td>

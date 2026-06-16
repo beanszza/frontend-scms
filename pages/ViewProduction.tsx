@@ -491,7 +491,7 @@ export default function ProductionPage() {
             <table className="w-full min-w-[900px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1D2939]">
-                  <th className="px-5 py-4">Batch ID</th>
+                  <th className="px-5 py-4">Batch No.</th>
                   <th className="px-5 py-4">Product</th>
                   <th className="px-5 py-4">Quantity</th>
                   <th className="px-5 py-4">Schedule Date</th>

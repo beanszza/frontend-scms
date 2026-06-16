@@ -23,7 +23,7 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-              {["TRANSFER ID", "PRODUCT", "FROM", "TO", "QUANTITY", "TRANSFER DATE", "STATUS", "ACTIONS"].map(h => (
+              {["TRANSFER NO.", "PRODUCT", "FROM", "TO", "QUANTITY", "TRANSFER DATE", "STATUS", "ACTIONS"].map(h => (
                 <th key={h} className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
