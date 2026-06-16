@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import api from "../lib/api";
-import { MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, Eye } from "lucide-react";
+import { MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, Eye, History } from "lucide-react";
+import ConfirmModal from "../components/ConfirmModal";
 
 type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled";
-type PaymentType = "Payable" | "Paid";
+type PaymentType = "Payab le" | "Paid";
 
 type Order = {
   id: string;
@@ -90,6 +91,9 @@ interface NewOrderModalContentProps {
   itemsList: ItemResponse[];
   suppliersList: SupplierResponse[];
   isEdit?: boolean;
+  proofImageUrl?: string;
+  isSaving?: boolean;
+  uploadStatus?: string;
   supplierError?: string;
   setSupplierError?: (value: string) => void;
   itemError?: string;
@@ -154,6 +158,9 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
   const [quantityError, setQuantityError] = useState("");
   const [etaError, setEtaError] = useState("");
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+
   async function handleSave() {
     let hasError = false;
     if (!supplierId) {
@@ -192,6 +199,8 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
 
     if (hasError) return;
     
+    setIsSaving(true);
+    setUploadStatus("Creating order...");
     try {
       const response = await api.post("/api/scms/api/PurchaseOrders", {
         supplierId: Number(supplierId),
@@ -207,13 +216,16 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
       if (response.data.success) {
         const poId = response.data.data.poId;
         if (receiptFile) {
+          setUploadStatus("Uploading receipt...");
           const formData = new FormData();
           formData.append("file", receiptFile);
           await api.post(`/api/scms/api/PurchaseOrders/${poId}/upload-receipt`, formData, {
             headers: { "Content-Type": "multipart/form-data" }
           });
+          setUploadStatus("Upload complete!");
         }
         if (status !== "Pending") {
+          setUploadStatus("Updating status...");
           await api.put(`/api/scms/api/PurchaseOrders/${poId}/status`, { status });
         }
         onSave(response.data.data);
@@ -222,6 +234,9 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
     } catch (error) {
       console.error("Error creating order", error);
       alert("Failed to create order");
+    } finally {
+      setIsSaving(false);
+      setUploadStatus("");
     }
   }
 
@@ -253,6 +268,8 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
       handleSave={handleSave}
       itemsList={itemsList}
       suppliersList={suppliersList}
+      isSaving={isSaving}
+      uploadStatus={uploadStatus}
     />
   );
 }
@@ -266,16 +283,14 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
   const [status, setStatus] = useState<OrderStatus>(order.status || "Pending");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+
   async function handleSave() {
+    setIsSaving(true);
     try {
-      if (receiptFile) {
-        const formData = new FormData();
-        formData.append("file", receiptFile);
-        await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-      }
       if (status !== order.status) {
+        setUploadStatus("Updating status...");
         await api.put(`/api/scms/api/PurchaseOrders/${order.poId}/status`, { status });
       }
       onSave();
@@ -283,6 +298,9 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
     } catch (err) {
       console.error(err);
       alert("Failed to update order");
+    } finally {
+      setIsSaving(false);
+      setUploadStatus("");
     }
   }
 
@@ -307,6 +325,9 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
       itemsList={itemsList}
       suppliersList={suppliersList}
       isEdit={true}
+      proofImageUrl={order.proofImageUrl}
+      isSaving={isSaving}
+      uploadStatus={uploadStatus}
     />
   );
 }
@@ -331,6 +352,9 @@ function NewOrderModalContent({
   itemsList,
   suppliersList,
   isEdit,
+  proofImageUrl,
+  isSaving,
+  uploadStatus,
   supplierError,
   setSupplierError,
   itemError,
@@ -451,23 +475,66 @@ function NewOrderModalContent({
             <option value="Paid">Paid</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction *</label>
-          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden">
-            <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setReceiptFile(e.target.files?.[0] || null)} />
-            <div className="flex flex-col items-center pointer-events-none">
-              <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {receiptFile ? receiptFile.name : "Upload Order Receipt or Purchase Order"}
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG, PDF (max 5MB)</span>
+        {!isEdit && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction *</label>
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden">
+              <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setReceiptFile(e.target.files?.[0] || null)} />
+              <div className="flex flex-col items-center pointer-events-none">
+                <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {receiptFile ? receiptFile.name : "Upload Order Receipt or Purchase Order"}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG, PDF (max 5MB)</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+        {isEdit && proofImageUrl && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction</label>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              {proofImageUrl.toLowerCase().endsWith('.pdf') ? (
+                <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                  <ClipboardCheck size={18} />
+                  <a href={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} target="_blank" rel="noreferrer" className="hover:underline">
+                    View Uploaded PDF Receipt
+                  </a>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Current uploaded receipt:</p>
+                  <img 
+                    src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} 
+                    alt="Receipt Proof" 
+                    className="max-h-36 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-      <div className="flex justify-end gap-3 mt-6">
-        <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-        <button onClick={handleSave} className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">{isEdit ? "Save Changes" : "Create Order"}</button>
+      <div className="flex justify-between items-center mt-6">
+        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+          {isSaving && uploadStatus}
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onClose} disabled={isSaving} className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">Cancel</button>
+          <button 
+            onClick={handleSave} 
+            disabled={isSaving} 
+            className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSaving && (
+              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            )}
+            {isSaving ? "Saving..." : (isEdit ? "Save Changes" : "Create Order")}
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -687,6 +754,7 @@ export default function ViewOrdersProcurement() {
   const [qaOrder, setQaOrder] = useState<Order | null>(null);
   const [activeDropdownPoId, setActiveDropdownPoId] = useState<number | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: "arrived" | "cancel"; orderId: string; poId: number; message: string } | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -731,6 +799,7 @@ export default function ViewOrdersProcurement() {
           qaApproved: o.qaApprovedQuantity,
           qaNotes: o.qaNotes,
           unit: "unit",
+          proofImageUrl: o.proofImageUrl,
         }));
         setOrders(fetchedOrders);
       }
@@ -791,6 +860,12 @@ export default function ViewOrdersProcurement() {
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage purchase orders for Raw Materials and Tools</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <button
+            className="h-11 px-5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap flex items-center gap-2"
+          >
+            <History size={16} />
+            Transaction History
+          </button>
           <button
             onClick={() => setShowNew(true)}
             className="h-11 px-5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors whitespace-nowrap"
@@ -917,7 +992,12 @@ export default function ViewOrdersProcurement() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    handleMarkArrived(order.id, order.poId);
+                                    setConfirmAction({
+                                      type: "arrived",
+                                      orderId: order.id,
+                                      poId: order.poId,
+                                      message: `Are you sure you want to mark order ${order.id} as Arrived?`
+                                    });
                                     setActiveDropdownPoId(null);
                                   }}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -927,7 +1007,12 @@ export default function ViewOrdersProcurement() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    handleCancel(order.id, order.poId);
+                                    setConfirmAction({
+                                      type: "cancel",
+                                      orderId: order.id,
+                                      poId: order.poId,
+                                      message: `Are you sure you want to cancel order ${order.id}?`
+                                    });
                                     setActiveDropdownPoId(null);
                                   }}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
@@ -966,6 +1051,20 @@ export default function ViewOrdersProcurement() {
       {editOrder && <EditOrderModal order={editOrder} onClose={() => setEditOrder(null)} onSave={() => fetchOrders()} itemsList={itemsList} suppliersList={suppliersList} />}
       {viewOrder && <OrderDetailsModal order={viewOrder} onClose={() => setViewOrder(null)} />}
       {qaOrder && <QAModal order={qaOrder} onClose={() => setQaOrder(null)} onComplete={handleQAComplete} />}
+      {confirmAction && (
+        <ConfirmModal
+          message={confirmAction.message}
+          onConfirm={() => {
+            if (confirmAction.type === "arrived") {
+              handleMarkArrived(confirmAction.orderId, confirmAction.poId);
+            } else {
+              handleCancel(confirmAction.orderId, confirmAction.poId);
+            }
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }
