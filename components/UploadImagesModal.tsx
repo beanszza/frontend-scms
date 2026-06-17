@@ -48,6 +48,9 @@ export default function UploadImagesModal({
 
   // ---- Confirmation modal state ----
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const handleCloseAttempt = () => setShowCancelConfirm(true);
 
   // Reset when modal opens
   useEffect(() => {
@@ -138,8 +141,8 @@ export default function UploadImagesModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4" onClick={handleCloseAttempt}>
+      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -225,12 +228,14 @@ export default function UploadImagesModal({
 
         {/* Footer – single Submit button */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleCloseAttempt}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
@@ -252,6 +257,14 @@ export default function UploadImagesModal({
           message="Are you sure you want to save these changes? The stage will be updated (if selected) and images will be uploaded."
           onConfirm={executeActions}
           onCancel={() => setShowConfirm(false)}
+        />
+      )}
+
+      {showCancelConfirm && (
+        <ConfirmModal
+          message="Are you sure you want to cancel? Any unsaved data will be lost."
+          onConfirm={onClose}
+          onCancel={() => setShowCancelConfirm(false)}
         />
       )}
     </div>

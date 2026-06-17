@@ -45,21 +45,31 @@ const formatDateToMDY = (dateInput: string | Date) => {
   return `${m}/${day}/${y}`;
 };
 
+const formatDateToYMD = (dateInput: string | Date) => {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const y = d.getFullYear();
+  return `${y}-${m}-${day}`;
+};
+
 function validateEtaDate(value: string): string {
   if (!value) {
     return "Expected Arrival (ETA) is required.";
   }
 
   // Format validation
-  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
   if (!regex.test(value)) {
-    return "Format must be MM/DD/YYYY.";
+    return "Invalid date format.";
   }
 
-  const parts = value.split("/");
-  const month = parseInt(parts[0], 10);
-  const day = parseInt(parts[1], 10);
-  const year = parseInt(parts[2], 10);
+  const parts = value.split("-");
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
 
   if (month < 1 || month > 12) {
     return "Invalid month (must be 01-12).";
@@ -266,10 +276,10 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
     setIsSaving(true);
     setUploadStatus("Creating order...");
     try {
-      const parts = eta.split("/");
-      const month = parseInt(parts[0], 10);
-      const day = parseInt(parts[1], 10);
-      const year = parseInt(parts[2], 10);
+      const parts = eta.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
       const dateObj = new Date(year, month - 1, day, 23, 59, 59);
 
       const response = await api.post("/api/scms/api/PurchaseOrders", {
@@ -344,7 +354,7 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
   const [supplierId, setSupplierId] = useState(order.supplierId?.toString() || "");
   const [itemId, setItemId] = useState(order.itemId?.toString() || "");
   const [quantity, setQuantity] = useState(order.quantity?.toString() || "");
-  const [eta, setEta] = useState(formatDateToMDY(order.eta) || "");
+  const [eta, setEta] = useState(formatDateToYMD(order.eta) || "");
   const [payment, setPayment] = useState<PaymentType>(order.payment || "Payable");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [currentProofUrl, setCurrentProofUrl] = useState(order.proofImageUrl || "");
@@ -407,10 +417,10 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
     setIsSaving(true);
     setUploadStatus("Saving changes...");
     try {
-      const parts = eta.split("/");
-      const month = parseInt(parts[0], 10);
-      const day = parseInt(parts[1], 10);
-      const year = parseInt(parts[2], 10);
+      const parts = eta.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
       const dateObj = new Date(year, month - 1, day, 23, 59, 59);
 
       // Save order updates
@@ -569,7 +579,7 @@ function NewOrderModalContent({
             }}
           >
             <option value="" disabled hidden>Select item...</option>
-            {itemsList.map(i => <option key={i.itemId} value={i.itemId}>{i.itemName} ({i.category}) - {i.unitOfMeasure}</option>)}
+            {itemsList.map(i => <option key={i.itemId} value={i.itemId}>{i.itemName}</option>)}
           </select>
           {itemError && <p className="mt-1 text-xs text-red-500">{itemError}</p>}
         </div>
@@ -611,102 +621,14 @@ function NewOrderModalContent({
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Expected Arrival (ETA) *</label>
             <input
               disabled={isSaving}
-              type="text"
+              type="date"
               className={`w-full px-3 py-2.5 text-sm rounded-lg border ${etaError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
-              placeholder="MM/DD/YYYY"
               value={eta}
               onChange={e => {
                 const val = e.target.value;
-
-                // If they are deleting, just let them delete
-                if (val.length < eta.length) {
-                  let formatted = val;
-                  if (eta.endsWith("/") && (eta.length - val.length === 1)) {
-                    formatted = val.substring(0, val.length - 1);
-                  }
-                  setEta(formatted);
-                  if (setEtaError) {
-                    if (!formatted) {
-                      setEtaError("Expected Arrival (ETA) is required.");
-                    } else {
-                      setEtaError("");
-                    }
-                  }
-                  return;
-                }
-
-                // Extract all digits
-                const rawDigits = val.replace(/\D/g, "");
-                let digits = "";
-
-                // 1. Process Month (first 2 digits)
-                if (rawDigits.length > 0) {
-                  const m1 = rawDigits[0];
-                  if (m1 === '0' || m1 === '1') {
-                    digits += m1;
-                    if (rawDigits.length > 1) {
-                      const m2 = rawDigits[1];
-                      if (m1 === '0' && m2 >= '1' && m2 <= '9') {
-                        digits += m2;
-                      } else if (m1 === '1' && m2 >= '0' && m2 <= '2') {
-                        digits += m2;
-                      }
-                    }
-                  } else if (m1 >= '2' && m1 <= '9') {
-                    digits += '0' + m1;
-                  }
-                }
-
-                // 2. Process Day (next 2 digits) only if month is complete
-                if (digits.length === 2 && rawDigits.length > digits.length) {
-                  const d1 = rawDigits[digits.length];
-                  if (d1 >= '0' && d1 <= '3') {
-                    digits += d1;
-                    const nextIdx = digits.length;
-                    if (rawDigits.length > nextIdx) {
-                      const d2 = rawDigits[nextIdx];
-                      if (d1 === '0' && d2 >= '1' && d2 <= '9') {
-                        digits += d2;
-                      } else if ((d1 === '1' || d1 === '2') && d2 >= '0' && d2 <= '9') {
-                        digits += d2;
-                      } else if (d1 === '3' && (d2 === '0' || d2 === '1')) {
-                        digits += d2;
-                      }
-                    }
-                  } else if (d1 >= '4' && d1 <= '9') {
-                    digits += '0' + d1;
-                  }
-                }
-
-                // 3. Process Year (next 4 digits) only if month and day are complete
-                if (digits.length === 4 && rawDigits.length > digits.length) {
-                  const remaining = rawDigits.substring(4, 8);
-                  digits += remaining;
-                }
-
-                // Format digits with slashes
-                let result = "";
-                if (digits.length > 0) {
-                  result += digits.substring(0, 2);
-                }
-                if (digits.length > 2) {
-                  result += "/" + digits.substring(2, 4);
-                }
-                if (digits.length > 4) {
-                  result += "/" + digits.substring(4, 8);
-                }
-
-                setEta(result);
-
+                setEta(val);
                 if (setEtaError) {
-                  if (!result) {
-                    setEtaError("Expected Arrival (ETA) is required.");
-                  } else if (result.length === 10) {
-                    const err = validateEtaDate(result);
-                    setEtaError(err);
-                  } else {
-                    setEtaError("");
-                  }
+                  setEtaError(validateEtaDate(val));
                 }
               }}
               onBlur={e => {
@@ -871,9 +793,20 @@ function OrderDetailsModal({ order, onClose }: { order: Order; onClose: () => vo
             </div>
           </div>
           {order.qaNotes && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">QA Inspection Notes:</p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{order.qaNotes}</p>
+            </div>
+          )}
+          {order.proofImageUrl && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4">
+              <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Inspection Photo / Proof</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${order.proofImageUrl}`}
+                alt="QA Proof"
+                className="max-h-48 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white"
+              />
             </div>
           )}
         </>
@@ -900,8 +833,10 @@ function QAInspectionPage({
     docsCorrect: false
   });
   const [comment, setComment] = useState("");
+  const [inspectedBy, setInspectedBy] = useState("");
   const [pictureFile, setPictureFile] = useState<File | null>(null);
   const [commentError, setCommentError] = useState("");
+  const [inspectedByError, setInspectedByError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -910,22 +845,30 @@ function QAInspectionPage({
   const result = isAllChecked ? "good" : "bad";
 
   async function handleQAComplete() {
-    if (result === "bad") {
-      let hasError = false;
-      if (!comment.trim()) {
-        setCommentError("Comment / Rejection notes are required.");
-        hasError = true;
-      } else {
-        setCommentError("");
-      }
-      if (!pictureFile) {
-        setPhotoError("Proof photo of damaged or incomplete items is required.");
-        hasError = true;
-      } else {
-        setPhotoError("");
-      }
-      if (hasError) return;
+    let hasError = false;
+    
+    // Notes are optional, just clear any previous error if it somehow existed
+    setCommentError("");
+
+    if (!inspectedBy.trim()) {
+      setInspectedByError("Inspected by is required.");
+      hasError = true;
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(inspectedBy)) {
+      setInspectedByError("no using special character");
+      hasError = true;
+    } else {
+      setInspectedByError("");
     }
+
+    if (!pictureFile) {
+      setPhotoError("Inspection photo / proof is required.");
+      hasError = true;
+    } else {
+      setPhotoError("");
+    }
+
+    if (hasError) return;
+    
     setShowConfirm(true);
   }
 
@@ -934,9 +877,12 @@ function QAInspectionPage({
     try {
       const targetStatus = result === "good" ? "Completed" : "Rejected";
 
-      // 1. Update status to Completed or Rejected
+      // 1. Update status to Completed or Rejected and send QA details
       const res = await api.put(`/api/scms/api/PurchaseOrders/${order.poId}/status`, {
-        status: targetStatus
+        status: targetStatus,
+        qaNotes: comment,
+        qaStatus: result === "good" ? "Passed" : "Failed",
+        inspectedBy: inspectedBy
       });
 
       if (res.data.success) {
@@ -1114,14 +1060,39 @@ function QAInspectionPage({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Inspection Notes / Comments {result === "bad" && "*"}
+                    Inspected By *
+                  </label>
+                  <input
+                    type="text"
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg border ${
+                      inspectedByError ? "border-red-500 focus:ring-red-500" : "border-gray-300 dark:border-gray-600"
+                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    placeholder="Enter name of inspector"
+                    value={inspectedBy}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setInspectedBy(val);
+                      if (!val.trim()) {
+                        setInspectedByError("Inspected by is required.");
+                      } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(val)) {
+                        setInspectedByError("no using special character");
+                      } else {
+                        setInspectedByError("");
+                      }
+                    }}
+                  />
+                  {inspectedByError && <p className="mt-1 text-xs text-red-500 font-medium">⚠ {inspectedByError}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Inspection Notes / Comments
                   </label>
                   <textarea
                     className={`w-full px-3 py-2.5 text-sm rounded-lg border ${
                       commentError ? "border-red-500 focus:ring-red-500" : "border-gray-300 dark:border-gray-600"
                     } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none`}
                     rows={4}
-                    placeholder={result === "bad" ? "Explain the issues found (required)" : "Optional notes about the inspection"}
+                    placeholder="Optional notes about the inspection"
                     value={comment}
                     onChange={e => {
                       setComment(e.target.value);
@@ -1132,7 +1103,7 @@ function QAInspectionPage({
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Inspection Photo / Proof {result === "bad" && "*"}
+                    Inspection Photo / Proof *
                   </label>
                   <div
                     className={`border-2 border-dashed ${
@@ -1282,10 +1253,33 @@ export default function ViewOrdersProcurement() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [globalStats, setGlobalStats] = useState({ total: 0, pending: 0, arrived: 0, completed: 0 });
+
   useEffect(() => {
     fetchOrders();
     fetchItemsAndSuppliers();
   }, [page, filter, search]);
+
+  useEffect(() => {
+    fetchGlobalStats();
+  }, []);
+
+  async function fetchGlobalStats() {
+    try {
+      const response = await api.get(`/api/scms/api/PurchaseOrders?pageSize=10000`);
+      if (response.data.success) {
+        const allList = response.data.data.items || response.data.data || [];
+        setGlobalStats({
+          total: allList.length,
+          pending: allList.filter((o: any) => o.status === "Pending").length,
+          arrived: allList.filter((o: any) => o.status === "Arrived").length,
+          completed: allList.filter((o: any) => o.status === "Completed").length,
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching global stats", err);
+    }
+  }
 
   async function fetchItemsAndSuppliers() {
     try {
@@ -1341,15 +1335,11 @@ export default function ViewOrdersProcurement() {
   // Data is filtered on backend
   const filtered = orders;
 
-  const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === "Pending").length,
-    arrived: orders.filter(o => o.status === "Arrived").length,
-    completed: orders.filter(o => o.status === "Completed").length,
-  };
+  const stats = globalStats;
 
   function handleSaveNew() {
     fetchOrders(); // Refresh all to get correctly mapped data
+    fetchGlobalStats();
   }
 
   async function handleMarkArrived(id: string, poId: number) {
@@ -1357,6 +1347,7 @@ export default function ViewOrdersProcurement() {
       const res = await api.put(`/api/scms/api/PurchaseOrders/${poId}/status`, { status: "Arrived" });
       if (res.data.success) {
         fetchOrders();
+        fetchGlobalStats();
       }
     } catch (err) {
       console.error("Error marking arrived", err);
@@ -1368,6 +1359,7 @@ export default function ViewOrdersProcurement() {
       const res = await api.put(`/api/scms/api/PurchaseOrders/${poId}/status`, { status: "Cancelled" });
       if (res.data.success) {
         fetchOrders();
+        fetchGlobalStats();
       }
     } catch (err) {
       console.error("Error cancelling order", err);
@@ -1376,6 +1368,8 @@ export default function ViewOrdersProcurement() {
 
   function handleQAComplete() {
     fetchOrders();
+    fetchGlobalStats();
+    setQaOrder(null);
   }
 
   if (qaOrder) {
@@ -1454,7 +1448,14 @@ export default function ViewOrdersProcurement() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((order, idx) => (
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    No Results Found
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((order, idx) => (
                 <tr key={order.id} className={`${idx < filtered.length - 1 ? "border-b border-gray-100 dark:border-gray-700" : ""} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}>
                   <td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white whitespace-nowrap">{order.id}</td>
                   <td className="px-2 py-2.5 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">{order.item}</td>
@@ -1577,7 +1578,8 @@ export default function ViewOrdersProcurement() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -1590,7 +1592,19 @@ export default function ViewOrdersProcurement() {
       </div>
 
       {showNew && <NewOrderModal onClose={() => setShowNew(false)} onSave={handleSaveNew} itemsList={itemsList} suppliersList={suppliersList} />}
-      {editOrder && <EditOrderModal order={editOrder} onClose={() => setEditOrder(null)} onSave={() => fetchOrders()} itemsList={itemsList} suppliersList={suppliersList} />}
+      {editOrder && (
+        <EditOrderModal
+          order={editOrder}
+          onClose={() => setEditOrder(null)}
+          onSave={() => {
+            setEditOrder(null);
+            fetchOrders();
+            fetchGlobalStats();
+          }}
+          itemsList={itemsList}
+          suppliersList={suppliersList}
+        />
+      )}
       {viewOrder && <OrderDetailsModal order={viewOrder} onClose={() => setViewOrder(null)} />}
       {confirmAction && (
         <ConfirmModal

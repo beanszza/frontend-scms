@@ -25,6 +25,11 @@ export default function ViewInventory() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
+    "Raw Materials": 0,
+    "Tools": 0,
+    "Finished Goods": 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchInventories = async () => {
@@ -35,7 +40,9 @@ export default function ViewInventory() {
       if (res.data.success) {
         setInventories(res.data.data.items || res.data.data || []);
         setTotalPages(res.data.data.totalPages || 1);
-        setTotalCount(res.data.data.totalCount || res.data.data.length || 0);
+        const count = res.data.data.totalCount || res.data.data.length || 0;
+        setTotalCount(count);
+        setCategoryCounts(prev => ({ ...prev, [activeTab]: count }));
       }
     } catch (error) {
       console.error("Error fetching inventories", error);
@@ -47,6 +54,32 @@ export default function ViewInventory() {
   useEffect(() => {
     fetchInventories();
   }, [activeTab, page]);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const categories = [
+          { tab: "Raw Materials", filter: "Raw Material" },
+          { tab: "Tools", filter: "Tool" },
+          { tab: "Finished Goods", filter: "Finished Good" }
+        ];
+        
+        const counts = { ...categoryCounts };
+        
+        await Promise.all(categories.map(async (cat) => {
+          const res = await api.get(`/api/scms/api/Inventories?categoryName=${cat.filter}&page=1&pageSize=1`);
+          if (res.data?.success) {
+            counts[cat.tab] = res.data.data.totalCount || res.data.data.items?.length || res.data.data.length || 0;
+          }
+        }));
+        
+        setCategoryCounts(counts);
+      } catch (e) {
+        console.error("Error fetching initial counts", e);
+      }
+    };
+    fetchCounts();
+  }, []);
 
   // For the active tab, we use the fetched inventories. 
   // Inactive tabs will temporarily show 0 since we're now paginating from the backend.
@@ -76,7 +109,7 @@ export default function ViewInventory() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-8">
         {tabs.map((tab) => {
-          const totalItems = tab.data.length;
+          const totalItems = categoryCounts[tab.name] || 0;
           const lowStockCount = tab.data.filter(i => i.isLowStock || i.currentStock <= i.minStockLevel).length;
 
           return (
@@ -118,7 +151,7 @@ export default function ViewInventory() {
         <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">{activeTab} Inventory</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Current stock levels for {currentTabItems.length} items
+            Current stock levels for {totalCount} items
           </p>
         </div>
 
@@ -143,7 +176,9 @@ export default function ViewInventory() {
                 </tr>
               ) : currentTabItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-gray-500">No inventory found for this category.</td>
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    No Results Found
+                  </td>
                 </tr>
               ) : (
                 currentTabItems.map((inv, index) => {
@@ -154,7 +189,7 @@ export default function ViewInventory() {
                   return (
                     <tr key={inv.inventoryId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white">
-                        {index + 1}
+                        {(page - 1) * 10 + index + 1}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                         {inv.itemName}

@@ -153,6 +153,8 @@ export default function ResourcesSuppliersPage() {
     setItemName(val);
     if (!val.trim()) {
       setItemNameError("Item name is required.");
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(val)) {
+      setItemNameError("no using special character");
     } else if (/\d/.test(val)) {
       setItemNameError("Item name must not contain numbers.");
     } else if (supplyData.some(item => item.itemName.trim().toLowerCase() === val.trim().toLowerCase() && item.itemId !== editingSupplyId)) {
@@ -198,6 +200,8 @@ export default function ResourcesSuppliersPage() {
     setCompanyName(val);
     if (!val.trim()) {
       setCompanyNameError("Supplier Name is required.");
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(val)) {
+      setCompanyNameError("no using special character");
     } else if (val.length > 100) {
       setCompanyNameError("Supplier Name cannot exceed 100 characters.");
     } else if (supplierData.some(s => s.companyName.trim().toLowerCase() === val.trim().toLowerCase() && s.supplierId !== editingSupplierId)) {
@@ -212,6 +216,8 @@ export default function ResourcesSuppliersPage() {
     setContactPerson(val);
     if (!val.trim()) {
       setContactPersonError("Contact Person is required.");
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(val)) {
+      setContactPersonError("no using special character");
     } else if (val.length > 50) {
       setContactPersonError("Contact Person cannot exceed 50 characters.");
     } else if (/\d/.test(val)) {
@@ -410,6 +416,9 @@ export default function ResourcesSuppliersPage() {
     if (!itemName.trim()) {
       setItemNameError("Item name is required.");
       hasError = true;
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(itemName)) {
+      setItemNameError("no using special character");
+      hasError = true;
     } else if (/\d/.test(itemName)) {
       setItemNameError("Item name must not contain numbers.");
       hasError = true;
@@ -479,6 +488,9 @@ export default function ResourcesSuppliersPage() {
     if (!companyName.trim()) {
       setCompanyNameError("Supplier Name is required.");
       hasError = true;
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(companyName)) {
+      setCompanyNameError("no using special character");
+      hasError = true;
     } else if (companyName.length > 100) {
       setCompanyNameError("Supplier Name cannot exceed 100 characters.");
       hasError = true;
@@ -492,6 +504,9 @@ export default function ResourcesSuppliersPage() {
     // Contact Person
     if (!contactPerson.trim()) {
       setContactPersonError("Contact Person is required.");
+      hasError = true;
+    } else if (/[!@#$%^&*(),.?":{}|<>\[\]\\/`~=+_]/.test(contactPerson)) {
+      setContactPersonError("no using special character");
       hasError = true;
     } else if (contactPerson.length > 50) {
       setContactPersonError("Contact Person cannot exceed 50 characters.");
@@ -781,7 +796,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -799,7 +814,7 @@ export default function ResourcesSuppliersPage() {
                       <td className="px-5 py-5"><span className="rounded-lg bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{item.categoryName}</span></td>
                       <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.uomName}</td>
                       <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.minStockLevel}</td>
-                      <td className="px-5 py-5">
+                      <td className="px-5 py-5 text-center">
                         <button onClick={() => openEditSupply(item)} className="text-blue-600 hover:text-blue-800"><Pencil size={18} /></button>
                       </td>
                     </tr>
@@ -867,7 +882,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Supplier Name</th><th className="px-5 py-4">Contact Person</th><th className="px-5 py-4">Email</th><th className="px-5 py-4">Phone</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4">Supplier Name</th><th className="px-5 py-4">Contact Person</th><th className="px-5 py-4">Email</th><th className="px-5 py-4">Phone</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -889,7 +904,7 @@ export default function ResourcesSuppliersPage() {
                           {supplier.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-5 py-5">
+                      <td className="px-5 py-5 text-center">
                         <button onClick={() => openEditSupplier(supplier)} className="text-blue-600 hover:text-blue-800"><Pencil size={18} /></button>
                       </td>
                     </tr>
@@ -968,7 +983,7 @@ export default function ResourcesSuppliersPage() {
                   <th className="px-5 py-4">Target Yield</th>
                   <th className="px-5 py-4">Ingredients Count</th>
                   <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -994,7 +1009,7 @@ export default function ResourcesSuppliersPage() {
                             {recipe.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-5 py-5">
+                        <td className="px-5 py-5 text-center">
                           <button onClick={() => openEditRecipe(recipe)} className="text-blue-600 hover:text-blue-800"><Pencil size={18} /></button>
                         </td>
                       </tr>
@@ -1058,19 +1073,9 @@ export default function ResourcesSuppliersPage() {
             {minStockError && <p className="mt-1 text-xs text-red-500">{minStockError}</p>}
           </div>
           <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setOpenSupplyModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
             {editingSupplyId !== null && (
-              <button 
-                onClick={() => {
-                  setDeleteTarget({ type: "supply", id: editingSupplyId });
-                  setShowDeleteConfirm(true);
-                }} 
-                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            )}
-            {editingSupplyId === null && (
-              <button onClick={() => setOpenSupplyModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+              <button onClick={() => { setOpenSupplyModal(false); setDeleteTarget({ type: "supply", id: editingSupplyId }); }} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors flex items-center gap-2"><Trash2 size={18} /> Delete</button>
             )}
             <button onClick={handleAddSupply} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">Save</button>
           </div>
@@ -1125,17 +1130,9 @@ export default function ResourcesSuppliersPage() {
               {phoneError && <p className="mt-1 text-xs text-red-500">{phoneError}</p>}
             </div>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
-            {editingSupplierId === null ? (
-              <select
-                disabled
-                value="true"
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 px-4 py-3 text-sm outline-none cursor-not-allowed opacity-75 animate-pulse"
-              >
-                <option value="true">Active</option>
-              </select>
-            ) : (
+          {editingSupplierId !== null && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
               <select
                 value={supplierActive ? "true" : "false"}
                 onChange={(e) => setSupplierActive(e.target.value === "true")}
@@ -1144,20 +1141,10 @@ export default function ResourcesSuppliersPage() {
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-2">
-            {editingSupplierId !== null && (
-              <button 
-                onClick={() => {
-                  setDeleteTarget({ type: "supplier", id: editingSupplierId });
-                  setShowDeleteConfirm(true);
-                }} 
-                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            )}
+
             {editingSupplierId === null && (
               <button onClick={() => setOpenSupplierModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
             )}
@@ -1252,17 +1239,9 @@ export default function ResourcesSuppliersPage() {
             <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Additional preparation notes..." rows={4} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
-            {editingRecipeId === null ? (
-              <select
-                disabled
-                value="true"
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 px-4 py-3 text-sm outline-none cursor-not-allowed opacity-75"
-              >
-                <option value="true">Active</option>
-              </select>
-            ) : (
+          {editingRecipeId !== null && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
               <select
                 value={recipeActive ? "true" : "false"}
                 onChange={(e) => setRecipeActive(e.target.value === "true")}
@@ -1271,20 +1250,10 @@ export default function ResourcesSuppliersPage() {
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-2">
-            {editingRecipeId !== null && (
-              <button 
-                onClick={() => {
-                  setDeleteTarget({ type: "recipe", id: editingRecipeId });
-                  setShowDeleteConfirm(true);
-                }} 
-                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            )}
+
             {editingRecipeId === null && (
               <button onClick={() => setOpenRecipeModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
             )}

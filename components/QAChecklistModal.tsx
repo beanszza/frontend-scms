@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Loader2, ClipboardCheck, CheckCircle, XCircle } from "lucide-react";
 import api from "../lib/api";
+import ConfirmModal from "./ConfirmModal";
 
 interface Props {
   open: boolean;
@@ -18,16 +19,26 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
   const [packaging, setPackaging] = useState("Pass");
   const [appearance, setAppearance] = useState("Pass");
   const [notes, setNotes] = useState("");
+  const [notesError, setNotesError] = useState("");
 
   // Decision fields
   const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
+
+  const validateNoSpecialChars = (text: string) => {
+    return /^[A-Za-z0-9\s]*$/.test(text);
+  };
 
   const [submitting, setSubmitting] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const handleCloseAttempt = () => setShowCancelConfirm(true);
 
   const handleSubmit = async () => {
     if (!decision) return;
     if (decision === "reject" && !rejectionReason.trim()) return;
+    if (notesError || rejectionError) return;
 
     setSubmitting(true);
     try {
@@ -55,11 +66,11 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
   const selectClass =
     "w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white";
 
-  const canSubmit = decision !== null && (decision === "approve" || rejectionReason.trim() !== "") && !submitting;
+  const canSubmit = decision !== null && (decision === "approve" || rejectionReason.trim() !== "") && !submitting && !notesError && !rejectionError;
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4" onClick={handleCloseAttempt}>
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             QA Checklist – Batch {batchId}
@@ -99,10 +110,19 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
             <textarea
               rows={2}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setNotes(val);
+                if (!validateNoSpecialChars(val)) {
+                  setNotesError("Special characters are not allowed.");
+                } else {
+                  setNotesError("");
+                }
+              }}
               placeholder="QA notes..."
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+              className={`w-full rounded-xl border ${notesError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
             />
+            {notesError && <p className="mt-1 text-xs text-red-500">{notesError}</p>}
           </div>
 
           {/* ---------- Decision Section ---------- */}
@@ -137,10 +157,19 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
                 <textarea
                   rows={3}
                   value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setRejectionReason(val);
+                    if (!validateNoSpecialChars(val)) {
+                      setRejectionError("Special characters are not allowed.");
+                    } else {
+                      setRejectionError("");
+                    }
+                  }}
                   placeholder="Explain why this batch is rejected..."
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                  className={`w-full rounded-xl border ${rejectionError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
                 />
+                {rejectionError && <p className="mt-1 text-xs text-red-500">{rejectionError}</p>}
               </div>
             )}
           </div>
@@ -148,12 +177,14 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
 
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleCloseAttempt}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
@@ -164,6 +195,14 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
           </button>
         </div>
       </div>
+
+      {showCancelConfirm && (
+        <ConfirmModal
+          message="Are you sure you want to cancel? Any unsaved data will be lost."
+          onConfirm={onClose}
+          onCancel={() => setShowCancelConfirm(false)}
+        />
+      )}
     </div>
   );
 }

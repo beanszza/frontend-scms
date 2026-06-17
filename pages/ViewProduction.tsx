@@ -196,6 +196,7 @@ export default function ProductionPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchError, setSearchError] = useState("");
   const [summary, setSummary] = useState<SummaryCounts>({
     active: 0,
     completed: 0,
@@ -217,7 +218,12 @@ export default function ProductionPage() {
   const [qaNotes, setQaNotes] = useState("");
   const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
   const [submittingQA, setSubmittingQA] = useState(false);
+
+  const validateNoSpecialChars = (text: string) => {
+    return /^[A-Za-z0-9\s]*$/.test(text);
+  };
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState<number | null>(null);
@@ -476,10 +482,19 @@ export default function ProductionPage() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (!validateNoSpecialChars(val)) {
+                    setSearchError("Special characters are not allowed.");
+                  } else {
+                    setSearchError("");
+                  }
+                }}
                 placeholder="Search by product or cook..."
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-3 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full rounded-xl border ${searchError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#1D2939] py-3 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`}
               />
+              {searchError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500">{searchError}</p>}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
               Page {currentPage} of {totalPages}
@@ -510,8 +525,8 @@ export default function ProductionPage() {
                   </tr>
                 ) : batches.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-10 text-gray-500">
-                      No production batches found.
+                    <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      No Results Found
                     </td>
                   </tr>
                 ) : (
@@ -802,10 +817,19 @@ export default function ProductionPage() {
                       <textarea
                         rows={3}
                         value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRejectionReason(val);
+                          if (!validateNoSpecialChars(val)) {
+                            setRejectionError("Special characters are not allowed.");
+                          } else {
+                            setRejectionError("");
+                          }
+                        }}
                         placeholder="Explain why this batch is rejected..."
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                        className={`w-full rounded-xl border ${rejectionError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
                       />
+                      {rejectionError && <p className="mt-1 text-xs text-red-500">{rejectionError}</p>}
                     </div>
                   )}
                 </div>
@@ -825,6 +849,7 @@ export default function ProductionPage() {
                     disabled={
                       !decision ||
                       (decision === "reject" && !rejectionReason.trim()) ||
+                      !!rejectionError ||
                       submittingQA
                     }
                     className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"

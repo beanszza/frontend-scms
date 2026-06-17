@@ -8,7 +8,7 @@ interface ConfirmModalProps {
 
 export default function ConfirmModal({ message, onConfirm, onCancel }: ConfirmModalProps) {
   return (
-    <div className="fixed inset-0 z-999999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+    <div className="fixed inset-0 z-999999 flex items-center justify-center p-4 bg-black/60" onClick={onCancel}>
       <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col p-6" onClick={e => e.stopPropagation()}>
         <div className="flex flex-col items-center justify-center text-center">
           <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/40 flex items-center justify-center mb-4 text-yellow-600 dark:text-yellow-400">

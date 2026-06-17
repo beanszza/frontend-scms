@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, X, RotateCw, ArrowRight, CheckCircle, Package } from "lucide-react";
+import { Plus, X, RotateCw, ArrowRight, CheckCircle, Package, MoreHorizontal, Eye, Pencil, XCircle, Truck } from "lucide-react";
 import api from "../lib/api";
+import ConfirmModal from "../components/ConfirmModal";
 
 type StockTransfer = {
   transferId: number;
@@ -77,6 +78,9 @@ export default function ViewStockTransfers() {
   const [isLoading, setIsLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ id: number, newStatus: string, message: string } | null>(null);
 
   // Form State
   const [productId, setProductId] = useState("");
@@ -152,6 +156,8 @@ export default function ViewStockTransfers() {
         return <span className="rounded-full bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-400">{status}</span>;
       case "Completed":
         return <span className="rounded-full bg-green-100 dark:bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-400">{status}</span>;
+      case "Cancelled":
+        return <span className="rounded-full bg-red-100 dark:bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-400">{status}</span>;
       default:
         return <span className="rounded-full bg-gray-100 dark:bg-gray-500/10 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-400">{status}</span>;
     }
@@ -201,9 +207,11 @@ export default function ViewStockTransfers() {
                 <td colSpan={8} className="text-center py-10 text-gray-500">Loading transfers...</td>
               </tr>
             ) : transfers.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center py-10 text-gray-500">No stock transfers found.</td>
-              </tr>
+                <tr>
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    No Results Found
+                  </td>
+                </tr>
             ) : (
               transfers.map((t) => (
                 <tr key={t.transferId} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -219,23 +227,110 @@ export default function ViewStockTransfers() {
                   <td className="px-5 py-5 text-sm font-bold text-gray-900 dark:text-white">{t.transferQuantity}</td>
                   <td className="px-5 py-5">{getStatusBadge(t.status)}</td>
                   <td className="px-5 py-5 text-sm text-gray-500">{new Date(t.transferDate).toLocaleString()}</td>
-                  <td className="px-5 py-5 text-right">
-                    <div className="flex justify-end gap-2">
-                      {t.status === "Pending" && (
-                        <button
-                          onClick={() => handleUpdateStatus(t.transferId, "In Transit")}
-                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-3 py-2 rounded-lg hover:bg-blue-100"
-                        >
-                          <ArrowRight size={14} /> Start Transit
-                        </button>
-                      )}
-                      {t.status === "In Transit" && (
-                        <button
-                          onClick={() => handleUpdateStatus(t.transferId, "Completed")}
-                          className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 dark:bg-green-500/10 px-3 py-2 rounded-lg hover:bg-green-100"
-                        >
-                          <CheckCircle size={14} /> Complete
-                        </button>
+                  <td className="px-5 py-5 text-right relative">
+                    <div className="relative inline-block text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (activeDropdownId === t.transferId) {
+                            setActiveDropdownId(null);
+                          } else {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const leftPos = rect.right - 176 + window.scrollX;
+                            setDropdownPosition({
+                              top: rect.bottom + window.scrollY,
+                              left: Math.max(8, leftPos)
+                            });
+                            setActiveDropdownId(t.transferId);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+
+                      {activeDropdownId === t.transferId && dropdownPosition && createPortal(
+                        <>
+                          <div
+                            className="fixed inset-0 z-[9998] cursor-default"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDropdownId(null);
+                            }}
+                          />
+                          <div
+                            style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
+                            className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
+                          >
+                            <button
+                              onClick={() => {
+                                alert("View functionality not implemented yet.");
+                                setActiveDropdownId(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              <Eye size={14} className="text-gray-500" />
+                              View
+                            </button>
+                            {t.status === "Pending" && (
+                              <button
+                                onClick={() => {
+                                  alert("Edit functionality not implemented yet.");
+                                  setActiveDropdownId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <Pencil size={14} className="text-blue-600 dark:text-blue-400" />
+                                Edit
+                              </button>
+                            )}
+                            {t.status === "Pending" && (
+                              <button
+                                onClick={() => {
+                                  setConfirmAction({
+                                    id: t.transferId,
+                                    newStatus: "In Transit",
+                                    message: `Are you sure you want to dispatch transfer #${t.transferId}?`
+                                  });
+                                  setActiveDropdownId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <Truck size={14} className="text-blue-600 dark:text-blue-400" />
+                                Dispatch
+                              </button>
+                            )}
+                            {t.status === "In Transit" && (
+                              <button
+                                onClick={() => {
+                                  handleUpdateStatus(t.transferId, "Completed");
+                                  setActiveDropdownId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+                                Complete
+                              </button>
+                            )}
+                            {t.status === "Pending" && (
+                              <button
+                                onClick={() => {
+                                  setConfirmAction({
+                                    id: t.transferId,
+                                    newStatus: "Cancelled",
+                                    message: `Are you sure you want to cancel transfer #${t.transferId}?`
+                                  });
+                                  setActiveDropdownId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                              >
+                                <XCircle size={14} />
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </>,
+                        document.body
                       )}
                     </div>
                   </td>
@@ -320,6 +415,17 @@ export default function ViewStockTransfers() {
           </div>
         </form>
       </Modal>
+
+      {confirmAction && (
+        <ConfirmModal
+          message={confirmAction.message}
+          onConfirm={() => {
+            handleUpdateStatus(confirmAction.id, confirmAction.newStatus);
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }

@@ -21,8 +21,15 @@ export default function LocationManagement({ locations }: { locations: Location[
             </tr>
           </thead>
           <tbody>
-            {locations.map(l => (
-              <tr key={l.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+            {locations.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  No Results Found
+                </td>
+              </tr>
+            ) : (
+              locations.map(l => (
+                <tr key={l.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                 <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{l.id}</td>
                 <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">{l.name}</td>
                 <td className="px-4 py-3">
@@ -39,8 +46,9 @@ export default function LocationManagement({ locations }: { locations: Location[
                 <td className="px-4 py-3">
                   <button className="text-gray-400 hover:text-red-500 transition-colors font-medium">Deactivate</button>
                 </td>
-              </tr>
-            ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

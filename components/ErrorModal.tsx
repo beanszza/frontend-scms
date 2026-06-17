@@ -7,7 +7,7 @@ interface ErrorModalProps {
 
 export default function ErrorModal({ message, onClose }: ErrorModalProps) {
   return (
-    <div className="fixed inset-0 z-999999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-999999 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
       <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col p-6" onClick={e => e.stopPropagation()}>
         <div className="flex flex-col items-center justify-center text-center">
           <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mb-4 text-red-600 dark:text-red-400">

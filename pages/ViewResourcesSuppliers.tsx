@@ -199,7 +199,14 @@ function InventoryTable({ items, title, subtitle, c }: {
             </tr>
           </thead>
           <tbody>
-            {items.map((item, idx) => {
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ padding: "40px 24px", textAlign: "center", fontSize: 14, fontWeight: 600, color: c.mutedText }}>
+                  No Results Found
+                </td>
+              </tr>
+            ) : (
+              items.map((item, idx) => {
               const pct    = getStockPercent(item.currentStock, item.minStock);
               const barPct = Math.min(pct, 100);
               return (

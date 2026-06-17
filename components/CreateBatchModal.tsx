@@ -54,25 +54,36 @@ const MOCK_COOKS = [
 
 export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   const [productType, setProductType] = useState("");
+  const [productTypeError, setProductTypeError] = useState("");
   const [quantity, setQuantity] = useState<number>(0);
+  const [quantityError, setQuantityError] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleDateError, setScheduleDateError] = useState("");
   const [batchType, setBatchType] = useState("Retail");
   const [assignedCook, setAssignedCook] = useState("");
+  const [assignedCookError, setAssignedCookError] = useState("");
   const [ingredients, setIngredients] = useState<IngredientAllocation[]>([]);
   const [isComputing, setIsComputing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Confirmation state
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const handleCloseAttempt = () => setShowCancelConfirm(true);
 
   // Reset on open
   useEffect(() => {
     if (open) {
       setProductType("");
+      setProductTypeError("");
       setQuantity(0);
+      setQuantityError("");
       setScheduleDate("");
+      setScheduleDateError("");
       setBatchType("Retail");
       setAssignedCook("");
+      setAssignedCookError("");
       setIngredients([]);
       setShowConfirm(false);
     }
@@ -115,6 +126,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     productType &&
     quantity > 0 &&
     scheduleDate &&
+    !scheduleDateError &&
     assignedCook &&
     !isSubmitting &&
     !hasStockIssue;
@@ -136,17 +148,36 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     }
   };
 
-  // Called when Add Batch is clicked – shows confirmation
   const handleAddBatch = () => {
-    if (!isFormValid) return;
+    let hasError = false;
+
+    if (!productType) {
+      setProductTypeError("Product type is required.");
+      hasError = true;
+    }
+    if (quantity <= 0) {
+      setQuantityError("Quantity must be greater than 0.");
+      hasError = true;
+    }
+    if (!scheduleDate) {
+      setScheduleDateError("Schedule date is required.");
+      hasError = true;
+    }
+    if (!assignedCook) {
+      setAssignedCookError("Assigned cook is required.");
+      hasError = true;
+    }
+
+    if (hasError || scheduleDateError === "Past date is not allowed." || hasStockIssue) return;
+    
     setShowConfirm(true);
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={handleCloseAttempt}>
+      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -166,8 +197,11 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               </label>
               <select
                 value={productType}
-                onChange={(e) => setProductType(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                onChange={(e) => {
+                  setProductType(e.target.value);
+                  setProductTypeError("");
+                }}
+                className={`w-full rounded-xl border ${productTypeError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               >
                 <option value="">Select product</option>
                 {MOCK_PRODUCTS.map((prod) => (
@@ -176,6 +210,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </option>
                 ))}
               </select>
+              {productTypeError && <p className="mt-1 text-xs text-red-500">{productTypeError}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -185,9 +220,13 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 type="number"
                 min={1}
                 value={quantity || ""}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                onChange={(e) => {
+                  setQuantity(Number(e.target.value));
+                  if (Number(e.target.value) > 0) setQuantityError("");
+                }}
+                className={`w-full rounded-xl border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               />
+              {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -196,9 +235,19 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               <input
                 type="date"
                 value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setScheduleDate(val);
+                  const today = new Date().toISOString().split("T")[0];
+                  if (val && val < today) {
+                    setScheduleDateError("Past date is not allowed.");
+                  } else {
+                    setScheduleDateError("");
+                  }
+                }}
+                className={`w-full rounded-xl border ${scheduleDateError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               />
+              {scheduleDateError && <p className="mt-1 text-xs text-red-500">{scheduleDateError}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -206,8 +255,11 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               </label>
               <select
                 value={assignedCook}
-                onChange={(e) => setAssignedCook(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                onChange={(e) => {
+                  setAssignedCook(e.target.value);
+                  setAssignedCookError("");
+                }}
+                className={`w-full rounded-xl border ${assignedCookError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               >
                 <option value="">Select cook</option>
                 {MOCK_COOKS.map((cook) => (
@@ -216,6 +268,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </option>
                 ))}
               </select>
+              {assignedCookError && <p className="mt-1 text-xs text-red-500">{assignedCookError}</p>}
             </div>
           </div>
 
@@ -283,12 +336,14 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleCloseAttempt}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
           <button
             onClick={handleAddBatch}
             disabled={!isFormValid}
@@ -306,6 +361,14 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
           message={`Are you sure you want to create this batch? The required ingredients will be deducted from inventory.`}
           onConfirm={submitBatch}
           onCancel={() => setShowConfirm(false)}
+        />
+      )}
+
+      {showCancelConfirm && (
+        <ConfirmModal
+          message="Are you sure you want to cancel? Any unsaved data will be lost."
+          onConfirm={onClose}
+          onCancel={() => setShowCancelConfirm(false)}
         />
       )}
     </div>
