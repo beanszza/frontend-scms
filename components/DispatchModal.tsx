@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { Upload, Trash2 } from "lucide-react";
 import ConfirmModal from "./ConfirmModal";
 
 type Transfer = {
@@ -17,6 +18,7 @@ type DispatchData = {
   dispatchDate: string;
   driverName: string;
   trackingNumber: string;
+  receiptImages: File[];
 };
 
 interface DispatchModalProps {
@@ -32,9 +34,36 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
   const [driverNameError, setDriverNameError] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingNumberError, setTrackingNumberError] = useState("");
+  const [receiptError, setReceiptError] = useState("");
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleCloseAttempt = () => setShowCancelConfirm(true);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const valid = files.filter((f) =>
+      ["image/jpeg", "image/png", "image/jpg"].includes(f.type)
+    );
+    setSelectedFiles((prev) => [...prev, ...valid]);
+    valid.forEach((f) => {
+      const url = URL.createObjectURL(f);
+      setPreviews((prev) => [...prev, url]);
+    });
+    if (valid.length > 0) setReceiptError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,11 +84,18 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
       hasError = true;
     }
 
+    if (selectedFiles.length === 0) {
+      setReceiptError("Proof of transaction (receipt) is required.");
+      hasError = true;
+    } else {
+      setReceiptError("");
+    }
+
     if (hasError || dispatchDateError === "Past date is not allowed." || driverNameError === "No numbers and special characters are allowed." || trackingNumberError === "No special characters or spaces are allowed.") {
       return;
     }
     
-    onConfirm(transfer.id, { dispatchDate, driverName, trackingNumber });
+    onConfirm(transfer.id, { dispatchDate, driverName, trackingNumber, receiptImages: selectedFiles });
   };
 
   const handleDriverNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,7 +143,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
           <div className="col-span-2 border-t border-slate-200 dark:border-slate-700 pt-2"><p className="text-[10px] text-slate-400 font-medium">Transfer Date</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.date}</p></div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dispatch Date *</label>
             <input 
@@ -124,7 +160,6 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
                   setDispatchDateError("");
                 }
               }} 
-              required 
             />
             {dispatchDateError && <p className="mt-1 text-xs text-red-500">{dispatchDateError}</p>}
           </div>
@@ -152,6 +187,55 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
               />
               {trackingNumberError && <p className="mt-1 text-xs text-red-500">{trackingNumberError}</p>}
             </div>
+          </div>
+
+          {/* Receipt Upload Section */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Proof of Transaction (Receipt) *
+            </label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed ${receiptError ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} p-6 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-white dark:bg-[#24303f]`}
+            >
+              <Upload size={24} className="text-slate-400 mb-2" />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Click to add JPG, PNG, or JPEG files
+              </p>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/png, image/jpeg, image/jpg"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            {receiptError && <p className="mt-1 text-xs text-red-500">{receiptError}</p>}
+
+            {previews.length > 0 && (
+              <div className="mt-3 grid grid-cols-4 gap-3">
+                {previews.map((src, idx) => (
+                  <div
+                    key={idx}
+                    className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 h-20"
+                  >
+                    <img
+                      src={src}
+                      alt={`preview ${idx}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                      className="absolute top-1 right-1 p-1 bg-white dark:bg-slate-800 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={12} className="text-red-500" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-slate-700">

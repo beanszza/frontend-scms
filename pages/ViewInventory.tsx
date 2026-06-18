@@ -183,8 +183,12 @@ export default function ViewInventory() {
               ) : (
                 currentTabItems.map((inv, index) => {
                   const isCritical = inv.currentStock <= inv.minStockLevel || inv.isLowStock;
-                  const percent = inv.minStockLevel > 0 ? Math.round((inv.currentStock / inv.minStockLevel) * 100) : 100;
-                  const barWidth = Math.min(100, percent);
+                  let stockLevelLabel = "High";
+                  if (isCritical || inv.currentStock === 0) {
+                    stockLevelLabel = "Low";
+                  } else if (inv.minStockLevel > 0 && inv.currentStock <= inv.minStockLevel * 1.5) {
+                    stockLevelLabel = "Medium";
+                  }
 
                   return (
                     <tr key={inv.inventoryId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -204,14 +208,24 @@ export default function ViewInventory() {
                         {inv.minStockLevel}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1.5">
-                          <div
-                            className={`h-full rounded-full ${isCritical ? 'bg-red-600' : 'bg-green-600'}`}
-                            style={{ width: `${barWidth}%` }}
-                          ></div>
+                        <div className="w-24 flex gap-1 h-2 mb-1.5">
+                          <div className={`flex-1 rounded-l-full ${
+                            stockLevelLabel === 'Low' ? 'bg-red-600' : 
+                            stockLevelLabel === 'Medium' ? 'bg-yellow-500' : 
+                            'bg-green-500'
+                          }`}></div>
+                          <div className={`flex-1 ${
+                            stockLevelLabel === 'Low' ? 'bg-gray-200 dark:bg-gray-700' : 
+                            stockLevelLabel === 'Medium' ? 'bg-yellow-500' : 
+                            'bg-green-500'
+                          }`}></div>
+                          <div className={`flex-1 rounded-r-full ${
+                            stockLevelLabel === 'High' ? 'bg-green-500' : 
+                            'bg-gray-200 dark:bg-gray-700'
+                          }`}></div>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                          {percent}%
+                          {stockLevelLabel}
                         </div>
                       </td>
                       <td className="px-6 py-4">
