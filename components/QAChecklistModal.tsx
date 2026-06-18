@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2, ClipboardCheck, CheckCircle, XCircle } from "lucide-react";
+import { X, Loader2, CheckCircle, XCircle } from "lucide-react";
 import api from "../lib/api";
-import ConfirmModal from "./ConfirmModal";
 
 interface Props {
   open: boolean;
@@ -31,9 +30,6 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
   };
 
   const [submitting, setSubmitting] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-
-  const handleCloseAttempt = () => setShowCancelConfirm(true);
 
   const handleSubmit = async () => {
     if (!decision) return;
@@ -69,7 +65,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
   const canSubmit = decision !== null && (decision === "approve" || rejectionReason.trim() !== "") && !submitting && !notesError && !rejectionError;
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4" onClick={handleCloseAttempt}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -152,8 +148,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
             {decision === "reject" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Rejection Reason *
-                </label>
+                  Rejection Reason <span className="text-red-500">*</span></label>
                 <textarea
                   rows={3}
                   value={rejectionReason}
@@ -178,12 +173,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={handleCloseAttempt}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
           </div>
           <button
             onClick={handleSubmit}
@@ -195,14 +185,6 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
           </button>
         </div>
       </div>
-
-      {showCancelConfirm && (
-        <ConfirmModal
-          message="Are you sure you want to cancel? Any unsaved data will be lost."
-          onConfirm={onClose}
-          onCancel={() => setShowCancelConfirm(false)}
-        />
-      )}
     </div>
   );
 }

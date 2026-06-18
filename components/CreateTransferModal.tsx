@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import ConfirmModal from "./ConfirmModal";
 
 type LocationItem = {
   id: string;
@@ -41,17 +40,8 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
   const [date, setDate] = useState("");
   const [dateError, setDateError] = useState("");
   const [products, setProducts] = useState<any[]>([]);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const isReadOnly = mode === "view";
-
-  const handleCloseAttempt = () => {
-    if (isReadOnly) {
-      onClose();
-    } else {
-      setShowCancelConfirm(true);
-    }
-  };
 
   useEffect(() => {
     if (initialData) {
@@ -139,7 +129,7 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={handleCloseAttempt}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col p-6 text-slate-900 dark:text-white" onClick={e => e.stopPropagation()}>
         
         <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
@@ -156,7 +146,7 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Finished Product *</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Finished Product <span className="text-red-500">*</span></label>
             <select 
               className={`w-full px-3 py-2 text-sm rounded-lg border ${productError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${isReadOnly ? "opacity-60 cursor-not-allowed" : ""}`}
               value={product} 
@@ -164,7 +154,6 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
                 setProduct(e.target.value);
                 setProductError("");
               }} 
-              required 
               disabled={isReadOnly}>
               <option value="" className="dark:bg-[#24303f]">Select product...</option>
               {products.map(p => <option key={p.productId} value={p.productId} className="dark:bg-[#24303f]">{p.itemName}</option>)}
@@ -180,7 +169,7 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">To Location *</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">To Location <span className="text-red-500">*</span></label>
             <select 
               className={`w-full px-3 py-2 text-sm rounded-lg border ${toError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${isReadOnly ? "opacity-60 cursor-not-allowed" : ""}`}
               value={to} 
@@ -188,7 +177,6 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
                 setTo(e.target.value);
                 setToError("");
               }} 
-              required 
               disabled={isReadOnly}>
               <option value="" className="dark:bg-[#24303f]">Select destination...</option>
               {locations.filter(loc => loc.id !== "LOC-001" && loc.name !== "Commissary Kitchen").map(loc => <option key={loc.id} value={loc.id} className="dark:bg-[#24303f]">{loc.name}</option>)}
@@ -205,7 +193,7 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Quantity *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Quantity <span className="text-red-500">*</span></label>
               <input 
                 type="number" 
                 min="1"
@@ -228,12 +216,11 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
                     setQuantityError("");
                   }
                 }} 
-                required 
               />
               {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Transfer Date *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Transfer Date <span className="text-red-500">*</span></label>
               <input 
                 type="date" 
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${dateError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:bg-gray-50 dark:disabled:bg-gray-800`} 
@@ -249,7 +236,6 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
                     setDateError("");
                   }
                 }} 
-                required 
               />
               {dateError && <p className="mt-1 text-xs text-red-500">{dateError}</p>}
             </div>
@@ -260,7 +246,7 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
               <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Close</button>
             ) : (
               <>
-                <button type="button" onClick={handleCloseAttempt} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
                 <button type="submit" className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/30">
                   {mode === "edit" ? "Save Changes" : "Create Transfer"}
                 </button>
@@ -269,14 +255,6 @@ export default function CreateTransferModal({ onClose, onSave, locations, mode =
           </div>
         </form>
       </div>
-
-      {showCancelConfirm && (
-        <ConfirmModal
-          message="Are you sure you want to cancel? Any unsaved data will be lost."
-          onConfirm={onClose}
-          onCancel={() => setShowCancelConfirm(false)}
-        />
-      )}
     </div>
   );
 }

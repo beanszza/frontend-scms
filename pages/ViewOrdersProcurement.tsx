@@ -544,7 +544,7 @@ function NewOrderModalContent({
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Purchase Raw Materials, Tools, or Supplies</p>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier *</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier <span className="text-red-500">*</span></label>
           <select
             disabled={isSaving}
             className={`w-full px-3 py-2.5 text-sm rounded-lg border ${supplierError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
@@ -564,7 +564,7 @@ function NewOrderModalContent({
           {supplierError && <p className="mt-1 text-xs text-red-500">{supplierError}</p>}
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Item *</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Item <span className="text-red-500">*</span></label>
           <select
             disabled={isSaving}
             className={`w-full px-3 py-2.5 text-sm rounded-lg border ${itemError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
@@ -585,7 +585,7 @@ function NewOrderModalContent({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Quantity *</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Quantity <span className="text-red-500">*</span></label>
             <input
               disabled={isSaving}
               type="number"
@@ -618,7 +618,7 @@ function NewOrderModalContent({
             {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Expected Arrival (ETA) *</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Expected Arrival (ETA) <span className="text-red-500">*</span></label>
             <input
               disabled={isSaving}
               type="date"
@@ -642,7 +642,7 @@ function NewOrderModalContent({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Type *</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Type <span className="text-red-500">*</span></label>
           <select disabled={isSaving} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
             <option value="Payable">Payable</option>
             <option value="Paid">Paid</option>
@@ -1060,8 +1060,7 @@ function QAInspectionPage({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Inspected By *
-                  </label>
+                    Inspected By <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     className={`w-full px-3 py-2.5 text-sm rounded-lg border ${
@@ -1103,8 +1102,7 @@ function QAInspectionPage({
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Inspection Photo / Proof *
-                  </label>
+                    Inspection Photo / Proof <span className="text-red-500">*</span></label>
                   <div
                     className={`border-2 border-dashed ${
                       photoError ? "border-red-500 bg-red-50/5 dark:bg-red-950/5" : "border-gray-300 dark:border-gray-650"

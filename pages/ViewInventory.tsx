@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Package, AlertCircle, TrendingUp, ShoppingCart } from "lucide-react";
+import { Package, AlertCircle, TrendingUp, ShoppingCart, MoreHorizontal } from "lucide-react";
 import api from "../lib/api";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
@@ -31,6 +31,7 @@ export default function ViewInventory() {
     "Finished Goods": 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
 
   const fetchInventories = async () => {
     setIsLoading(true);
@@ -166,7 +167,7 @@ export default function ViewInventory() {
                 <th className="px-6 py-4">Min Stock</th>
                 <th className="px-6 py-4">Stock Level</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Actions</th>
+                <th className="px-6 py-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -239,13 +240,28 @@ export default function ViewInventory() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center relative">
                         {isCritical && (
-                          <Link href="/orders-procurement">
-                            <button className="bg-[#ea580c] hover:bg-[#c2410c] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                              <ShoppingCart size={14} /> Order Now
+                          <div className="relative inline-block text-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveDropdownId(activeDropdownId === inv.inventoryId ? null : inv.inventoryId);
+                              }}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                            >
+                              <MoreHorizontal size={18} />
                             </button>
-                          </Link>
+                            {activeDropdownId === inv.inventoryId && (
+                              <div className="absolute right-[40px] top-[10px] z-[9999] w-36 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5 focus:outline-none text-left">
+                                <Link href="/orders-procurement">
+                                  <button className="flex w-full items-center gap-2 px-3 py-2 text-xs font-bold text-[#ea580c] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <ShoppingCart size={14} /> Order Now
+                                  </button>
+                                </Link>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

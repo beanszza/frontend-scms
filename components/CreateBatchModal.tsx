@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { X, Loader2, Check, AlertTriangle, Package } from "lucide-react";
 import api from "../lib/api"; // keep import
-import ConfirmModal from "./ConfirmModal"; // still used for cancel confirmation
 
 interface Props {
   open: boolean;
@@ -109,11 +108,6 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   const [ingredients, setIngredients] = useState<IngredientAllocation[]>([]);
   const [isComputing, setIsComputing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Cancel confirmation only
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-
-  const handleCloseAttempt = () => setShowCancelConfirm(true);
 
   // Variants for the selected product
   const availableVariants = finishedProduct ? MOCK_VARIANTS[finishedProduct] ?? [] : [];
@@ -243,7 +237,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={handleCloseAttempt}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="w-full max-w-2xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}

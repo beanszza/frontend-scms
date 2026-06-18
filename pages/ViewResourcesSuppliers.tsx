@@ -255,7 +255,8 @@ function InventoryTable({ items, title, subtitle, c }: {
                   </td>
                 </tr>
               );
-            })}
+            })
+            )}
           </tbody>
         </table>
       </div>

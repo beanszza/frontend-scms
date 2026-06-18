@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, Plus, Pencil, X, Trash2 } from "lucide-react";
+import { Search, Plus, Pencil, X, Trash2, MoreHorizontal, Eye, CheckCircle, XCircle, FileText } from "lucide-react";
+import Link from "next/link";
 import api from "../lib/api";
 import Pagination from "@/components/Pagination";
 
@@ -10,9 +11,12 @@ type SupplyItem = {
   itemId: number;
   itemName: string;
   categoryName: string;
+  uomId: number;
   uomName: string;
   minStockLevel: number;
+  maxStockLevel: number;
   currentStock: number;
+  isActive: boolean;
 };
 
 type Supplier = {
@@ -21,6 +25,8 @@ type Supplier = {
   contactPerson: string;
   email: string;
   phone: string;
+  address: string;
+  website?: string;
   isActive: boolean;
 };
 
@@ -34,11 +40,13 @@ type Ingredient = {
 
 type Recipe = {
   recipeId: number;
+  recipeName: string;
   finishedProduct: string; // Wait, backend returns ProductId and we need to display name. It might not be populated if Product isn't fetched properly.
   // Actually RecipeResponse has ProductId. Let's assume we can fetch or display it.
   productId: number;
   outputQuantity: number;
   notes: string;
+  isActive: boolean;
   ingredients: { itemId: number; standardQuantity: number }[];
 };
 
@@ -96,6 +104,7 @@ export default function ResourcesSuppliersPage() {
   const [finishedProductData, setFinishedProductData] = useState<any[]>([]);
 
   const [supplyFilter, setSupplyFilter] = useState<"All" | "Raw Materials" | "Tools and Supplies">("All");
+  const [supplyStatusFilter, setSupplyStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
   const [supplySearchQuery, setSupplySearchQuery] = useState("");
   const [supplyPage, setSupplyPage] = useState(1);
   const [supplyTotalPages, setSupplyTotalPages] = useState(1);
@@ -113,18 +122,26 @@ export default function ResourcesSuppliersPage() {
   const [openSupplierModal, setOpenSupplierModal] = useState(false);
   const [openRecipeModal, setOpenRecipeModal] = useState(false);
 
+  const [activeDropdownSupplyId, setActiveDropdownSupplyId] = useState<number | null>(null);
+  const [activeDropdownRecipeId, setActiveDropdownRecipeId] = useState<number | null>(null);
+
   // Form states
   const [itemName, setItemName] = useState("");
   const [categoryId, setCategoryId] = useState(1);
   const [uomId, setUomId] = useState(1);
   const [minStock, setMinStock] = useState<number | string>(0);
+  const [maxStock, setMaxStock] = useState<number | string>(0);
+  const [supplyActive, setSupplyActive] = useState(true);
 
   const [companyName, setCompanyName] = useState("");
   const [contactPerson, setContactPerson] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
 
   const [productId, setProductId] = useState(1);
+  const [recipeName, setRecipeName] = useState("");
   const [outputQuantity, setOutputQuantity] = useState<number | string>(1);
   const [notes, setNotes] = useState("");
   const [ingredients, setIngredients] = useState<Ingredient[]>([{ id: Date.now(), itemId: 1, uomId: 1, quantity: "" }]);
@@ -137,9 +154,14 @@ export default function ResourcesSuppliersPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "supply" | "supplier" | "recipe"; id: number } | null>(null);
 
+  const [activeDropdownSupplierId, setActiveDropdownSupplierId] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [viewSupplier, setViewSupplier] = useState<Supplier | null>(null);
+
   // Validation States
   const [itemNameError, setItemNameError] = useState("");
   const [minStockError, setMinStockError] = useState("");
+  const [maxStockError, setMaxStockError] = useState("");
 
   // Supplier Validation & State
   const [supplierActive, setSupplierActive] = useState(true);
@@ -147,6 +169,7 @@ export default function ResourcesSuppliersPage() {
   const [contactPersonError, setContactPersonError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [addressError, setAddressError] = useState("");
 
   const handleItemNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -192,6 +215,37 @@ export default function ResourcesSuppliersPage() {
       setMinStockError("Minimum stock level is required.");
     } else {
       setMinStockError("");
+      // re-validate max stock if min stock changes
+      if (maxStock !== "" && Number(maxStock) < Number(cleanVal)) {
+        setMaxStockError("Max stock cannot be less than min stock.");
+      } else {
+        setMaxStockError("");
+      }
+    }
+  };
+
+  const handleMaxStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let rawVal = e.target.value;
+    
+    if (rawVal.startsWith("-") || (rawVal !== "" && Number(rawVal) < 0)) {
+      rawVal = "0";
+    }
+    
+    let cleanVal = rawVal.replace(/\D/g, "");
+    
+    if (cleanVal.startsWith("0") && cleanVal.length > 1) {
+      cleanVal = cleanVal.replace(/^0+/, "");
+      if (cleanVal === "") cleanVal = "0";
+    }
+    
+    setMaxStock(cleanVal);
+    
+    if (!cleanVal) {
+      setMaxStockError("Maximum stock level is required.");
+    } else if (Number(cleanVal) < Number(minStock)) {
+      setMaxStockError("Max stock cannot be less than min stock.");
+    } else {
+      setMaxStockError("");
     }
   };
 
@@ -251,6 +305,31 @@ export default function ResourcesSuppliersPage() {
       setPhoneError("Phone number must be a valid PH mobile number (e.g. 09XXXXXXXXX).");
     } else {
       setPhoneError("");
+    }
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setAddress(val);
+    if (!val.trim()) {
+      setAddressError("Address is required.");
+    } else {
+      setAddressError("");
+    }
+  };
+
+  const handleWebsiteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setWebsite(e.target.value);
+  };
+
+  const [recipeNameError, setRecipeNameError] = useState("");
+  const handleRecipeNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setRecipeName(val);
+    if (!val.trim()) {
+      setRecipeNameError("Recipe Name is required.");
+    } else {
+      setRecipeNameError("");
     }
   };
 
@@ -367,6 +446,13 @@ export default function ResourcesSuppliersPage() {
 
   const filteredSupplies = useMemo(() => {
     let result = baseSupplies;
+
+    if (supplyStatusFilter === "Active") {
+      result = result.filter(item => item.isActive);
+    } else if (supplyStatusFilter === "Inactive") {
+      result = result.filter(item => !item.isActive);
+    }
+
     if (supplyFilter !== "All") {
       result = result.filter((item) => item.categoryName === supplyFilter || (supplyFilter === 'Tools and Supplies' && item.categoryName === 'Tools & Supplies') || ((supplyFilter as string) === 'Tools & Supplies' && item.categoryName === 'Tools and Supplies'));
     }
@@ -375,7 +461,7 @@ export default function ResourcesSuppliersPage() {
       result = result.filter((item) => item.itemName.toLowerCase().includes(q) || item.itemId.toString().includes(q));
     }
     return result.sort((a, b) => a.itemId - b.itemId);
-  }, [supplyFilter, supplySearchQuery, baseSupplies]);
+  }, [supplyFilter, supplyStatusFilter, supplySearchQuery, baseSupplies]);
 
   useEffect(() => {
     setSupplyTotalCount(filteredSupplies.length);
@@ -440,10 +526,21 @@ export default function ResourcesSuppliersPage() {
       setMinStockError("");
     }
 
+    const maxStockNum = Number(maxStock);
+    if (maxStock === "") {
+      setMaxStockError("Maximum stock level is required.");
+      hasError = true;
+    } else if (isNaN(maxStockNum) || maxStockNum < minStockNum) {
+      setMaxStockError("Max stock cannot be less than min stock.");
+      hasError = true;
+    } else {
+      setMaxStockError("");
+    }
+
     if (hasError) return;
 
     try {
-      const payload = { itemName, categoryId, uomId, minStockLevel: Number(minStock), maxStockLevel: 9999, isActive: true };
+      const payload = { itemName, categoryId, uomId, minStockLevel: minStockNum, maxStockLevel: maxStockNum, isActive: supplyActive };
       if (editingSupplyId) {
         await api.put(`/api/scms/api/Items/${editingSupplyId}`, payload);
       } else {
@@ -464,8 +561,11 @@ export default function ResourcesSuppliersPage() {
     setCategoryId(item.categoryId || 1); // Note: might need to fallback to 1 if categoryId isn't returned
     setUomId(item.uomId || 1);
     setMinStock(item.minStockLevel);
+    setMaxStock(item.maxStockLevel || 0);
+    setSupplyActive(item.isActive !== undefined ? item.isActive : true);
     setItemNameError("");
     setMinStockError("");
+    setMaxStockError("");
     setOpenSupplyModal(true);
   };
 
@@ -475,8 +575,11 @@ export default function ResourcesSuppliersPage() {
     setCategoryId(1);
     setUomId(1);
     setMinStock(1); // default to 1
+    setMaxStock(1); // default max stock
+    setSupplyActive(true);
     setItemNameError("");
     setMinStockError("");
+    setMaxStockError("");
     setOpenSupplyModal(true);
   };
 
@@ -547,7 +650,7 @@ export default function ResourcesSuppliersPage() {
     if (hasError) return;
 
     try {
-      const payload = { companyName, contactPerson, email, phone, isActive: supplierActive };
+      const payload = { companyName, contactPerson, email, phone, address, website, isActive: supplierActive };
       if (editingSupplierId) {
         await api.put(`/api/scms/api/Suppliers/${editingSupplierId}`, payload);
       } else {
@@ -568,6 +671,8 @@ export default function ResourcesSuppliersPage() {
     setContactPerson(supplier.contactPerson);
     setEmail(supplier.email);
     setPhone(supplier.phone);
+    setAddress(supplier.address || "");
+    setWebsite(supplier.website || "");
     setSupplierActive(supplier.isActive);
     setCompanyNameError("");
     setContactPersonError("");
@@ -582,6 +687,8 @@ export default function ResourcesSuppliersPage() {
     setContactPerson("");
     setEmail("");
     setPhone("");
+    setAddress("");
+    setWebsite("");
     setSupplierActive(true);
     setCompanyNameError("");
     setContactPersonError("");
@@ -602,11 +709,17 @@ export default function ResourcesSuppliersPage() {
     setIngredients(ingredients.map(ing => ing.id === id ? { ...ing, [field]: value } : ing));
   };
 
-  // Handle Add or Edit Recipe
   const handleAddRecipe = async () => {
     let hasError = false;
 
-    // Validate Target Yield
+    // Validate Recipe Name
+    if (!recipeName.trim()) {
+      setRecipeNameError("Recipe Name is required.");
+      hasError = true;
+    } else {
+      setRecipeNameError("");
+    }
+
     // Validate Target Yield
     const targetYieldNum = Number(outputQuantity);
     if (!outputQuantity || isNaN(targetYieldNum) || targetYieldNum <= 0) {
@@ -634,6 +747,7 @@ export default function ResourcesSuppliersPage() {
 
     try {
       const payload = {
+        recipeName,
         productId,
         outputQuantity: Number(outputQuantity),
         notes,
@@ -683,6 +797,7 @@ export default function ResourcesSuppliersPage() {
 
   const openEditRecipe = (recipe: any) => {
     setEditingRecipeId(recipe.recipeId);
+    setRecipeName(recipe.recipeName || "");
     setProductId(recipe.productId);
     setOutputQuantity(recipe.outputQuantity);
     setNotes(recipe.notes || "");
@@ -695,8 +810,9 @@ export default function ResourcesSuppliersPage() {
         quantity: ing.standardQuantity.toString()
       })));
     } else {
-      setIngredients([{ id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: 1, quantity: "" }]);
+      setIngredients([{ id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: supplyData.length > 0 ? supplyData[0].uomId : 1, quantity: "" }]);
     }
+    setRecipeNameError("");
     setRecipeYieldError("");
     setIngredientsErrors({});
     setOpenRecipeModal(true);
@@ -704,11 +820,13 @@ export default function ResourcesSuppliersPage() {
 
   const openCreateRecipe = () => {
     setEditingRecipeId(null);
+    setRecipeName("");
     setProductId(finishedProductData.length > 0 ? finishedProductData[0].productId : 1);
     setOutputQuantity(1);
     setNotes("");
-    setIngredients([{ id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: 1, quantity: "" }]);
+    setIngredients([{ id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: supplyData.length > 0 ? supplyData[0].uomId : 1, quantity: "" }]);
     setRecipeActive(true);
+    setRecipeNameError("");
     setRecipeYieldError("");
     setIngredientsErrors({});
     setOpenRecipeModal(true);
@@ -735,7 +853,12 @@ export default function ResourcesSuppliersPage() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Supply List</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Raw materials and tools inventory</p>
             </div>
-            <button onClick={openCreateSupply} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add New Supply</button>
+            <div className="flex items-center gap-3">
+              <Link href="/resources-suppliers/logs?type=supply" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <FileText size={18} /> Transactional Logs
+              </Link>
+              <button onClick={openCreateSupply} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add New Supply</button>
+            </div>
           </div>
 
           {/* Summary Cards */}
@@ -759,36 +882,48 @@ export default function ResourcesSuppliersPage() {
           </div>
 
           {/* Filters and Search */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
-              <button
-                onClick={() => { setSupplyFilter("All"); setSupplyPage(1); }}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "All" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
+                <button
+                  onClick={() => { setSupplyFilter("All"); setSupplyPage(1); }}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "All" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => { setSupplyFilter("Raw Materials"); setSupplyPage(1); }}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Raw Materials" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  Raw Materials
+                </button>
+                <button
+                  onClick={() => { setSupplyFilter("Tools and Supplies"); setSupplyPage(1); }}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Tools and Supplies" || supplyFilter as any === "Tools & Supplies" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  Tools & Supplies
+                </button>
+              </div>
+
+              <select
+                value={supplyStatusFilter}
+                onChange={(e) => { setSupplyStatusFilter(e.target.value as any); setSupplyPage(1); }}
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] px-4 text-sm font-semibold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer h-[42px]"
               >
-                All
-              </button>
-              <button
-                onClick={() => { setSupplyFilter("Raw Materials"); setSupplyPage(1); }}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Raw Materials" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-              >
-                Raw Materials
-              </button>
-              <button
-                onClick={() => { setSupplyFilter("Tools and Supplies"); setSupplyPage(1); }}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Tools and Supplies" || supplyFilter as any === "Tools & Supplies" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-              >
-                Tools & Supplies
-              </button>
+                <option value="All">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
             </div>
 
-            <div className="relative flex-1 sm:max-w-md">
+            <div className="relative w-full lg:max-w-md">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search supplies..."
                 value={supplySearchQuery}
                 onChange={(e) => { setSupplySearchQuery(e.target.value); setSupplyPage(1); }}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
               />
             </div>
           </div>
@@ -796,7 +931,7 @@ export default function ResourcesSuppliersPage() {
             <table className="w-full min-w-[700px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                  <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4 text-center">Actions</th>
+                  <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Max Stock</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -814,8 +949,32 @@ export default function ResourcesSuppliersPage() {
                       <td className="px-5 py-5"><span className="rounded-lg bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{item.categoryName}</span></td>
                       <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.uomName}</td>
                       <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.minStockLevel}</td>
-                      <td className="px-5 py-5 text-center">
-                        <button onClick={() => openEditSupply(item)} className="text-blue-600 hover:text-blue-800"><Pencil size={18} /></button>
+                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.maxStockLevel}</td>
+                      <td className="px-5 py-5">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.isActive !== false ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300" : "bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300"}`}>
+                          {item.isActive !== false ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-5 text-center relative">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActiveDropdownSupplyId(activeDropdownSupplyId === item.itemId ? null : item.itemId); }} 
+                          className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          <MoreHorizontal size={18} />
+                        </button>
+                        {activeDropdownSupplyId === item.itemId && (
+                          <div className="absolute right-[40px] top-[20px] z-[9999] w-32 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5 focus:outline-none text-left">
+                            <button
+                              onClick={() => {
+                                openEditSupply(item);
+                                setActiveDropdownSupplyId(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              Edit Supply
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -840,7 +999,12 @@ export default function ResourcesSuppliersPage() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Supplier Management</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Partner directories and statuses</p>
             </div>
-            <button onClick={openCreateSupplier} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add Supplier</button>
+            <div className="flex items-center gap-3">
+              <Link href="/resources-suppliers/logs?type=supplier" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <FileText size={18} /> Transactional Logs
+              </Link>
+              <button onClick={openCreateSupplier} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add Supplier</button>
+            </div>
           </div>
 
           {/* Filters and Search */}
@@ -904,8 +1068,66 @@ export default function ResourcesSuppliersPage() {
                           {supplier.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-5 py-5 text-center">
-                        <button onClick={() => openEditSupplier(supplier)} className="text-blue-600 hover:text-blue-800"><Pencil size={18} /></button>
+                      <td className="px-5 py-5 text-center relative">
+                        <div className="relative inline-block text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (activeDropdownSupplierId === supplier.supplierId) {
+                                setActiveDropdownSupplierId(null);
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const leftPos = rect.right - 176 + window.scrollX;
+                                setDropdownPosition({
+                                  top: rect.bottom + window.scrollY,
+                                  left: Math.max(8, leftPos)
+                                });
+                                setActiveDropdownSupplierId(supplier.supplierId);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+
+                          {activeDropdownSupplierId === supplier.supplierId && dropdownPosition && createPortal(
+                            <>
+                              <div
+                                className="fixed inset-0 z-[9998] cursor-default"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDropdownSupplierId(null);
+                                }}
+                              />
+                              <div
+                                style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
+                                className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
+                              >
+                                <button
+                                  onClick={() => {
+                                    openEditSupplier(supplier);
+                                    setActiveDropdownSupplierId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <Pencil size={14} className="text-blue-600 dark:text-blue-400" />
+                                  Edit Supplier
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setViewSupplier(supplier);
+                                    setActiveDropdownSupplierId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <Eye size={14} className="text-blue-600 dark:text-blue-400" />
+                                  View Details
+                                </button>
+                              </div>
+                            </>,
+                            document.body
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -930,7 +1152,12 @@ export default function ResourcesSuppliersPage() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recipe Management</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Production recipes and ingredients breakdown</p>
             </div>
-            <button onClick={openCreateRecipe} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> New Recipe</button>
+            <div className="flex items-center gap-3">
+              <Link href="/resources-suppliers/logs?type=recipe" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <FileText size={18} /> Transactional Logs
+              </Link>
+              <button onClick={openCreateRecipe} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> New Recipe</button>
+            </div>
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -979,6 +1206,7 @@ export default function ResourcesSuppliersPage() {
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                   <th className="px-5 py-4">Recipe No.</th>
+                  <th className="px-5 py-4">Recipe Name</th>
                   <th className="px-5 py-4">Finished Product</th>
                   <th className="px-5 py-4">Target Yield</th>
                   <th className="px-5 py-4">Ingredients Count</th>
@@ -999,6 +1227,7 @@ export default function ResourcesSuppliersPage() {
                     return (
                       <tr key={recipe.recipeId} className="border-b border-gray-100 dark:border-gray-800">
                         <td className="px-5 py-5 text-sm font-semibold text-gray-900 dark:text-white">{index + 1}</td>
+                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.recipeName}</td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
                           {fp ? fp.itemName : `Product #${recipe.productId}`}
                         </td>
@@ -1009,8 +1238,26 @@ export default function ResourcesSuppliersPage() {
                             {recipe.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-5 py-5 text-center">
-                          <button onClick={() => openEditRecipe(recipe)} className="text-blue-600 hover:text-blue-800"><Pencil size={18} /></button>
+                        <td className="px-5 py-5 text-center relative">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setActiveDropdownRecipeId(activeDropdownRecipeId === recipe.recipeId ? null : recipe.recipeId); }} 
+                            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+                          {activeDropdownRecipeId === recipe.recipeId && (
+                            <div className="absolute right-[40px] top-[20px] z-[9999] w-32 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5 focus:outline-none text-left">
+                              <button
+                                onClick={() => {
+                                  openEditRecipe(recipe);
+                                  setActiveDropdownRecipeId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Edit Recipe
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1072,11 +1319,34 @@ export default function ResourcesSuppliersPage() {
             />
             {minStockError && <p className="mt-1 text-xs text-red-500">{minStockError}</p>}
           </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Maximum Stock Level</label>
+            <input
+              type="number"
+              min={0}
+              value={maxStock}
+              onChange={handleMaxStockChange}
+              onKeyDown={handleNumberKeyDown}
+              placeholder="e.g. 100"
+              className={`w-full rounded-xl border ${maxStockError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            {maxStockError && <p className="mt-1 text-xs text-red-500">{maxStockError}</p>}
+          </div>
+          {editingSupplyId !== null && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
+              <select
+                value={supplyActive ? "true" : "false"}
+                onChange={(e) => setSupplyActive(e.target.value === "true")}
+                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setOpenSupplyModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-            {editingSupplyId !== null && (
-              <button onClick={() => { setOpenSupplyModal(false); setDeleteTarget({ type: "supply", id: editingSupplyId }); }} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors flex items-center gap-2"><Trash2 size={18} /> Delete</button>
-            )}
             <button onClick={handleAddSupply} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">Save</button>
           </div>
         </div>
@@ -1085,7 +1355,7 @@ export default function ResourcesSuppliersPage() {
       <Modal open={openSupplierModal} title={editingSupplierId ? "Edit Supplier" : "Add New Supplier"} onClose={() => setOpenSupplierModal(false)} size="max-w-xl">
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Supplier Name</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Supplier Name <span className="text-red-500">*</span></label>
             <input
               type="text"
               value={companyName}
@@ -1096,7 +1366,7 @@ export default function ResourcesSuppliersPage() {
             {companyNameError && <p className="mt-1 text-xs text-red-500">{companyNameError}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Contact Person</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Contact Person <span className="text-red-500">*</span></label>
             <input
               type="text"
               value={contactPerson}
@@ -1108,7 +1378,7 @@ export default function ResourcesSuppliersPage() {
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Email</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Email <span className="text-red-500">*</span></label>
               <input
                 type="email"
                 value={email}
@@ -1119,7 +1389,7 @@ export default function ResourcesSuppliersPage() {
               {emailError && <p className="mt-1 text-xs text-red-500">{emailError}</p>}
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Phone No.</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Phone No. <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={phone}
@@ -1130,9 +1400,30 @@ export default function ResourcesSuppliersPage() {
               {phoneError && <p className="mt-1 text-xs text-red-500">{phoneError}</p>}
             </div>
           </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Address <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              value={address}
+              onChange={handleAddressChange}
+              placeholder="e.g. 123 Main St, Manila"
+              className={`w-full rounded-xl border ${addressError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            {addressError && <p className="mt-1 text-xs text-red-500">{addressError}</p>}
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Website (Optional)</label>
+            <input
+              type="text"
+              value={website}
+              onChange={handleWebsiteChange}
+              placeholder="e.g. www.acme.com"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           {editingSupplierId !== null && (
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status <span className="text-red-500">*</span></label>
               <select
                 value={supplierActive ? "true" : "false"}
                 onChange={(e) => setSupplierActive(e.target.value === "true")}
@@ -1155,6 +1446,17 @@ export default function ResourcesSuppliersPage() {
 
       <Modal open={openRecipeModal} title={editingRecipeId ? "Edit Recipe" : "Create New Recipe"} onClose={() => setOpenRecipeModal(false)} size="max-w-3xl">
         <div className="space-y-6">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Recipe Name <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              value={recipeName}
+              onChange={handleRecipeNameChange}
+              placeholder="e.g. Classic Burger Patty"
+              className={`w-full rounded-xl border ${recipeNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            {recipeNameError && <p className="mt-1 text-xs text-red-500">{recipeNameError}</p>}
+          </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Finished Product</label>
@@ -1196,7 +1498,11 @@ export default function ResourcesSuppliersPage() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
                     <div className="md:col-span-6">
                       <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Item</label>
-                      <select value={ingredient.itemId} onChange={(e) => updateIngredient(ingredient.id, "itemId", Number(e.target.value))} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                      <select value={ingredient.itemId} onChange={(e) => {
+                        const newId = Number(e.target.value);
+                        const supply = supplyData.find(s => s.itemId === newId);
+                        setIngredients(ingredients.map(ing => ing.id === ingredient.id ? { ...ing, itemId: newId, uomId: supply ? supply.uomId : ing.uomId } : ing));
+                      }} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
                         {supplyData.map(supply => (
                           <option key={supply.itemId} value={supply.itemId}>{supply.itemName}</option>
                         ))}
@@ -1217,7 +1523,7 @@ export default function ResourcesSuppliersPage() {
                     </div>
                     <div className="md:col-span-3">
                       <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Unit</label>
-                      <select value={ingredient.uomId} onChange={(e) => updateIngredient(ingredient.id, "uomId", Number(e.target.value))} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                      <select value={ingredient.uomId} disabled className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-3 text-sm text-gray-500 dark:text-gray-400 outline-none cursor-not-allowed">
                         <option value={1}>kg</option>
                         <option value={2}>pcs</option>
                         <option value={3}>liters</option>
@@ -1262,6 +1568,57 @@ export default function ResourcesSuppliersPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={!!viewSupplier} title={`Supplier Details - ${viewSupplier?.companyName}`} onClose={() => setViewSupplier(null)} size="max-w-2xl">
+        {viewSupplier && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${viewSupplier.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'}`}>
+                {viewSupplier.isActive ? 'Active Supplier' : 'Inactive Supplier'}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
+              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Supplier Name</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.companyName}</p></div>
+              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Contact Person</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.contactPerson}</p></div>
+              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Email</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.email}</p></div>
+              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Phone Number</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.phone}</p></div>
+              <div className="col-span-2"><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Address</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.address || "N/A"}</p></div>
+              {viewSupplier.website && (
+                <div className="col-span-2"><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Website</p><a href={viewSupplier.website.startsWith('http') ? viewSupplier.website : `https://${viewSupplier.website}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">{viewSupplier.website}</a></div>
+              )}
+            </div>
+
+            <div className={`border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4 ${viewSupplier.isActive ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800'}`}>
+              <div className="flex items-center gap-3">
+                {viewSupplier.isActive ? (
+                  <>
+                    <CheckCircle className="text-green-500 shrink-0" size={24} />
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">Active and Verified</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">This supplier is currently active and eligible for new purchase orders.</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="text-red-500 shrink-0" size={24} />
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">Inactive</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">This supplier is inactive and cannot be used for new purchase orders.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setViewSupplier(null)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal open={showDeleteConfirm} title="Confirm Delete" onClose={() => setShowDeleteConfirm(false)} size="max-w-md">
