@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef } from "react";
 import {
   Package, AlertTriangle, CheckCircle, Search, Plus, Upload, Check, X,
   ChevronRight, ChevronLeft, ClipboardCheck, MoreHorizontal, Trash2,
-  Loader2, XCircle,
+  Loader2,
 } from "lucide-react";
 import api from "../lib/api";
 import CreateBatchModal from "../components/CreateBatchModal";
@@ -18,7 +18,6 @@ type ProductionBatch = {
   productName: string;
   quantity: number;
   scheduleDate: string;
-  assignedCook: string;
   status: string;
   currentStage: string;
 };
@@ -37,7 +36,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Ube Halaya Yam Pudding with tidbits",
     quantity: 100,
     scheduleDate: "2026-06-09",
-    assignedCook: "Juan Dela Cruz",
     status: "In progress",
     currentStage: "QA Review",
   },
@@ -46,7 +44,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Tocino",
     quantity: 200,
     scheduleDate: "2026-06-07",
-    assignedCook: "Maria Santos",
     status: "Delayed",
     currentStage: "Cooking",
   },
@@ -55,7 +52,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Longganisa",
     quantity: 500,
     scheduleDate: "2026-06-12",
-    assignedCook: "Pedro Reyes",
     status: "In progress",
     currentStage: "Peeling",
   },
@@ -64,7 +60,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Tocino",
     quantity: 200,
     scheduleDate: "2026-06-07",
-    assignedCook: "Maria Santos",
     status: "Delayed",
     currentStage: "Cooking",
   },
@@ -73,7 +68,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Longganisa",
     quantity: 500,
     scheduleDate: "2026-06-12",
-    assignedCook: "Pedro Reyes",
     status: "In progress",
     currentStage: "Peeling",
   },
@@ -82,7 +76,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Longganisa",
     quantity: 100,
     scheduleDate: "2026-06-09",
-    assignedCook: "Juan Dela Cruz",
     status: "In progress",
     currentStage: "QA Review",
   },
@@ -91,7 +84,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Tocino",
     quantity: 200,
     scheduleDate: "2026-06-07",
-    assignedCook: "Maria Santos",
     status: "Delayed",
     currentStage: "Cooking",
   },
@@ -100,7 +92,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Tocino",
     quantity: 150,
     scheduleDate: "2026-06-05",
-    assignedCook: "Juan Dela Cruz",
     status: "In Progress",
     currentStage: "Packaging",
   },
@@ -109,7 +100,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Empanada",
     quantity: 80,
     scheduleDate: "2026-06-10",
-    assignedCook: "Rosa Diaz",
     status: "Planned",
     currentStage: "Mixing",
   },
@@ -118,7 +108,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Longganisa",
     quantity: 300,
     scheduleDate: "2026-06-11",
-    assignedCook: "Carlos Reyes",
     status: "Reviewing",
     currentStage: "QA Review",
   },
@@ -127,7 +116,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Tocino",
     quantity: 250,
     scheduleDate: "2026-06-01",
-    assignedCook: "Maria Santos",
     status: "Delayed",
     currentStage: "Rejected",
   },
@@ -136,7 +124,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Siomai",
     quantity: 600,
     scheduleDate: "2026-06-14",
-    assignedCook: "Pedro Reyes",
     status: "Planned",
     currentStage: "Cooking",
   },
@@ -145,7 +132,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Empanada",
     quantity: 90,
     scheduleDate: "2026-06-15",
-    assignedCook: "Ana Gonzales",
     status: "In progress",
     currentStage: "Peeling",
   },
@@ -154,7 +140,6 @@ let MOCK_BATCHES: ProductionBatch[] = [
     productName: "Longganisa",
     quantity: 120,
     scheduleDate: "2026-06-13",
-    assignedCook: "Rosa Diaz",
     status: "Reviewing",
     currentStage: "QA Review",
   },
@@ -180,12 +165,12 @@ function useDarkMode() {
 // ---------- Stage definitions ----------
 const STAGES = ["Peeling", "Steaming", "Mixing", "Cooking", "Cooling", "Packaging"] as const;
 const STAGE_ICONS: Record<string, React.ReactNode> = {
-  Peeling: <Package size={16} />,
-  Steaming: <Upload size={16} />,
-  Mixing: <Package size={16} />,
-  Cooking: <Package size={16} />,
-  Cooling: <Package size={16} />,
-  Packaging: <Package size={16} />,
+  Peeling: <Package size={17} />,
+  Steaming: <Upload size={17} />,
+  Mixing: <Package size={17} />,
+  Cooking: <Package size={17} />,
+  Cooling: <Package size={17} />,
+  Packaging: <Package size={17} />,
 };
 
 export default function ProductionPage() {
@@ -216,10 +201,8 @@ export default function ProductionPage() {
   const [packagingQA, setPackagingQA] = useState("Pass");
   const [appearance, setAppearance] = useState("Pass");
   const [qaNotes, setQaNotes] = useState("");
-  const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [rejectionError, setRejectionError] = useState("");
   const [submittingQA, setSubmittingQA] = useState(false);
+  const [showQaConfirm, setShowQaConfirm] = useState(false);
 
   const validateNoSpecialChars = (text: string) => {
     return /^[A-Za-z0-9\s]*$/.test(text);
@@ -241,7 +224,7 @@ export default function ProductionPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ---------- Fetch / refresh (no batchType filter) ----------
+  // ---------- Fetch / refresh ----------
   const fetchBatches = () => {
     setIsLoading(true);
     setTimeout(() => {
@@ -249,9 +232,7 @@ export default function ProductionPage() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         filtered = filtered.filter(
-          (b) =>
-            b.productName.toLowerCase().includes(q) ||
-            b.assignedCook.toLowerCase().includes(q)
+          (b) => b.productName.toLowerCase().includes(q)
         );
       }
 
@@ -337,8 +318,7 @@ export default function ProductionPage() {
       setPackagingQA("Pass");
       setAppearance("Pass");
       setQaNotes("");
-      setDecision(null);
-      setRejectionReason("");
+      setShowQaConfirm(false);
     }
     setPendingQaConfirm(null);
   };
@@ -357,17 +337,13 @@ export default function ProductionPage() {
     : null;
 
   const handleQaSubmit = async () => {
-    if (!selectedBatch || !decision) return;
-    if (decision === "reject" && !rejectionReason.trim()) return;
+    if (!selectedBatch) return;
 
     setSubmittingQA(true);
+    setShowQaConfirm(false);
     try {
       const qaPayload = { taste, texture, packaging: packagingQA, appearance, notes: qaNotes };
       await api.put(`/api/scms/api/ProductionBatches/${selectedBatch.batchId}/qa`, qaPayload);
-
-      const endpoint = `/api/scms/api/ProductionBatches/${selectedBatch.batchId}/${decision}`;
-      const decisionPayload = decision === "reject" ? { reason: rejectionReason } : {};
-      await api.put(endpoint, decisionPayload);
 
       setSelectedBatchId(null);
       setActiveMainTab("planning");
@@ -428,26 +404,6 @@ export default function ProductionPage() {
         </button>
       </div>
 
-      {/* Summary Containers */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {summaryCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5"
-          >
-            <div className={`inline-flex p-2 rounded-lg ${card.color}`}>
-              {card.icon}
-            </div>
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              {card.label}
-            </p>
-            <h2 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-              {card.value}
-            </h2>
-          </div>
-        ))}
-      </div>
-
       {/* Main Tabs */}
       <div className="mb-6 flex gap-2 border-b border-gray-200 dark:border-gray-700">
         {[
@@ -472,6 +428,26 @@ export default function ProductionPage() {
         ))}
       </div>
 
+      {/* Summary Containers */}
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {summaryCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5"
+          >
+            <div className={`inline-flex p-2 rounded-lg ${card.color}`}>
+              {card.icon}
+            </div>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              {card.label}
+            </p>
+            <h2 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+              {card.value}
+            </h2>
+          </div>
+        ))}
+      </div>
+
       {/* ========== PRODUCTION PLANNING TAB ========== */}
       {activeMainTab === "planning" && (
         <>
@@ -491,7 +467,7 @@ export default function ProductionPage() {
                     setSearchError("");
                   }
                 }}
-                placeholder="Search by product or cook..."
+                placeholder="Search by product..."
                 className={`w-full rounded-xl border ${searchError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#1D2939] py-3 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`}
               />
               {searchError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500">{searchError}</p>}
@@ -503,14 +479,13 @@ export default function ProductionPage() {
 
           {/* Table */}
           <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[800px]">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1D2939]">
                   <th className="px-5 py-4">Batch No.</th>
                   <th className="px-5 py-4">Product</th>
                   <th className="px-5 py-4">Quantity</th>
                   <th className="px-5 py-4">Schedule Date</th>
-                  <th className="px-5 py-4">Assigned Cook</th>
                   <th className="px-5 py-4">Current Stage</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4 text-right">Actions</th>
@@ -519,13 +494,13 @@ export default function ProductionPage() {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-10 text-gray-500">
+                    <td colSpan={7} className="text-center py-10 text-gray-500">
                       Loading batches...
                     </td>
                   </tr>
                 ) : batches.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
                       No Results Found
                     </td>
                   </tr>
@@ -543,7 +518,7 @@ export default function ProductionPage() {
                         <td className="px-5 py-5 text-sm font-medium text-gray-900 dark:text-white">
                           #{batch.batchId}
                         </td>
-                        <td className="px-5 py-5 text-sm text-gray-900 dark:text-white">
+                        <td className="px-5 py-5 text-sm text-gray-900 dark:text-white max-w-[120px] sm:max-w-[150px] md:max-w-[200px] break-words">
                           {batch.productName}
                         </td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
@@ -556,9 +531,6 @@ export default function ProductionPage() {
                               <AlertTriangle size={14} className="text-red-500" />
                             )}
                           </span>
-                        </td>
-                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
-                          {batch.assignedCook}
                         </td>
                         <td className="px-5 py-5">
                           <span className="rounded-lg bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
@@ -601,14 +573,6 @@ export default function ProductionPage() {
                                 >
                                   <ClipboardCheck size={16} /> QA Checklist
                                 </button>
-                                {batch.status === "QA Review" && (
-                                  <button
-                                    onClick={() => handleQaChecklistClick(batch)}
-                                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  >
-                                    <Check size={16} /> Approve / Reject
-                                  </button>
-                                )}
                                 {batch.status !== "Completed" &&
                                   batch.status !== "Rejected" && (
                                     <button
@@ -672,10 +636,8 @@ export default function ProductionPage() {
                 </h2>
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedBatch.productName} – {selectedBatch.quantity} units • Assigned to{" "}
-                    {selectedBatch.assignedCook}
+                    {selectedBatch.productName} – {selectedBatch.quantity} units
                   </p>
-
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     OVERALL PROGRESS:
                   </p>
@@ -690,7 +652,7 @@ export default function ProductionPage() {
                   return (
                     <div key={stage} className="flex items-center gap-2">
                       <div
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${
+                        className={`flex items-center gap-2 px-7 py-5 rounded-lg text-sm font-medium border ${
                           isCurrent
                             ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
                             : isCompleted
@@ -737,7 +699,7 @@ export default function ProductionPage() {
                   Quality Control – Batch #{selectedBatch.batchId}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedBatch.productName} • Stage: {selectedBatch.currentStage}
+                  Quality Checking - {selectedBatch.productName}
                 </p>
               </div>
 
@@ -786,54 +748,6 @@ export default function ProductionPage() {
                   );
                 })}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Final Decision
-                  </label>
-                  <div className="flex gap-3 mb-3">
-                    <button
-                      onClick={() => setDecision("approve")}
-                      className={`flex-1 py-2.5 rounded-xl border font-medium text-sm flex items-center justify-center gap-2
-                        ${decision === "approve" ? "bg-green-50 border-green-500 text-green-700 dark:bg-green-500/10 dark:text-green-300" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"}
-                      `}
-                    >
-                      <CheckCircle size={16} /> Approve
-                    </button>
-                    <button
-                      onClick={() => setDecision("reject")}
-                      className={`flex-1 py-2.5 rounded-xl border font-medium text-sm flex items-center justify-center gap-2
-                        ${decision === "reject" ? "bg-red-50 border-red-500 text-red-700 dark:bg-red-500/10 dark:text-red-300" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"}
-                      `}
-                    >
-                      <XCircle size={16} /> Reject
-                    </button>
-                  </div>
-
-                  {decision === "reject" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Rejection Reason *
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={rejectionReason}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setRejectionReason(val);
-                          if (!validateNoSpecialChars(val)) {
-                            setRejectionError("Special characters are not allowed.");
-                          } else {
-                            setRejectionError("");
-                          }
-                        }}
-                        placeholder="Explain why this batch is rejected..."
-                        className={`w-full rounded-xl border ${rejectionError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
-                      />
-                      {rejectionError && <p className="mt-1 text-xs text-red-500">{rejectionError}</p>}
-                    </div>
-                  )}
-                </div>
-
                 <div className="flex justify-end gap-3 pt-4">
                   <button
                     onClick={() => {
@@ -845,13 +759,8 @@ export default function ProductionPage() {
                     Back to Planning
                   </button>
                   <button
-                    onClick={handleQaSubmit}
-                    disabled={
-                      !decision ||
-                      (decision === "reject" && !rejectionReason.trim()) ||
-                      !!rejectionError ||
-                      submittingQA
-                    }
+                    onClick={() => setShowQaConfirm(true)}
+                    disabled={submittingQA}
                     className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                   >
                     {submittingQA && <Loader2 size={16} className="animate-spin" />}
@@ -917,6 +826,14 @@ export default function ProductionPage() {
           message={`Are you sure you want to permanently delete batch #${deleteTarget}? This action cannot be undone.`}
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
+        />
+      )}
+
+      {showQaConfirm && (
+        <ConfirmModal
+          message={`Are you sure you want to submit the QA results for batch #${selectedBatch?.batchId}?`}
+          onConfirm={handleQaSubmit}
+          onCancel={() => setShowQaConfirm(false)}
         />
       )}
     </div>
