@@ -32,6 +32,7 @@ type FinishedProductResponse = {
   itemId: number;
   itemName: string;
   sku: string;
+  variant: string;
 };
 
 type RecipeIngredientResponse = {
@@ -323,7 +324,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 <option value="">Select product</option>
                 {products.map((prod) => (
                   <option key={prod.productId} value={prod.productId}>
-                    {prod.itemName}
+                    {prod.itemName}{prod.variant ? `, ${prod.variant}` : ""}
                   </option>
                 ))}
               </select>

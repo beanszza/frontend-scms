@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: "/api/erp-auth/:path*",
+        destination: "http://127.0.0.1:5007/api/erp-auth/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

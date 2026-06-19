@@ -12,32 +12,17 @@ type LogEntry = {
   user: string;
 };
 
-const generateMockLogs = (type: string | null): LogEntry[] => {
+const fetchLogs = async (type: string | null): Promise<LogEntry[]> => {
   const moduleType = type?.toLowerCase() || "supply";
-  
-  if (moduleType === "supplier") {
-    return [
-      { id: "1", activity: "Created new Supplier", entityName: "Acme Supplies Ltd.", timestamp: "06/18/2026 14:30", user: "Admin (John)" },
-      { id: "2", activity: "Updated Contact Info", entityName: "Global Packaging Inc.", timestamp: "06/17/2026 09:15", user: "Jane Smith" },
-      { id: "3", activity: "Deactivated Supplier", entityName: "Old Reliable Farms", timestamp: "06/15/2026 16:45", user: "Admin (John)" },
-      { id: "4", activity: "Created new Supplier", entityName: "TechCorp Resources", timestamp: "06/10/2026 11:20", user: "Mike Johnson" },
-      { id: "5", activity: "Updated Address", entityName: "Acme Supplies Ltd.", timestamp: "06/05/2026 08:00", user: "Admin (John)" },
-    ];
-  } else if (moduleType === "recipe") {
-    return [
-      { id: "1", activity: "Created new Recipe", entityName: "Classic Longganisa 50pcs", timestamp: "06/18/2026 15:45", user: "Chef Maria" },
-      { id: "2", activity: "Updated Ingredients", entityName: "Spicy Tocino 300g", timestamp: "06/17/2026 10:30", user: "Admin (John)" },
-      { id: "3", activity: "Created new Recipe", entityName: "Premium Siomai 1000pcs", timestamp: "06/12/2026 13:20", user: "Chef Maria" },
-    ];
-  } else {
-    // Default to Supply
-    return [
-      { id: "1", activity: "Added New Supply", entityName: "Ground Pork", timestamp: "06/19/2026 08:30", user: "Admin (John)" },
-      { id: "2", activity: "Updated Reorder Point", entityName: "Garlic", timestamp: "06/18/2026 11:15", user: "Jane Smith" },
-      { id: "3", activity: "Added New Supply", entityName: "Pineapple Juice", timestamp: "06/15/2026 09:00", user: "Mike Johnson" },
-      { id: "4", activity: "Deactivated Supply", entityName: "Expired Seasoning", timestamp: "06/14/2026 17:05", user: "Admin (John)" },
-    ];
+  try {
+    const res = await fetch(`http://localhost:5000/api/AuditLogs?type=${moduleType}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.error("Failed to fetch logs:", error);
   }
+  return [];
 };
 
 export default function ViewTransactionalLogs() {
@@ -52,7 +37,8 @@ export default function ViewTransactionalLogs() {
     // Capitalize type for title
     const formattedType = typeParam.charAt(0).toUpperCase() + typeParam.slice(1).toLowerCase();
     setTitle(`${formattedType} Transactional Logs`);
-    setLogs(generateMockLogs(typeParam));
+    
+    fetchLogs(typeParam).then(data => setLogs(data));
   }, [typeParam]);
 
   return (

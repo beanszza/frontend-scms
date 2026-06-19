@@ -33,6 +33,7 @@ type FinishedProductEntry = {
   itemId: number;
   itemName: string;
   sku: string;
+  variant?: string;
 };
 
 export default function CreateTransferModal({
@@ -254,7 +255,7 @@ export default function CreateTransferModal({
               </option>
               {products.map((p) => (
                 <option key={p.productId} value={p.productId} className="dark:bg-[#24303f]">
-                  {p.itemName}
+                  {p.itemName}{p.variant ? `, ${p.variant}` : ""}
                 </option>
               ))}
             </select>

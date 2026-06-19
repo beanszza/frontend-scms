@@ -1,13 +1,35 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import api from "../lib/api";
+import axios from "axios";
+
+const apiAuth = axios.create({
+  baseURL: "http://localhost:5007",
+  withCredentials: true,
+});
+
+type ModuleAccess = {
+  moduleName: string;
+  canRead: boolean;
+  canWrite: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+};
+
+type AppAccess = {
+  appName: string;
+  modules: ModuleAccess[];
+};
 
 type User = {
   id: string;
   username: string;
-  role: string;
-  apps: string[];
+  firstName: string;
+  lastName: string;
+  email: string;
+  mustChangePassword: boolean;
+  roles: string[];
+  apps: AppAccess[];
 };
 
 type AuthContextType = {
@@ -39,21 +61,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const validate = async (): Promise<User | null> => {
     try {
-      const res = await api.get("/api/auth/validate?tokenType=sso");
-      return res.data;
+      const res = await apiAuth.get("/api/erp-auth/validate");
+      return res.data.user;
     } catch { return null; }
   };
 
   const refresh = async (): Promise<boolean> => {
     try {
-      await api.post("/api/auth/refresh?tokenType=sso");
+      await apiAuth.post("/api/erp-auth/refresh");
       return true;
     } catch { return false; }
   };
 
   const logout = async (): Promise<void> => {
     try {
-      await api.post("/api/auth/logout?tokenType=sso");
+      await apiAuth.post("/api/erp-auth/logout");
     } finally {
       setUser(null);
     }

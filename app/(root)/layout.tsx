@@ -92,6 +92,8 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
       navItems={navItems}
       othersItems={othersItems}
       user={user}
+      mobileLogo="/images/logo/mobile.svg"
+      desktopLogo="/images/logo/desktop.svg"
       onLogout={async () => {
         await logout();
         router.replace(`${process.env.NEXT_PUBLIC_HOST_URL}/signin`);

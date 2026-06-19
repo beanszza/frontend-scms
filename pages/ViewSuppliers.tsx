@@ -860,9 +860,6 @@ export default function ResourcesSuppliersPage() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Raw materials and tools inventory</p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/resources-suppliers/logs?type=supply" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <FileText size={18} /> Transactional Logs
-              </Link>
               <button onClick={openCreateSupply} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add New Supply</button>
             </div>
           </div>
@@ -1006,9 +1003,6 @@ export default function ResourcesSuppliersPage() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Partner directories and statuses</p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/resources-suppliers/logs?type=supplier" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <FileText size={18} /> Transactional Logs
-              </Link>
               <button onClick={openCreateSupplier} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add Supplier</button>
             </div>
           </div>
@@ -1159,9 +1153,6 @@ export default function ResourcesSuppliersPage() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Production recipes and ingredients breakdown</p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/resources-suppliers/logs?type=recipe" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <FileText size={18} /> Transactional Logs
-              </Link>
               <button onClick={openCreateRecipe} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> New Recipe</button>
             </div>
           </div>

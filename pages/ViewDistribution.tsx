@@ -9,7 +9,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import api from "@/lib/api";
 import Pagination from "@/components/Pagination";
 
-type TabState = "Stock Transfer" | "Locations" | "Supplier Analytics";
+type TabState = "Stock Transfer" | "Locations";
 
 type TransferItem = {
   id: string;
@@ -224,7 +224,7 @@ export default function DistributionAnalyticsPage() {
       </div>
 
       <div className="flex border-b border-gray-200 dark:border-strokedark gap-6 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
-        {(["Stock Transfer", "Locations", "Supplier Analytics"] as TabState[]).map(tab => (
+        {(["Stock Transfer", "Locations"] as TabState[]).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 font-semibold border-b-2 transition-colors ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-400"}`}>
             {tab}
           </button>
