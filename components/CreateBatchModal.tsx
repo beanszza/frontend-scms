@@ -26,74 +26,35 @@ type Variant = {
   ingredients: IngredientAllocation[];
 };
 
-// ---------- MOCK DATA ----------
-const MOCK_VARIANTS: Record<string, Variant[]> = {
-  "prod-1": [
-    {
-      variantId: "v1",
-      variantName: "Longganisa 50 pcs",
-      targetYield: 50,
-      yieldUnit: "pcs",
-      ingredients: [
-        {
-          ingredientId: 1,
-          ingredientName: "Ground Pork pork pano pag mahaba",
-          requiredQty: 10,
-          uom: "kg",
-          availableStock: 8,
-        },
-        { ingredientId: 2, ingredientName: "Garlic", requiredQty: 1, uom: "kg", availableStock: 5 },
-        { ingredientId: 3, ingredientName: "Salt", requiredQty: 0.2, uom: "kg", availableStock: 2 },
-        { ingredientId: 4, ingredientName: "Sugar", requiredQty: 0.5, uom: "kg", availableStock: 10 },
-      ],
-    },
-    {
-      variantId: "v2",
-      variantName: "Longganisa 30 pcs",
-      targetYield: 30,
-      yieldUnit: "pcs",
-      ingredients: [
-        { ingredientId: 1, ingredientName: "Ground Pork", requiredQty: 6, uom: "kg", availableStock: 8 },
-        { ingredientId: 2, ingredientName: "Garlic", requiredQty: 0.6, uom: "kg", availableStock: 5 },
-        { ingredientId: 3, ingredientName: "Salt", requiredQty: 0.12, uom: "kg", availableStock: 2 },
-        { ingredientId: 4, ingredientName: "Sugar", requiredQty: 0.3, uom: "kg", availableStock: 10 },
-      ],
-    },
-  ],
-  "prod-2": [
-    {
-      variantId: "v3",
-      variantName: "Tocino 300 pcs",
-      targetYield: 300,
-      yieldUnit: "pcs",
-      ingredients: [
-        { ingredientId: 5, ingredientName: "Pork Belly", requiredQty: 6, uom: "kg", availableStock: 20 },
-        { ingredientId: 6, ingredientName: "Pineapple Juice", requiredQty: 1.2, uom: "L", availableStock: 8 },
-        { ingredientId: 2, ingredientName: "Garlic", requiredQty: 0.5, uom: "kg", availableStock: 5 },
-        { ingredientId: 7, ingredientName: "Annatto Powder", requiredQty: 0.1, uom: "kg", availableStock: 0.5 },
-      ],
-    },
-  ],
-  "prod-3": [
-    {
-      variantId: "v4",
-      variantName: "Siomai 1000 pcs",
-      targetYield: 1000,
-      yieldUnit: "pcs",
-      ingredients: [
-        { ingredientId: 8, ingredientName: "Shrimp", requiredQty: 5, uom: "kg", availableStock: 40 },
-        { ingredientId: 9, ingredientName: "Wrapper", requiredQty: 200, uom: "pcs", availableStock: 1000 },
-        { ingredientId: 10, ingredientName: "Soy Sauce", requiredQty: 1, uom: "L", availableStock: 5 },
-      ],
-    },
-  ],
+// Type definitions for backend responses
+type FinishedProductResponse = {
+  productId: number;
+  itemId: number;
+  itemName: string;
+  sku: string;
 };
 
-const MOCK_PRODUCTS = [
-  { id: "prod-1", name: "Longganisa" },
-  { id: "prod-2", name: "Tocino" },
-  { id: "prod-3", name: "Siomai" },
-];
+type RecipeIngredientResponse = {
+  ingredientId: number;
+  itemId: number;
+  uomId: number;
+  standardQuantity: number;
+};
+
+type RecipeResponse = {
+  recipeId: number;
+  productId: number;
+  recipeName: string;
+  outputQuantity: number;
+  ingredients: RecipeIngredientResponse[];
+};
+
+type ItemResponse = {
+  itemId: number;
+  itemName: string;
+  uomName: string;
+  currentStock: number;
+};
 
 export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   const [finishedProduct, setFinishedProduct] = useState("");
@@ -115,7 +76,15 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   const [isComputing, setIsComputing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const availableVariants = finishedProduct ? MOCK_VARIANTS[finishedProduct] ?? [] : [];
+  const [products, setProducts] = useState<FinishedProductResponse[]>([]);
+  const [recipes, setRecipes] = useState<RecipeResponse[]>([]);
+  const [items, setItems] = useState<ItemResponse[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
+  const availableVariants = useMemo(() => {
+    if (!finishedProduct) return [];
+    return recipes.filter(r => r.productId.toString() === finishedProduct);
+  }, [finishedProduct, recipes]);
 
   // Reset when modal opens
   useEffect(() => {
@@ -133,6 +102,26 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
       setIngredients([]);
       setIsComputing(false);
       setIsSubmitting(false);
+
+      // Fetch all required data
+      const loadData = async () => {
+        setIsLoadingData(true);
+        try {
+          const [prodRes, recipeRes, itemRes] = await Promise.all([
+            api.get("/api/scms/api/FinishedProducts"),
+            api.get("/api/scms/api/Recipes"),
+            api.get("/api/scms/api/Items?pageSize=1000"),
+          ]);
+          setProducts(prodRes.data.data || []);
+          setRecipes(recipeRes.data.data || []);
+          setItems(itemRes.data.data?.items || []);
+        } catch (err) {
+          console.error("Failed to load master data for Create Batch Modal", err);
+        } finally {
+          setIsLoadingData(false);
+        }
+      };
+      loadData();
     }
   }, [open]);
 
@@ -148,13 +137,25 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     const fetchRecipe = async () => {
       setIsComputing(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const variants = MOCK_VARIANTS[finishedProduct] || [];
-        const variant = variants.find((v) => v.variantId === selectedVariantId);
+        const variant = availableVariants.find((v) => v.recipeId.toString() === selectedVariantId);
         if (variant) {
-          setRecipeTargetYield(variant.targetYield);
-          setYieldUnit(variant.yieldUnit);
-          setIngredients(variant.ingredients);
+          setRecipeTargetYield(variant.outputQuantity);
+          // Get the base unit for the product item
+          const prodItem = items.find(i => i.itemId === products.find(p => p.productId.toString() === finishedProduct)?.itemId);
+          setYieldUnit(prodItem?.uomName || "units");
+          
+          // Map ingredients to display shape
+          const computedIngredients = variant.ingredients.map(ing => {
+            const item = items.find(i => i.itemId === ing.itemId);
+            return {
+              ingredientId: ing.ingredientId,
+              ingredientName: item?.itemName || `Item #${ing.itemId}`,
+              requiredQty: ing.standardQuantity,
+              uom: item?.uomName || "",
+              availableStock: item?.currentStock || 0
+            };
+          });
+          setIngredients(computedIngredients);
         }
       } catch (err) {
         console.error(err);
@@ -164,7 +165,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     };
 
     fetchRecipe();
-  }, [selectedVariantId, finishedProduct]);
+  }, [selectedVariantId, finishedProduct, availableVariants, items, products]);
 
   // Validate user target yield against recipe target yield
   useEffect(() => {
@@ -182,8 +183,11 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   }, [userTargetYield, recipeTargetYield, yieldUnit]);
 
   const hasStockIssue = useMemo(() => {
-    return ingredients.some((ing) => ing.availableStock < ing.requiredQty);
-  }, [ingredients]);
+    const multiplier = recipeTargetYield && userTargetYield !== "" && Number(userTargetYield) > 0 
+      ? Math.ceil(Number(userTargetYield) / recipeTargetYield) 
+      : 1;
+    return ingredients.some((ing) => ing.availableStock < ing.requiredQty * multiplier);
+  }, [ingredients, userTargetYield, recipeTargetYield]);
 
   const isFormValid =
     finishedProduct &&
@@ -200,11 +204,20 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     if (!isFormValid) return;
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const multiplier = Math.ceil(Number(userTargetYield) / (recipeTargetYield || 1));
+      
+      await api.post("/api/scms/api/ProductionBatches", {
+        recipeId: Number(selectedVariantId),
+        productId: Number(finishedProduct),
+        batchMultiplier: multiplier,
+        scheduleDate: scheduleDate + "T00:00:00Z",
+        assignedCook: "System Assignment" // Or user selector if available
+      });
       onCreated();
       onClose();
     } catch (err) {
-      console.error(err);
+      console.error("Failed to create batch", err);
+      alert("Failed to create batch due to insufficient stock or server error.");
     } finally {
       setIsSubmitting(false);
     }
@@ -274,8 +287,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             Create Production Batch
+            {isLoadingData && <Loader2 size={16} className="animate-spin text-gray-400" />}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
@@ -307,9 +321,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               >
                 <option value="">Select product</option>
-                {MOCK_PRODUCTS.map((prod) => (
-                  <option key={prod.id} value={prod.id}>
-                    {prod.name}
+                {products.map((prod) => (
+                  <option key={prod.productId} value={prod.productId}>
+                    {prod.itemName}
                   </option>
                 ))}
               </select>
@@ -321,7 +335,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
             {/* Variant */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Variant
+                Recipe/BOM
               </label>
               <select
                 value={selectedVariantId}
@@ -338,10 +352,10 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                     : "border-gray-200 dark:border-gray-700"
                 } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <option value="">Select variant</option>
+                <option value="">Select recipe/BOM</option>
                 {availableVariants.map((v) => (
-                  <option key={v.variantId} value={v.variantId}>
-                    {v.variantName}
+                  <option key={v.recipeId} value={v.recipeId}>
+                    {v.recipeName}
                   </option>
                 ))}
               </select>
@@ -425,7 +439,11 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </thead>
                   <tbody>
                     {ingredients.map((ing) => {
-                      const deficit = ing.requiredQty - ing.availableStock;
+                      const multiplier = recipeTargetYield && userTargetYield !== "" && Number(userTargetYield) > 0 
+                        ? Math.ceil(Number(userTargetYield) / recipeTargetYield) 
+                        : 1;
+                      const required = ing.requiredQty * multiplier;
+                      const deficit = required - ing.availableStock;
                       const sufficient = deficit <= 0;
                       return (
                         <tr
@@ -436,7 +454,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                             {ing.ingredientName}
                           </td>
                           <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">
-                            {ing.requiredQty} {ing.uom}
+                            {required} {ing.uom}
                           </td>
                           <td className="px-4 py-2">
                             {ing.availableStock} {ing.uom}

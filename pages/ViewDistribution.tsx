@@ -105,7 +105,7 @@ export default function DistributionAnalyticsPage() {
           name: l.locationName,
           type: l.locationType,
           address: l.address,
-          status: l.isActive ? "Active" : "Inactive",
+          status: l.status || (l.isActive ? "Active" : "Inactive"),
         })));
       }
 

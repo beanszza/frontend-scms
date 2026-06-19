@@ -427,7 +427,13 @@ export default function ResourcesSuppliersPage() {
       }
       if (fpRes?.data?.success) {
         const fpList = fpRes.data.data.items || fpRes.data.data || [];
-        setFinishedProductData(fpList.sort((a: any, b: any) => a.productId - b.productId));
+        setFinishedProductData(
+          fpList.sort((a: any, b: any) => a.productId - b.productId).map((p: any) => ({
+            ...p,
+            itemName: p.itemName || "",
+            variant: p.variant || ""
+          }))
+        );
       }
     } catch (e) {
       console.error(e);
@@ -698,7 +704,7 @@ export default function ResourcesSuppliersPage() {
   };
 
   const addIngredient = () => {
-    setIngredients([...ingredients, { id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: 1, quantity: "" }]);
+    setIngredients([...ingredients, { id: Date.now(), itemId: baseSupplies.length > 0 ? baseSupplies[0].itemId : 1, uomId: 1, quantity: "" }]);
   };
 
   const removeIngredient = (id: number) => {
@@ -810,7 +816,7 @@ export default function ResourcesSuppliersPage() {
         quantity: ing.standardQuantity.toString()
       })));
     } else {
-      setIngredients([{ id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: supplyData.length > 0 ? supplyData[0].uomId : 1, quantity: "" }]);
+      setIngredients([{ id: Date.now(), itemId: baseSupplies.length > 0 ? baseSupplies[0].itemId : 1, uomId: baseSupplies.length > 0 ? baseSupplies[0].uomId : 1, quantity: "" }]);
     }
     setRecipeNameError("");
     setRecipeYieldError("");
@@ -824,7 +830,7 @@ export default function ResourcesSuppliersPage() {
     setProductId(finishedProductData.length > 0 ? finishedProductData[0].productId : 1);
     setOutputQuantity(1);
     setNotes("");
-    setIngredients([{ id: Date.now(), itemId: supplyData.length > 0 ? supplyData[0].itemId : 1, uomId: supplyData.length > 0 ? supplyData[0].uomId : 1, quantity: "" }]);
+    setIngredients([{ id: Date.now(), itemId: baseSupplies.length > 0 ? baseSupplies[0].itemId : 1, uomId: baseSupplies.length > 0 ? baseSupplies[0].uomId : 1, quantity: "" }]);
     setRecipeActive(true);
     setRecipeNameError("");
     setRecipeYieldError("");
@@ -917,7 +923,7 @@ export default function ResourcesSuppliersPage() {
             </div>
 
             <div className="relative w-full lg:max-w-md">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               <input
                 type="text"
                 placeholder="Search supplies..."
@@ -1030,14 +1036,14 @@ export default function ResourcesSuppliersPage() {
               </button>
             </div>
 
-            <div className="relative flex-1 sm:max-w-md">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="relative w-full lg:max-w-md">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               <input
                 type="text"
                 placeholder="Search suppliers..."
                 value={supplierSearchQuery}
                 onChange={(e) => { setSupplierSearchQuery(e.target.value); setSupplierPage(1); }}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
               />
             </div>
           </div>
@@ -1189,14 +1195,14 @@ export default function ResourcesSuppliersPage() {
               ))}
             </div>
 
-            <div className="relative flex-1 sm:max-w-md">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="relative w-full lg:max-w-md">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               <input
                 type="text"
                 placeholder="Search by Product Name or No...."
                 value={recipeSearchQuery}
                 onChange={(e) => setRecipeSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-2.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
               />
             </div>
           </div>
@@ -1229,7 +1235,7 @@ export default function ResourcesSuppliersPage() {
                         <td className="px-5 py-5 text-sm font-semibold text-gray-900 dark:text-white">{index + 1}</td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.recipeName}</td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
-                          {fp ? fp.itemName : `Product #${recipe.productId}`}
+                          {fp ? `${fp.itemName}${fp.variant ? `, ${fp.variant}` : ""}` : `Product #${recipe.productId}`}
                         </td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.outputQuantity}</td>
                         <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.ingredients?.length || 0} items</td>
@@ -1465,7 +1471,9 @@ export default function ResourcesSuppliersPage() {
                   <option value={0} disabled>No Finished Products Available</option>
                 ) : (
                   finishedProductData.map(fp => (
-                    <option key={fp.productId} value={fp.productId}>{fp.itemName}</option>
+                    <option key={fp.productId} value={fp.productId}>
+                      {fp.itemName}{fp.variant ? `, ${fp.variant}` : ""}
+                    </option>
                   ))
                 )}
               </select>
@@ -1500,10 +1508,10 @@ export default function ResourcesSuppliersPage() {
                       <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Item</label>
                       <select value={ingredient.itemId} onChange={(e) => {
                         const newId = Number(e.target.value);
-                        const supply = supplyData.find(s => s.itemId === newId);
+                        const supply = baseSupplies.find(s => s.itemId === newId);
                         setIngredients(ingredients.map(ing => ing.id === ingredient.id ? { ...ing, itemId: newId, uomId: supply ? supply.uomId : ing.uomId } : ing));
                       }} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                        {supplyData.map(supply => (
+                        {baseSupplies.map(supply => (
                           <option key={supply.itemId} value={supply.itemId}>{supply.itemName}</option>
                         ))}
                       </select>

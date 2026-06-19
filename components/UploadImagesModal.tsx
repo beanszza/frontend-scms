@@ -86,12 +86,12 @@ export default function UploadImagesModal({
 
   const uploadImages = async () => {
     if (selectedFiles.length === 0) return;
-    const formData = new FormData();
-    selectedFiles.forEach((f) => formData.append("files", f));
-    formData.append("batchId", batchId.toString());
-    await api.post("/api/scms/api/ProductionBatches/images", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    // Upload one at a time — backend expects a single IFormFile named 'file'
+    for (const file of selectedFiles) {
+      const formData = new FormData();
+      formData.append("file", file);
+      await api.post(`/api/scms/api/ProductionBatches/${batchId}/images`, formData);
+    }
   };
 
   const updateStage = async () => {

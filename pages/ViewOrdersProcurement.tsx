@@ -299,9 +299,7 @@ function NewOrderModal({ onClose, onSave, itemsList, suppliersList }: { onClose:
           setUploadStatus("Uploading receipt...");
           const formData = new FormData();
           formData.append("file", receiptFile);
-          await api.post(`/api/scms/api/PurchaseOrders/${poId}/upload-receipt`, formData, {
-            headers: { "Content-Type": "multipart/form-data" }
-          });
+          await api.post(`/api/scms/api/PurchaseOrders/${poId}/upload-receipt`, formData);
           setUploadStatus("Upload complete!");
         }
         onSave(response.data.data);
@@ -447,9 +445,7 @@ function EditOrderModal({ order, onClose, onSave, itemsList, suppliersList }: { 
           setUploadStatus("Uploading new receipt...");
           const formData = new FormData();
           formData.append("file", receiptFile);
-          await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData, {
-            headers: { "Content-Type": "multipart/form-data" }
-          });
+          await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData);
         }
         onSave();
       }
@@ -890,9 +886,7 @@ function QAInspectionPage({
         if (pictureFile) {
           const formData = new FormData();
           formData.append("file", pictureFile);
-          await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData, {
-            headers: { "Content-Type": "multipart/form-data" }
-          });
+          await api.post(`/api/scms/api/PurchaseOrders/${order.poId}/upload-receipt`, formData);
         }
         onComplete();
       }
@@ -1285,7 +1279,13 @@ export default function ViewOrdersProcurement() {
         api.get("/api/scms/api/Items"),
         api.get("/api/scms/api/Suppliers")
       ]);
-      if (itemsRes.data.success) setItemsList(itemsRes.data.data.items || itemsRes.data.data || []);
+      if (itemsRes.data.success) {
+        const items = itemsRes.data.data.items || itemsRes.data.data || [];
+        setItemsList(items.filter((i: any) => 
+          !i.categoryName?.toLowerCase().includes("finished good") && 
+          !i.category?.toLowerCase().includes("finished good")
+        ));
+      }
       if (suppliersRes.data.success) setSuppliersList(suppliersRes.data.data.items || suppliersRes.data.data || []);
     } catch (err) {
       console.error("Error fetching items or suppliers", err);
@@ -1418,7 +1418,7 @@ export default function ViewOrdersProcurement() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+        <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div className="flex flex-wrap gap-1.5">
             {(["All", "Pending", "Arrived", "Completed", "Cancelled", "Rejected"] as const).map(f => (
               <button key={f} onClick={() => { setFilter(f); setPage(1); }} className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${filter === f ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"}`}>
@@ -1426,8 +1426,15 @@ export default function ViewOrdersProcurement() {
               </button>
             ))}
           </div>
-          <div className="relative flex-1 min-w-0">
-            <input className="w-full px-4 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search by Order No., Item, or Supplier..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+          <div className="relative w-full lg:max-w-md">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input 
+              type="text"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]" 
+              placeholder="Search by Order No., Item, or Supplier..." 
+              value={search} 
+              onChange={e => { setSearch(e.target.value); setPage(1); }} 
+            />
           </div>
         </div>
 

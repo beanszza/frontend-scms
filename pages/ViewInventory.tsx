@@ -16,6 +16,7 @@ type InventoryResponse = {
   locationName: string;
   currentStock: number;
   minStockLevel: number;
+  maxStockLevel: number;
   isLowStock: boolean;
 };
 
@@ -183,13 +184,25 @@ export default function ViewInventory() {
                 </tr>
               ) : (
                 currentTabItems.map((inv, index) => {
-                  const isCritical = inv.currentStock <= inv.minStockLevel || inv.isLowStock;
+                  const percentage = inv.maxStockLevel > 0 
+                    ? Math.min(100, Math.round((inv.currentStock / inv.maxStockLevel) * 100))
+                    : (inv.currentStock > 0 ? 100 : 0);
+
                   let stockLevelLabel = "High";
-                  if (isCritical || inv.currentStock === 0) {
+                  let barColor = "bg-green-500";
+                  let textColor = "text-green-600 dark:text-green-400";
+                  
+                  if (percentage <= 40 || inv.currentStock === 0) {
                     stockLevelLabel = "Low";
-                  } else if (inv.minStockLevel > 0 && inv.currentStock <= inv.minStockLevel * 1.5) {
+                    barColor = "bg-red-600";
+                    textColor = "text-red-600 dark:text-red-400";
+                  } else if (percentage <= 70) {
                     stockLevelLabel = "Medium";
+                    barColor = "bg-yellow-500";
+                    textColor = "text-yellow-600 dark:text-yellow-400";
                   }
+
+                  const isCritical = stockLevelLabel === "Low";
 
                   return (
                     <tr key={inv.inventoryId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -202,31 +215,18 @@ export default function ViewInventory() {
                       <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {inv.uomName}
                       </td>
-                      <td className={`px-6 py-4 text-sm font-bold ${isCritical ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                      <td className={`px-6 py-4 text-sm font-bold ${textColor}`}>
                         {inv.currentStock}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {inv.minStockLevel}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="w-24 flex gap-1 h-2 mb-1.5">
-                          <div className={`flex-1 rounded-l-full ${
-                            stockLevelLabel === 'Low' ? 'bg-red-600' : 
-                            stockLevelLabel === 'Medium' ? 'bg-yellow-500' : 
-                            'bg-green-500'
-                          }`}></div>
-                          <div className={`flex-1 ${
-                            stockLevelLabel === 'Low' ? 'bg-gray-200 dark:bg-gray-700' : 
-                            stockLevelLabel === 'Medium' ? 'bg-yellow-500' : 
-                            'bg-green-500'
-                          }`}></div>
-                          <div className={`flex-1 rounded-r-full ${
-                            stockLevelLabel === 'High' ? 'bg-green-500' : 
-                            'bg-gray-200 dark:bg-gray-700'
-                          }`}></div>
+                        <div className="w-24 h-2 mb-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className={`h-full ${barColor}`} style={{ width: `${percentage}%` }}></div>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                          {stockLevelLabel}
+                          {stockLevelLabel} ({percentage}%)
                         </div>
                       </td>
                       <td className="px-6 py-4">
