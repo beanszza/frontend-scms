@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { X, Loader2, Check, AlertTriangle, Package } from "lucide-react";
-import api from "../lib/api"; // keep import
+import api from "../lib/api";
 
 interface Props {
   open: boolean;
@@ -13,7 +13,7 @@ interface Props {
 type IngredientAllocation = {
   ingredientId: number;
   ingredientName: string;
-  requiredQty: number; // quantity needed for the recipe
+  requiredQty: number;
   uom: string;
   availableStock: number;
 };
@@ -26,7 +26,7 @@ type Variant = {
   ingredients: IngredientAllocation[];
 };
 
-// ---------- MOCK DATA: products -> variants -> recipes ----------
+// ---------- MOCK DATA ----------
 const MOCK_VARIANTS: Record<string, Variant[]> = {
   "prod-1": [
     {
@@ -35,7 +35,13 @@ const MOCK_VARIANTS: Record<string, Variant[]> = {
       targetYield: 50,
       yieldUnit: "pcs",
       ingredients: [
-        { ingredientId: 1, ingredientName: "Ground Pork pork pano pag mahaba", requiredQty: 10, uom: "kg", availableStock: 8 }, // insufficient
+        {
+          ingredientId: 1,
+          ingredientName: "Ground Pork pork pano pag mahaba",
+          requiredQty: 10,
+          uom: "kg",
+          availableStock: 8,
+        },
         { ingredientId: 2, ingredientName: "Garlic", requiredQty: 1, uom: "kg", availableStock: 5 },
         { ingredientId: 3, ingredientName: "Salt", requiredQty: 0.2, uom: "kg", availableStock: 2 },
         { ingredientId: 4, ingredientName: "Sugar", requiredQty: 0.5, uom: "kg", availableStock: 10 },
@@ -109,10 +115,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   const [isComputing, setIsComputing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Variants for the selected product
   const availableVariants = finishedProduct ? MOCK_VARIANTS[finishedProduct] ?? [] : [];
 
-  // Reset everything when modal opens
+  // Reset when modal opens
   useEffect(() => {
     if (open) {
       setFinishedProduct("");
@@ -176,12 +181,10 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     }
   }, [userTargetYield, recipeTargetYield, yieldUnit]);
 
-  // Stock validation
   const hasStockIssue = useMemo(() => {
     return ingredients.some((ing) => ing.availableStock < ing.requiredQty);
   }, [ingredients]);
 
-  // Form validity
   const isFormValid =
     finishedProduct &&
     selectedVariantId &&
@@ -193,12 +196,10 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     !isSubmitting &&
     !hasStockIssue;
 
-  // Submit directly (no confirmation modal)
   const submitBatch = async () => {
     if (!isFormValid) return;
     setIsSubmitting(true);
     try {
-      // MOCK SUBMIT
       await new Promise((resolve) => setTimeout(resolve, 1000));
       onCreated();
       onClose();
@@ -229,22 +230,53 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
       hasError = true;
     }
 
-    if (hasError || scheduleDateError === "Past date is not allowed." || targetYieldError || hasStockIssue) return;
+    if (hasError || scheduleDateError || targetYieldError || hasStockIssue) return;
 
     submitBatch();
+  };
+
+  // ---------- Date validation ----------
+  const validateScheduleDate = (val: string) => {
+    if (!val) {
+      setScheduleDateError("");
+      return;
+    }
+    // Basic format check
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(val)) {
+      setScheduleDateError("Invalid date format.");
+      return;
+    }
+    const dateObj = new Date(val + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (isNaN(dateObj.getTime())) {
+      setScheduleDateError("Invalid date.");
+    } else if (dateObj < today) {
+      setScheduleDateError("Past date is not allowed.");
+    } else if (dateObj.getFullYear() > 2100) {
+      setScheduleDateError("Year cannot exceed 2100.");
+    } else {
+      setScheduleDateError("");
+    }
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-2xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Create Production Batch</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Create Production Batch
+          </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
@@ -263,12 +295,16 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 onChange={(e) => {
                   setFinishedProduct(e.target.value);
                   setFinishedProductError("");
-                  setSelectedVariantId(""); // reset variant
-                  setUserTargetYield(""); // reset user yield
+                  setSelectedVariantId("");
+                  setUserTargetYield("");
                   setTargetYieldError("");
                   setVariantError("");
                 }}
-                className={`w-full rounded-xl border ${finishedProductError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
+                className={`w-full rounded-xl border ${
+                  finishedProductError
+                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               >
                 <option value="">Select product</option>
                 {MOCK_PRODUCTS.map((prod) => (
@@ -277,7 +313,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </option>
                 ))}
               </select>
-              {finishedProductError && <p className="mt-1 text-xs text-red-500">{finishedProductError}</p>}
+              {finishedProductError && (
+                <p className="mt-1 text-xs text-red-500">{finishedProductError}</p>
+              )}
             </div>
 
             {/* Variant */}
@@ -290,11 +328,15 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 onChange={(e) => {
                   setSelectedVariantId(e.target.value);
                   setVariantError("");
-                  setUserTargetYield(""); // reset user yield when variant changes
+                  setUserTargetYield("");
                   setTargetYieldError("");
                 }}
                 disabled={!finishedProduct}
-                className={`w-full rounded-xl border ${variantError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full rounded-xl border ${
+                  variantError
+                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <option value="">Select variant</option>
                 {availableVariants.map((v) => (
@@ -321,9 +363,15 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 }}
                 placeholder="Enter target yield"
                 disabled={!recipeTargetYield}
-                className={`w-full rounded-xl border ${targetYieldError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full rounded-xl border ${
+                  targetYieldError
+                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
               />
-              {targetYieldError && <p className="mt-1 text-xs text-red-500">{targetYieldError}</p>}
+              {targetYieldError && (
+                <p className="mt-1 text-xs text-red-500">{targetYieldError}</p>
+              )}
             </div>
 
             {/* Schedule Date */}
@@ -334,23 +382,25 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               <input
                 type="date"
                 value={scheduleDate}
+                max="2100-12-31"
                 onChange={(e) => {
                   const val = e.target.value;
                   setScheduleDate(val);
-                  const today = new Date().toISOString().split("T")[0];
-                  if (val && val < today) {
-                    setScheduleDateError("Past date is not allowed.");
-                  } else {
-                    setScheduleDateError("");
-                  }
+                  validateScheduleDate(val);
                 }}
-                className={`w-full rounded-xl border ${scheduleDateError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
+                className={`w-full rounded-xl border ${
+                  scheduleDateError
+                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
               />
-              {scheduleDateError && <p className="mt-1 text-xs text-red-500">{scheduleDateError}</p>}
+              {scheduleDateError && (
+                <p className="mt-1 text-xs text-red-500">{scheduleDateError}</p>
+              )}
             </div>
           </div>
 
-          {/* Ingredient Allocation – always shown when loaded */}
+          {/* Ingredient Allocation */}
           {isComputing && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Loader2 size={16} className="animate-spin" /> Computing ingredients…
@@ -359,9 +409,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
           {!isComputing && ingredients.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Package size={16} className="text-gray-400" />
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  When batch is in progress, the following quantities will be <strong>deducted</strong> from inventory once in production:
+                  <strong>Ingredients / Bill of Materials</strong>
                 </p>
               </div>
               <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
@@ -379,8 +428,13 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                       const deficit = ing.requiredQty - ing.availableStock;
                       const sufficient = deficit <= 0;
                       return (
-                        <tr key={ing.ingredientId} className="border-t border-gray-100 dark:border-gray-800">
-                          <td className="px-4 py-2 text-gray-900 dark:text-white">{ing.ingredientName}</td>
+                        <tr
+                          key={ing.ingredientId}
+                          className="border-t border-gray-100 dark:border-gray-800"
+                        >
+                          <td className="px-4 py-2 text-gray-900 dark:text-white">
+                            {ing.ingredientName}
+                          </td>
                           <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">
                             {ing.requiredQty} {ing.uom}
                           </td>
@@ -394,7 +448,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-red-500">
-                                <AlertTriangle size={14} /> Insufficient by {deficit.toFixed(2)} {ing.uom}
+                                <AlertTriangle size={14} /> Insufficient by {deficit.toFixed(2)}{" "}
+                                {ing.uom}
                               </span>
                             )}
                           </td>
@@ -405,16 +460,16 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 </table>
               </div>
 
-              {/* Recipe Target Yield (read-only reference) */}
               {recipeTargetYield !== null && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="ml-1 mt-3 text-xs text-gray-500 dark:text-gray-400">
                   Recipe target yield: {recipeTargetYield} {yieldUnit}
                 </p>
               )}
 
               {hasStockIssue && (
                 <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                  <AlertTriangle size={14} /> Insufficient stock for one or more ingredients. Please restock before creating this batch.
+                  <AlertTriangle size={14} /> Insufficient stock for one or more ingredients. Please
+                  restock before creating this batch.
                 </p>
               )}
             </div>
