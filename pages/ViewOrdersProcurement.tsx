@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { History, Search, Filter, Plus, Calendar, Edit3, Eye, CheckCircle, PackageOpen, FileText, ChevronDown, Check, X, ShieldCheck, MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle } from "lucide-react";
+import { History, Search, Filter, Plus, Calendar, Edit3, Eye, CheckCircle, PackageOpen, FileText, ChevronDown, Check, X, ShieldCheck, MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, BarChart3, ArrowLeft } from "lucide-react";
 import api from "../lib/api";
 import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
@@ -33,6 +33,21 @@ type Order = {
   qaNotes?: string;
   unit: string;
   proofImageUrl?: string;
+};
+
+// Story II: "Create Procurement Report UI" row shape.
+// TODO: once James's "Create Procurement Report API" ticket is done, this
+// should come directly from ProcurementReportDto (backend-calculated
+// Fulfillment Rate and Lead Time) instead of being derived client-side below.
+type ProcurementReportRow = {
+  poId: number;
+  purchaseOrderId: string;
+  supplier: string;
+  issueDate: string;
+  orderedQuantity: number;
+  fulfillmentRate: number | null;
+  leadTimeDays: number | null;
+  inspectionStatus: string;
 };
 
 const formatDateToMDY = (dateInput: string | Date) => {
@@ -183,6 +198,19 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${styles[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+function InspectionStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    Passed: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
+    Failed: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+    Pending: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+  };
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${styles[status] || styles.Pending}`}>
       {status}
     </span>
   );
@@ -1227,6 +1255,134 @@ function QAInspectionPage({
   );
 }
 
+// Story II: "Create Procurement Report UI"
+// Full-page view (mirrors QAInspectionPage's pattern) with a Back button that
+// returns to the normal Orders & Procurement content.
+// TODO: currently derives Fulfillment Rate / Lead Time / Inspection Status
+// client-side from PurchaseOrders data. Swap to a dedicated Procurement
+// Report endpoint (ProcurementReportDto) once James's backend ticket is done,
+// and wire in the Global Filter Bar (Story VI) once that's built.
+function ProcurementReportsPage({ onClose }: { onClose: () => void }) {
+  const [reportRows, setReportRows] = useState<ProcurementReportRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchReportData();
+  }, []);
+
+  async function fetchReportData() {
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/api/scms/api/PurchaseOrders?pageSize=10000`);
+      if (response.data.success) {
+        const list: PurchaseOrderResponse[] = response.data.data.items || response.data.data || [];
+
+        const rows: ProcurementReportRow[] = list.map((o) => {
+          const orderedQty = o.items.reduce((sum, it) => sum + (it.poItemQuantity || 0), 0);
+          const receivedQty = o.items.reduce((sum, it) => sum + (it.receivedQuantity || 0), 0);
+
+          const fulfillmentRate = orderedQty > 0 && (o.status === "Completed" || o.status === "Arrived" || o.status === "Rejected")
+            ? Math.round((receivedQty / orderedQty) * 1000) / 10
+            : null;
+
+          let leadTimeDays: number | null = null;
+          if (o.arrivalDate) {
+            const orderDate = new Date(o.orderDate);
+            const arrivalDate = new Date(o.arrivalDate);
+            if (!isNaN(orderDate.getTime()) && !isNaN(arrivalDate.getTime())) {
+              leadTimeDays = Math.round((arrivalDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+            }
+          }
+
+          const inspectionStatus = o.qaStatus || "Pending";
+
+          return {
+            poId: o.poId,
+            purchaseOrderId: `PO-${o.poId}`,
+            supplier: o.supplierName,
+            issueDate: formatDateToMDY(o.orderDate),
+            orderedQuantity: orderedQty,
+            fulfillmentRate,
+            leadTimeDays,
+            inspectionStatus,
+          };
+        });
+
+        setReportRows(rows);
+      }
+    } catch (error) {
+      console.error("Error fetching procurement report data", error);
+      setReportRows([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className="p-4 space-y-4 max-w-full">
+      <div>
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-2"
+        >
+          <ArrowLeft size={16} /> Back to Orders & Procurement
+        </button>
+        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Procurement Report</h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Monitor supplier order fulfillment</p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">PURCHASE ORDER ID</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">SUPPLIER</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ISSUE DATE</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDERED QUANTITY</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">FULFILLMENT RATE</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">LEAD TIME</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">INSPECTION STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-10 text-gray-500">Loading report data...</td>
+                </tr>
+              ) : reportRows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    No Data Found
+                  </td>
+                </tr>
+              ) : (
+                reportRows.map((row) => (
+                  <tr key={row.poId} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-4 py-3 font-bold text-gray-900 dark:text-white whitespace-nowrap">{row.purchaseOrderId}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.supplier}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{row.issueDate}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.orderedQuantity}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      {row.fulfillmentRate !== null ? `${row.fulfillmentRate}%` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      {row.leadTimeDays !== null ? `${row.leadTimeDays} day${row.leadTimeDays === 1 ? "" : "s"}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <InspectionStatusBadge status={row.inspectionStatus} />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ViewOrdersProcurement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [itemsList, setItemsList] = useState<ItemResponse[]>([]);
@@ -1237,6 +1393,7 @@ export default function ViewOrdersProcurement() {
   const [editOrder, setEditOrder] = useState<Order | null>(null);
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [qaOrder, setQaOrder] = useState<Order | null>(null);
+  const [showReports, setShowReports] = useState(false);
   const [activeDropdownPoId, setActiveDropdownPoId] = useState<number | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: "arrived" | "cancel"; orderId: string; poId: number; message: string } | null>(null);
@@ -1380,19 +1537,24 @@ export default function ViewOrdersProcurement() {
     );
   }
 
+  if (showReports) {
+    return <ProcurementReportsPage onClose={() => setShowReports(false)} />;
+  }
+
   return (
     <div className="p-4 space-y-4 max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orders & Procurement</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Orders & Procurement</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage purchase orders for Raw Materials and Tools</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <button
+            onClick={() => setShowReports(true)}
             className="h-11 px-5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap flex items-center gap-2"
           >
-            <History size={16} />
-            Transaction History
+            <BarChart3 size={16} />
+            Procurement Reports
           </button>
           <button
             onClick={() => setShowNew(true)}

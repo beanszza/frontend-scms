@@ -584,7 +584,7 @@ export default function ProductionPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Production &amp; Quality</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Production & Quality</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Manage production batches, track stages, and perform QA reviews.
           </p>

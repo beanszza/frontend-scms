@@ -849,7 +849,7 @@ export default function ResourcesSuppliersPage() {
   return (
     <div className="min-h-screen bg-[#f9fafb] dark:bg-[#101828] p-4 sm:p-6 transition-colors">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Resources & Suppliers</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Resources & Suppliers</h1>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Manage your foundation data - Supply, Suppliers, and Recipes</p>
       </div>
 

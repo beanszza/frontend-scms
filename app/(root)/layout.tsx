@@ -10,6 +10,7 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     path: "/",
+    baseUrl: process.env.NEXT_PUBLIC_SCMS_URL,
   },
   {
     name: "Point of Sale",
@@ -79,6 +80,7 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    console.log("CURRENT USER IN SCMS APP:", user);
     if (!isLoading && !user) {
       router.replace(`${process.env.NEXT_PUBLIC_HOST_URL}/signin`);
     }
