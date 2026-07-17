@@ -809,12 +809,19 @@ export default function ResourcesSuppliersPage() {
     setNotes(recipe.notes || "");
     setRecipeActive(recipe.isActive);
     if (recipe.ingredients && recipe.ingredients.length > 0) {
-      setIngredients(recipe.ingredients.map((ing: any, idx: number) => ({
-        id: idx,
-        itemId: ing.itemId,
-        uomId: ing.uomId,
-        quantity: ing.standardQuantity.toString()
-      })));
+      const fp = finishedProductData.find(p => p.productId === recipe.productId);
+      const filteredIngredients = recipe.ingredients.filter((ing: any) => ing.itemId !== fp?.itemId);
+      
+      if (filteredIngredients.length > 0) {
+        setIngredients(filteredIngredients.map((ing: any, idx: number) => ({
+          id: idx,
+          itemId: ing.itemId,
+          uomId: ing.uomId,
+          quantity: ing.standardQuantity.toString()
+        })));
+      } else {
+        setIngredients([{ id: Date.now(), itemId: baseSupplies.length > 0 ? baseSupplies[0].itemId : 1, uomId: baseSupplies.length > 0 ? baseSupplies[0].uomId : 1, quantity: "" }]);
+      }
     } else {
       setIngredients([{ id: Date.now(), itemId: baseSupplies.length > 0 ? baseSupplies[0].itemId : 1, uomId: baseSupplies.length > 0 ? baseSupplies[0].uomId : 1, quantity: "" }]);
     }

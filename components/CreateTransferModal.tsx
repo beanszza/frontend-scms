@@ -192,6 +192,101 @@ export default function CreateTransferModal({
     (loc) => !sourceLocationId || loc.id !== sourceLocationId.toString()
   );
 
+  if (mode === "view" && initialData) {
+    return (
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50"
+        onClick={onClose}
+      >
+        <div
+          className="relative w-full max-w-[500px] bg-white dark:bg-[#1a2232] rounded-2xl shadow-2xl overflow-hidden flex flex-col p-6 text-slate-900 dark:text-white"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              Transfer Details - {initialData.id}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-semibold leading-none"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+              initialData.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+              initialData.status === 'In Transit' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+              initialData.status === 'Cancelled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+            }`}>
+              {initialData.status}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-y-5 gap-x-4 mb-6">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Product</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.product}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Quantity</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.quantity}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">From Location</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.from}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">To Location</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.to}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Transfer Date</p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.date}</p>
+            </div>
+          </div>
+
+          {initialData.status === 'Completed' && (
+            <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-2xl p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                <h3 className="text-sm font-bold text-green-700 dark:text-green-500">Transfer Completed - Received</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Delivery Status</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Arrived & Verified</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Destination</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{initialData.to}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Quantity Verification</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dispatched</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{initialData.quantity}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Received</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  {initialData.status === 'Completed' ? initialData.quantity : '-'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50"

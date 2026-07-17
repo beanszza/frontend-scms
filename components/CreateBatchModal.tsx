@@ -146,7 +146,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
           setYieldUnit(prodItem?.uomName || "units");
           
           // Map ingredients to display shape
-          const computedIngredients = variant.ingredients.map(ing => {
+          const computedIngredients = variant.ingredients
+            .filter(ing => ing.itemId !== prodItem?.itemId)
+            .map(ing => {
             const item = items.find(i => i.itemId === ing.itemId);
             return {
               ingredientId: ing.ingredientId,
