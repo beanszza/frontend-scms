@@ -10,7 +10,7 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     path: "/",
-    baseUrl: process.env.NEXT_PUBLIC_SCMS_URL,
+    baseUrl: process.env.NEXT_PUBLIC_HOST_URL,
   },
   {
     name: "Point of Sale",
@@ -26,13 +26,13 @@ const navItems: NavItem[] = [
     name: "Supply Chain",
     icon: <TableIcon />,
     app: "supply-chain",
-    baseUrl: process.env.NEXT_PUBLIC_SCMS_URL,
+    baseUrl: process.env.NEXT_PUBLIC_HOST_URL,
     subItems: [
-      { name: "Resources & Suppliers", path: "/resources-suppliers", app: "resources-suppliers", baseUrl: process.env.NEXT_PUBLIC_SCMS_URL },
-      { name: "Orders and Procurement", path: "/orders-procurement", app: "orders-procurement", baseUrl: process.env.NEXT_PUBLIC_SCMS_URL },
-      { name: "Inventory", path: "/inventory", app: "inventory", baseUrl: process.env.NEXT_PUBLIC_SCMS_URL },
-      { name: "Production & Quality", path: "/production-quality", app: "production-quality", baseUrl: process.env.NEXT_PUBLIC_SCMS_URL },
-      { name: "Distribution & Analytics", path: "/distribution-analytics", app: "distribution-analytics", baseUrl: process.env.NEXT_PUBLIC_SCMS_URL },
+      { name: "Resources & Suppliers", path: "/resources-suppliers", app: "resources-suppliers", baseUrl: process.env.NEXT_PUBLIC_HOST_URL },
+      { name: "Orders and Procurement", path: "/orders-procurement", app: "orders-procurement", baseUrl: process.env.NEXT_PUBLIC_HOST_URL },
+      { name: "Inventory", path: "/inventory", app: "inventory", baseUrl: process.env.NEXT_PUBLIC_HOST_URL },
+      { name: "Production & Quality", path: "/production-quality", app: "production-quality", baseUrl: process.env.NEXT_PUBLIC_HOST_URL },
+      { name: "Distribution & Analytics", path: "/distribution-analytics", app: "distribution-analytics", baseUrl: process.env.NEXT_PUBLIC_HOST_URL },
     ],
   },
   {
@@ -82,7 +82,8 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("CURRENT USER IN SCMS APP:", user);
     if (!isLoading && !user) {
-      router.replace(`${process.env.NEXT_PUBLIC_HOST_URL}/signin`);
+      const redirectUrl = encodeURIComponent(window.location.href);
+      router.replace(`${process.env.NEXT_PUBLIC_HOST_URL}/signin?redirect=${redirectUrl}`);
     }
   }, [user, isLoading]);
 
@@ -98,7 +99,8 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
       desktopLogo="/images/logo/desktop.svg"
       onLogout={async () => {
         await logout();
-        router.replace(`${process.env.NEXT_PUBLIC_HOST_URL}/signin`);
+        const redirectUrl = encodeURIComponent(window.location.href);
+        router.replace(`${process.env.NEXT_PUBLIC_HOST_URL}/signin?redirect=${redirectUrl}`);
       }}
     >
       {children}
