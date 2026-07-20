@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Package, AlertCircle, TrendingUp, ShoppingCart, MoreHorizontal } from "lucide-react";
+import { Package, AlertCircle, TrendingUp, ShoppingCart, MoreHorizontal, FileText } from "lucide-react";
 import api from "../lib/api";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
@@ -108,9 +108,16 @@ export default function ViewInventory() {
 
   return (
     <div className="min-h-screen bg-[#f9fafb] dark:bg-gray-900 p-4 sm:p-6 transition-colors">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Inventory Management</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Real-time stock levels (view-only, auto-updated from orders and production)</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Inventory Management</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Real-time stock levels (view-only, auto-updated from orders and production)</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/reports?tab=inventory" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <FileText size={18} /> Reports
+          </Link>
+        </div>
       </div>
 
 
@@ -139,7 +146,7 @@ export default function ViewInventory() {
       </div>
 
       <div className="border-b border-gray-200 dark:border-gray-700 flex gap-6 mb-6">
-        {["Raw Materials", "Tools", "Finished Goods", "Reports"].map((tabName) => (
+        {["Raw Materials", "Tools", "Finished Goods"].map((tabName) => (
           <button
             key={tabName}
             onClick={() => { setActiveTab(tabName); setPage(1); }}

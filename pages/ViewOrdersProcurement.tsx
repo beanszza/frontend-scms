@@ -1549,13 +1549,13 @@ export default function ViewOrdersProcurement() {
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage purchase orders for Raw Materials and Tools</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => setShowReports(true)}
-            className="h-11 px-5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap flex items-center gap-2"
+          <Link
+            href="/reports?tab=procurement"
+            className="h-11 px-5 text-sm font-semibold text-black dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center gap-2"
           >
-            <BarChart3 size={16} />
-            Procurement Reports
-          </button>
+            <FileText size={16} />
+            Reports
+          </Link>
           <button
             onClick={() => setShowNew(true)}
             className="h-11 px-5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors whitespace-nowrap"

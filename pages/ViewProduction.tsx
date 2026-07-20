@@ -22,7 +22,9 @@ import {
   Settings,
   Camera,
   MessageSquare,
+  FileText
 } from "lucide-react";
+import Link from "next/link";
 import api from "../lib/api";
 import CreateBatchModal from "../components/CreateBatchModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -677,6 +679,9 @@ export default function ProductionPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Overview of all production batches</p>
             </div>
             <div className="flex gap-2 flex-shrink-0">
+              <Link href="/reports?tab=production" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-11 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">
+                <FileText size={16} /> Reports
+              </Link>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="h-11 px-5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"

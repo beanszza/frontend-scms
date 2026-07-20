@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import StockTransferTable from "@/components/StockTransferTable";
+import Link from "next/link";
+import { FileText } from "lucide-react";
 import LocationManager from "@/components/LocationManager";
 import CreateTransferModal from "@/components/CreateTransferModal";
 import DispatchModal from "@/components/DispatchModal";
@@ -242,6 +244,9 @@ export default function DistributionAnalyticsPage() {
         
         {/* FIXED: Forced full-width matching inline alignments for action options when running small resolutions */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link href="/reports?tab=distribution" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-10 text-xs font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm whitespace-nowrap">
+            <FileText size={16} /> Reports
+          </Link>
           {activeTab === "Stock Transfer" && (
             <>
               <button onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_SCMS_URL || 'http://localhost:5033'}/api/scms/api/StockTransfers/export-history`} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-bold border border-gray-300 dark:border-slate-700 rounded-lg bg-white text-slate-900 dark:text-slate-900 hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm text-center">
