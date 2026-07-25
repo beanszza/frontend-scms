@@ -100,7 +100,7 @@ export default function SupplierPerformanceChart() {
       <div className="grid grid-cols-2 gap-2 mb-4">
         <div className={`rounded-xl px-3 py-2 ${metric.badgeBg}`}>
           <p className={`text-theme-xs font-semibold ${metric.badgeText}`}>
-            ✦ Best — {best.supplier}
+            Best — {best.supplier}
           </p>
           <p className={`text-lg font-bold ${metric.badgeText}`}>
             {best[activeMetric]}{metric.unit}
@@ -108,7 +108,7 @@ export default function SupplierPerformanceChart() {
         </div>
         <div className="rounded-xl px-3 py-2 bg-gray-50 dark:bg-gray-800">
           <p className="text-theme-xs font-semibold text-gray-500 dark:text-gray-400">
-            ⚠ Needs Work — {worst.supplier}
+            Needs Work — {worst.supplier}
           </p>
           <p className="text-lg font-bold text-gray-700 dark:text-gray-300">
             {worst[activeMetric]}{metric.unit}

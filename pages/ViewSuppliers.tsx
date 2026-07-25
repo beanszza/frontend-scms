@@ -867,8 +867,8 @@ export default function ResourcesSuppliersPage() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Raw materials and tools inventory</p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/reports?tab=supplier" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <FileText size={18} /> Reports
+              <Link href="/resources-suppliers/logs?type=Supply" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <FileText size={18} /> Transaction History
               </Link>
               <button onClick={openCreateSupply} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add New Supply</button>
             </div>
@@ -1166,6 +1166,9 @@ export default function ResourcesSuppliersPage() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Production recipes and ingredients breakdown</p>
             </div>
             <div className="flex items-center gap-3">
+              <Link href="/resources-suppliers/logs?type=Recipe" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <FileText size={18} /> Transaction History
+              </Link>
               <button onClick={openCreateRecipe} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> New Recipe</button>
             </div>
           </div>
