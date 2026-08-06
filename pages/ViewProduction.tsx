@@ -28,6 +28,7 @@ import Link from "next/link";
 import api from "../lib/api";
 import CreateBatchModal from "../components/CreateBatchModal";
 import ConfirmModal from "../components/ConfirmModal";
+import PaginationFooter from "./PaginationFooter";
 
 // ---------- Types ----------
 type ProductionBatchResponse = {
@@ -785,7 +786,15 @@ export default function ProductionPage() {
                           </td>
                           <td className="px-2 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                             <span className="flex items-center gap-1.5">
-                              {batch.productionDate}
+                              <span>
+                                {batch.productionDate
+                                  ? new Date(batch.productionDate).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })
+                                  : "—"}
+                              </span>
                               {overdue && (
                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400">
                                   <AlertTriangle size={13} /> Overdue
@@ -842,69 +851,13 @@ export default function ProductionPage() {
               </table>
             </div>
             
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <div className="flex flex-1 justify-between sm:hidden">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                      <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                      >
-                        <span className="sr-only">Previous</span>
-                        <ChevronRight className="h-4 w-4 rotate-180" aria-hidden="true" />
-                      </button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 ${
-                            currentPage === page
-                              ? 'z-10 bg-brand-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600'
-                              : 'text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-offset-0'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                      
-                      <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                      >
-                        <span className="sr-only">Next</span>
-                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Clean Pagination Footer */}
+            <PaginationFooter
+              totalItems={allFilteredBatches.length}
+              currentPage={currentPage}
+              itemsPerPage={10}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </>
       )}

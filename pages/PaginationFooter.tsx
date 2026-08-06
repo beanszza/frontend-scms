@@ -20,6 +20,26 @@ export default function PaginationFooter({
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
 
+  // Smart Page Window (Prevents button overflow for 10+ pages)
+  const getPageNumbers = () => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [1];
+    if (currentPage > 3) pages.push("...");
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+    return pages;
+  };
+
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 text-xs font-medium text-gray-600 dark:text-gray-400">
       <div>
@@ -28,7 +48,7 @@ export default function PaginationFooter({
         <span className="font-bold text-gray-900 dark:text-white">{totalItems}</span> entries
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap justify-center">
         <button
           onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage === 1}
@@ -38,18 +58,24 @@ export default function PaginationFooter({
         </button>
 
         <div className="flex items-center gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => onPageChange(p)}
-              className={`w-8 h-8 rounded-lg font-bold transition-colors ${
-                currentPage === p
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-            >
-              {p}
-            </button>
+          {getPageNumbers().map((p, idx) => (
+            typeof p === "number" ? (
+              <button
+                key={idx}
+                onClick={() => onPageChange(p)}
+                className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                  currentPage === p
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+              >
+                {p}
+              </button>
+            ) : (
+              <span key={idx} className="w-6 text-center text-gray-400 font-bold select-none">
+                ...
+              </span>
+            )
           ))}
         </div>
 
