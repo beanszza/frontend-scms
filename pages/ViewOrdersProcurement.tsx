@@ -7,6 +7,7 @@ import { History, Search, Filter, Plus, Calendar, Edit3, Eye, CheckCircle, Packa
 import api from "../lib/api";
 import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
+import { getImageUrl } from "../lib/getImageUrl";
 
 type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled" | "Rejected";
 type PaymentType = "Payable" | "Paid";
@@ -685,8 +686,15 @@ function NewOrderModalContent({
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
                   setReceiptFile(file);
-                  if (file && setReceiptError) {
-                    setReceiptError("");
+                  if (file) {
+                    if (setReceiptError) setReceiptError("");
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                      if (setProofImageUrl && evt.target?.result) {
+                        setProofImageUrl(evt.target.result as string);
+                      }
+                    };
+                    reader.readAsDataURL(file);
                   }
                 }}
               />
@@ -709,7 +717,7 @@ function NewOrderModalContent({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
                     <ClipboardCheck size={18} />
-                    <a href={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`} target="_blank" rel="noreferrer" className="hover:underline">
+                    <a href={getImageUrl(proofImageUrl)} target="_blank" rel="noreferrer" className="hover:underline">
                       View Uploaded PDF Receipt
                     </a>
                   </div>
@@ -739,7 +747,7 @@ function NewOrderModalContent({
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${proofImageUrl}`}
+                    src={getImageUrl(proofImageUrl)}
                     alt="Receipt Proof"
                     className="max-h-36 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white"
                   />

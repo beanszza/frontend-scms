@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Filter, Search, Calendar, RotateCcw } from "lucide-react";
+import { Filter, Search, Calendar, RotateCcw, Upload } from "lucide-react";
 
 interface AuditLogsFilterBarProps {
   filterMode: "all" | "specific" | "range";
@@ -15,6 +15,7 @@ interface AuditLogsFilterBarProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   onResetFilters: () => void;
+  onExportCSV: () => void;
 }
 
 export default function AuditLogsFilterBar({
@@ -29,6 +30,7 @@ export default function AuditLogsFilterBar({
   searchQuery,
   setSearchQuery,
   onResetFilters,
+  onExportCSV,
 }: AuditLogsFilterBarProps) {
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm space-y-4">
@@ -72,16 +74,24 @@ export default function AuditLogsFilterBar({
           </div>
         </div>
 
-        {/* Search Input Box */}
-        <div className="relative min-w-[240px]">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-          <input
-            type="text"
-            placeholder="Search activity, items, users..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        {/* Search Input Box & Export CSV Button */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[200px]">
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search activity, items, users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={onExportCSV}
+            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 h-[38px] text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+          >
+            <Upload size={14} /> Export CSV
+          </button>
         </div>
       </div>
 

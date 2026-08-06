@@ -29,6 +29,7 @@ import api from "../lib/api";
 import CreateBatchModal from "../components/CreateBatchModal";
 import ConfirmModal from "../components/ConfirmModal";
 import PaginationFooter from "./PaginationFooter";
+import { getImageUrl } from "../lib/getImageUrl";
 
 // ---------- Types ----------
 type ProductionBatchResponse = {
@@ -1374,7 +1375,7 @@ export default function ProductionPage() {
                           <div className="mt-3 grid grid-cols-3 gap-2">
                             {qaImagePreviews.map((src, i) => (
                               <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                                <img src={src} className="w-full h-20 object-cover" />
+                                <img src={getImageUrl(src)} alt="QA Preview" className="w-full h-20 object-cover" />
                                 <button
                                   onClick={() => {
                                     setQaImagePreviews(prev => prev.filter((_, j) => j !== i));

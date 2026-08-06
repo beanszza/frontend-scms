@@ -122,6 +122,32 @@ export default function ViewTransactionalLogs() {
     return true;
   });
 
+  const handleExportCSV = () => {
+    if (!filteredLogs || filteredLogs.length === 0) return;
+    const csvRows: string[] = [
+      ["Log ID", "Timestamp", "Activity", "Entity", "User", "Details"].join(",")
+    ];
+    filteredLogs.forEach((log) => {
+      csvRows.push([
+        `"${log.id || ''}"`,
+        `"${log.timestamp || ''}"`,
+        `"${log.activity || ''}"`,
+        `"${log.entityName || ''}"`,
+        `"${log.user || ''}"`,
+        `"${(log.details || '').replace(/"/g, '""')}"`
+      ].join(","));
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `transaction_audit_logs_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-gray-50 dark:bg-gray-900 p-2 sm:p-4 transition-colors font-sans text-gray-900 dark:text-gray-100">
       <div className="w-full max-w-full space-y-5">
@@ -156,6 +182,7 @@ export default function ViewTransactionalLogs() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onResetFilters={handleResetFilters}
+          onExportCSV={handleExportCSV}
         />
 
         {/* Audit Logs Content Table */}
