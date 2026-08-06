@@ -632,7 +632,6 @@ export default function ProductionPage() {
     { key: "tracking", label: "Production Tracking" },
     { key: "quality", label: "Quality Control" },
     { key: "packaging", label: "Packaging" },
-    { key: "reports", label: "Production Reports" },
     { key: "configuration", label: "Configuration" },
   ];
 
@@ -1664,121 +1663,7 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {/* ========== REPORTS TAB ========== */}
-      {activeMainTab === "reports" && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Production Reports</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Monitor recipe yield, batches, waste, and common failure reasons
-              </p>
-            </div>
-          </div>
 
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div className="flex flex-wrap gap-1.5">
-              {(["All", "Scheduled", "In Progress", "Rejected", "Cancelled", "Completed"]).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setStatusFilter(tab)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                    statusFilter === tab 
-                      ? "bg-brand-600 text-white" 
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <div className="relative w-full lg:max-w-md">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setSearchError(/^[A-Za-z0-9\s]*$/.test(e.target.value) ? "" : "Special characters are not allowed.");
-                }}
-                placeholder="Search by recipe or product name..."
-                className={`w-full rounded-xl border ${searchError ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 h-[42px]`}
-              />
-            </div>
-          </div>
-          {searchError && <div className="px-4 pb-2"><p className="text-xs text-red-500">{searchError}</p></div>}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                <tr className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <th className="px-3.5 py-3 text-left">RECIPE NAME</th>
-                  <th className="px-3.5 py-3 text-left whitespace-nowrap">TOTAL BATCHES</th>
-                  <th className="px-3.5 py-3 text-left whitespace-nowrap">OUTPUT QUANTITY</th>
-                  <th className="px-3.5 py-3 text-left">YIELD SUCCESS RATE</th>
-                  <th className="px-3.5 py-3 text-left whitespace-nowrap">REJECTED QUANTITY</th>
-                  <th className="px-3.5 py-3 text-left whitespace-nowrap">INGREDIENT WASTE</th>
-                  <th className="px-3.5 py-3 text-left">COMMON FAILURE REASON</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-10 text-gray-500 font-semibold">
-                      Loading report data...
-                    </td>
-                  </tr>
-                ) : reportRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-3.5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
-                      No Data Found
-                    </td>
-                  </tr>
-                ) : (
-                  reportRows.map((row, idx) => (
-                    <tr
-                      key={idx}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                    >
-                      <td className="px-3.5 py-3 font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                        {row.recipeName}
-                      </td>
-                      <td className="px-3.5 py-3 font-medium text-gray-700 dark:text-gray-300">
-                        {row.totalBatches}
-                      </td>
-                      <td className="px-3.5 py-3 font-bold text-gray-900 dark:text-white">
-                        {row.outputQuantity.toLocaleString()}
-                      </td>
-                      <td className="px-3.5 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          row.yieldSuccessRate === "—" 
-                            ? "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                            : parseInt(row.yieldSuccessRate) >= 90
-                            ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                            : parseInt(row.yieldSuccessRate) >= 70
-                            ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-                            : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                        }`}>
-                          {row.yieldSuccessRate}
-                        </span>
-                      </td>
-                      <td className="px-3.5 py-3 text-red-600 dark:text-red-400 font-semibold">
-                        {row.rejectedQuantity > 0 ? row.rejectedQuantity.toLocaleString() : "0"}
-                      </td>
-                      <td className="px-3.5 py-3 text-gray-600 dark:text-gray-400">
-                        {row.ingredientWaste > 0 ? `${row.ingredientWaste.toLocaleString()} kg` : "0 kg"}
-                      </td>
-                      <td className="px-3.5 py-3 text-gray-500 dark:text-gray-400">
-                        {row.commonFailureReason}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* ========== CONFIGURATION TAB ========== */}
       {activeMainTab === "configuration" && (
