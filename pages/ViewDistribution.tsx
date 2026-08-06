@@ -221,8 +221,8 @@ export default function DistributionAnalyticsPage() {
     <div className="w-full p-4 sm:p-6 space-y-5 max-w-full text-black dark:text-white bg-transparent">
       
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Distribution & Analytics</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Stock transfers, location management, and supplier performance</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Distribution</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Stock transfers and branch location management</p>
       </div>
 
       <div className="flex border-b border-gray-200 dark:border-strokedark gap-6 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">

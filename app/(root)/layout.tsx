@@ -40,7 +40,7 @@ const navItems: NavItem[] = [
     baseUrl: scmBaseUrl,
   },
   {
-    name: "Distribution & Analytics",
+    name: "Distribution",
     path: "/distribution-analytics",
     app: "supply-chain",
     baseUrl: scmBaseUrl,

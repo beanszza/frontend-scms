@@ -1,4 +1,4 @@
-import AnalyticsDashboardPage from "@/ms-analytics/page";
+import AnalyticsDashboardPage from "@/dashboard/page";
 
 export default function DashboardPage() {
   return <AnalyticsDashboardPage />;
