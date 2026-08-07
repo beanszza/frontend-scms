@@ -5,6 +5,7 @@ import { Package, AlertCircle, TrendingUp, ShoppingCart, MoreHorizontal, FileTex
 import api from "../lib/api";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
+import { useAuth } from "@/context/AuthContext";
 
 type InventoryResponse = {
   inventoryId: number;
@@ -21,6 +22,10 @@ type InventoryResponse = {
 };
 
 export default function ViewInventory() {
+  const auth = useAuth();
+  const user = auth?.user;
+  const isAuthorizedForReports = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
+
   const [inventories, setInventories] = useState<InventoryResponse[]>([]);
   const [activeTab, setActiveTab] = useState("Raw Materials");
   const [page, setPage] = useState(1);
@@ -114,9 +119,11 @@ export default function ViewInventory() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Real-time stock levels (view-only, auto-updated from orders and production)</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/reports?tab=inventory" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <FileText size={18} /> Reports
-          </Link>
+          {isAuthorizedForReports && (
+            <Link href="/reports?tab=inventory" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <FileText size={18} /> Reports
+            </Link>
+          )}
         </div>
       </div>
 

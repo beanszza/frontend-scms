@@ -1395,7 +1395,7 @@ function ProcurementReportsPage({ onClose }: { onClose: () => void }) {
 export default function ViewOrdersProcurement() {
   const auth = useAuth();
   const user = auth?.user;
-  const isAdmin = !user || user?.email?.toLowerCase() === "scmsuser@r3b2p.com" || user?.email?.toLowerCase() === "admin@r3b2p.com" || user?.roles?.includes("Admin");
+  const isAuthorizedForReports = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [itemsList, setItemsList] = useState<ItemResponse[]>([]);
@@ -1562,7 +1562,7 @@ export default function ViewOrdersProcurement() {
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage purchase orders for Raw Materials and Tools</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          {isAdmin && (
+          {isAuthorizedForReports && (
             <Link
               href="/reports?tab=procurement"
               className="h-11 px-5 text-sm font-semibold text-black dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center gap-2"

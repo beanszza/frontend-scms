@@ -217,8 +217,8 @@ export default function ProductionPage() {
   const auth = useAuth();
   const user = auth?.user;
   const isInventoryManager = user?.email?.toLowerCase() === "inventorymanager@r3b2p.com" || user?.email?.toLowerCase() === "manager@r3b2p.com" || user?.roles?.includes("Inventory Manager");
-  const isHeadCook = user?.email?.toLowerCase() === "headcook@r3b2p.com" || user?.roles?.includes("Head Cook");
-  const canViewReports = !isInventoryManager && !isHeadCook;
+  const isHeadCook = user?.email?.toLowerCase() === "headcook@r3b2p.com" || user?.username === "headcook" || user?.roles?.includes("Head Cook");
+  const canViewReports = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
 
   const [batches, setBatches] = useState<ProductionBatchResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);

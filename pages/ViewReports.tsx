@@ -1,8 +1,7 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 // Modular Sub-Components from @/pages
 import ReportFilterBar from "@/pages/ReportFilterBar";
@@ -15,6 +14,16 @@ import DistributionReportView from "@/pages/DistributionReportView";
 
 export default function ViewReports({ initialTab }: { initialTab: string }) {
   const router = useRouter();
+  const { user, isLoading } = useAuth() || {};
+
+  useEffect(() => {
+    if (!isLoading) {
+      const isAuthorized = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
+      if (!isAuthorized) {
+        router.push("/");
+      }
+    }
+  }, [user, isLoading, router]);
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);

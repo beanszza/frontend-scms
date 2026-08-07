@@ -7,6 +7,7 @@ import api from "@/lib/api";
 
 import AuditLogsFilterBar from "@/pages/AuditLogsFilterBar";
 import AuditLogsTable, { LogEntry } from "@/pages/AuditLogsTable";
+import { useAuth } from "@/context/AuthContext";
 
 const fetchLogs = async (type: string | null): Promise<LogEntry[]> => {
   const moduleType = type?.toLowerCase() || "supply";
@@ -36,6 +37,17 @@ export default function ViewTransactionalLogs() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const typeParam = searchParams?.get("type") || "Supply";
+
+  const { user, isLoading } = useAuth() || {};
+
+  useEffect(() => {
+    if (!isLoading) {
+      const isAuthorized = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
+      if (!isAuthorized) {
+        router.push("/");
+      }
+    }
+  }, [user, isLoading, router]);
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
