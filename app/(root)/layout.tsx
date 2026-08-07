@@ -1,5 +1,4 @@
-"use client";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AuthLayout, NavItem, GridIcon } from "@r3b2p/uilib";
@@ -53,6 +52,39 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
 
+  const activeNavItems = useMemo(() => {
+    if (!user) return navItems;
+    const email = user.email?.toLowerCase();
+    const roles = user.roles || [];
+
+    // Operations / Warehouse Manager Account: Hides Executive AI Dashboard
+    if (email === "manager@r3b2p.com" || roles.includes("Warehouse Manager")) {
+      return navItems.filter((item) => item.path !== "/");
+    }
+
+    // IT System Auditor Account: Shows Dashboard and Audit Logs
+    if (email === "itadmin@r3b2p.com" || roles.includes("IT Admin")) {
+      return [
+        {
+          icon: <GridIcon />,
+          name: "Dashboard",
+          path: "/",
+          app: "supply-chain",
+          baseUrl: scmBaseUrl,
+        },
+        {
+          name: "Audit Logs",
+          path: "/audit-logs",
+          app: "supply-chain",
+          baseUrl: scmBaseUrl,
+        },
+      ];
+    }
+
+    // System Admin / Executive (admin@r3b2p.com): Full Access
+    return navItems;
+  }, [user]);
+
   useEffect(() => {
     console.log("CURRENT USER IN SCMS APP:", user);
     if (!isLoading && !user) {
@@ -67,7 +99,7 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthLayout
-      navItems={navItems}
+      navItems={activeNavItems}
       othersItems={othersItems}
       user={user}
       mobileLogo="/images/logo/mobile.svg"
