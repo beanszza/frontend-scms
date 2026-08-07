@@ -76,7 +76,9 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("CURRENT USER IN SCMS APP:", user);
     if (!isLoading && !user) {
-      window.location.href = "/signin";
+      const hostUrl = process.env.NEXT_PUBLIC_HOST_URL || "http://localhost:3000";
+      const redirectUrl = encodeURIComponent(window.location.href);
+      window.location.href = `${hostUrl}/signin?redirect=${redirectUrl}`;
     }
   }, [user, isLoading]);
 
