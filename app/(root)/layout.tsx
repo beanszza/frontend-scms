@@ -55,34 +55,21 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
 
   const activeNavItems = useMemo(() => {
     if (!user) return navItems;
+    const username = user.username?.toLowerCase();
     const email = user.email?.toLowerCase();
     const roles = user.roles || [];
 
-    // Operations / Warehouse Manager Account: Hides Executive AI Dashboard
-    if (email === "manager@r3b2p.com" || roles.includes("Warehouse Manager")) {
-      return navItems.filter((item) => item.path !== "/");
+    // Head Cook Account: Inventory & Production ONLY
+    if (username === "headcook" || email === "headcook@r3b2p.com" || roles.includes("Head Cook")) {
+      return navItems.filter((item) => ["/inventory", "/production-quality"].includes(item.path));
     }
 
-    // IT System Auditor Account: Shows Dashboard and Audit Logs
-    if (email === "itadmin@r3b2p.com" || roles.includes("IT Admin")) {
-      return [
-        {
-          icon: <GridIcon />,
-          name: "Dashboard",
-          path: "/",
-          app: "supply-chain",
-          baseUrl: scmBaseUrl,
-        },
-        {
-          name: "Audit Logs",
-          path: "/audit-logs",
-          app: "supply-chain",
-          baseUrl: scmBaseUrl,
-        },
-      ];
+    // Inventory Manager Account: All operational modules + Dashboard. (Production is View Only)
+    if (username === "inventorymanager" || email === "inventorymanager@r3b2p.com" || roles.includes("Inventory Manager")) {
+      return navItems;
     }
 
-    // System Admin / Executive (admin@r3b2p.com): Full Access
+    // System Admin / ERP-ADMIN (ERP-ADMIN / scmsuser / admin@r3b2p.com / Admin role): Full Access
     return navItems;
   }, [user]);
 
