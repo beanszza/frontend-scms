@@ -30,6 +30,7 @@ import CreateBatchModal from "../components/CreateBatchModal";
 import ConfirmModal from "../components/ConfirmModal";
 import PaginationFooter from "./PaginationFooter";
 import { getImageUrl } from "../lib/getImageUrl";
+import { useAuth } from "@/context/AuthContext";
 
 // ---------- Types ----------
 type ProductionBatchResponse = {
@@ -212,6 +213,12 @@ const ConfigProductModal = ({
 // ---------- Main Page Component ----------
 export default function ProductionPage() {
   useDarkMode();
+
+  const auth = useAuth();
+  const user = auth?.user;
+  const isInventoryManager = user?.email?.toLowerCase() === "inventorymanager@r3b2p.com" || user?.email?.toLowerCase() === "manager@r3b2p.com" || user?.roles?.includes("Inventory Manager");
+  const isHeadCook = user?.email?.toLowerCase() === "headcook@r3b2p.com" || user?.roles?.includes("Head Cook");
+  const canViewReports = !isInventoryManager && !isHeadCook;
 
   const [batches, setBatches] = useState<ProductionBatchResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -679,17 +686,26 @@ export default function ProductionPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Production Planning</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Overview of all production batches</p>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <Link href="/reports?tab=production" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-11 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">
-                <FileText size={16} /> Reports
-              </Link>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="h-11 px-5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create Batch
-              </button>
+            <div className="flex gap-2 flex-shrink-0 items-center">
+              {isInventoryManager && (
+                <span className="px-3 py-1.5 bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-lg">
+                  View-Only Mode (Inventory Manager)
+                </span>
+              )}
+              {canViewReports && (
+                <Link href="/reports?tab=production" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-11 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">
+                  <FileText size={16} /> Reports
+                </Link>
+              )}
+              {!isInventoryManager && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="h-11 px-5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  Create Batch
+                </button>
+              )}
             </div>
           </div>
 
@@ -820,24 +836,30 @@ export default function ProductionPage() {
                               </button>
                               {openDropdownId === batch.batchId && (
                                 <div className="absolute right-[40px] top-[10px] w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left">
-                                  {batch.status === "Scheduled" && (
-                                    <button
-                                      onClick={() => { startStageBatch(batch.batchId); setOpenDropdownId(null); }}
-                                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                    >
-                                      <ChevronRight size={14} className="text-brand-600 dark:text-brand-400" /> Start Production
-                                    </button>
-                                  )}
-                                  {batch.status === "Scheduled" && (
-                                    <button
-                                      onClick={() => handleCancelBatch(batch.batchId)}
-                                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                                    >
-                                      <XCircle size={14} /> Cancel Batch
-                                    </button>
-                                  )}
-                                  {batch.status !== "Scheduled" && (
-                                    <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 font-medium">No actions available</p>
+                                  {isInventoryManager ? (
+                                    <p className="px-3 py-2 text-xs text-amber-600 dark:text-amber-400 font-semibold">View-Only Access</p>
+                                  ) : (
+                                    <>
+                                      {batch.status === "Scheduled" && (
+                                        <button
+                                          onClick={() => { startStageBatch(batch.batchId); setOpenDropdownId(null); }}
+                                          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        >
+                                          <ChevronRight size={14} className="text-brand-600 dark:text-brand-400" /> Start Production
+                                        </button>
+                                      )}
+                                      {batch.status === "Scheduled" && (
+                                        <button
+                                          onClick={() => handleCancelBatch(batch.batchId)}
+                                          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                                        >
+                                          <XCircle size={14} /> Cancel Batch
+                                        </button>
+                                      )}
+                                      {batch.status !== "Scheduled" && (
+                                        <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 font-medium">No actions available</p>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               )}
