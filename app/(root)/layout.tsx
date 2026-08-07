@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AuthLayout, NavItem, GridIcon } from "@r3b2p/uilib";
 import { Handshake, ShoppingBag, Package, Factory, Truck } from "lucide-react";
@@ -52,6 +52,7 @@ const othersItems: NavItem[] = [];
 function RootLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const activeNavItems = useMemo(() => {
     if (!user) return navItems;
@@ -76,11 +77,21 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("CURRENT USER IN SCMS APP:", user);
     if (!isLoading && !user) {
-      const hostUrl = process.env.NEXT_PUBLIC_SCMS_URL || "http://localhost:3000";
-      const redirectUrl = encodeURIComponent(window.location.href);
-      window.location.href = `${hostUrl}/signin?redirect=${redirectUrl}`;
+      window.location.href = "/signin";
+      return;
     }
-  }, [user, isLoading]);
+
+    if (!isLoading && user) {
+      const username = user.username?.toLowerCase();
+      const email = user.email?.toLowerCase();
+      const roles = user.roles || [];
+      const isHeadCook = username === "headcook" || email === "headcook@r3b2p.com" || roles.includes("Head Cook");
+
+      if (isHeadCook && (pathname === "/" || pathname === "/dashboard" || pathname === "/reports" || pathname === "/audit-logs" || pathname === "/resources-suppliers" || pathname === "/orders-procurement" || pathname === "/distribution-analytics")) {
+        router.replace("/production-quality");
+      }
+    }
+  }, [user, isLoading, pathname, router]);
 
   if (isLoading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   if (!user) return null;
@@ -98,9 +109,7 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error("Logout error:", e);
         }
-        const hostUrl = process.env.NEXT_PUBLIC_HOST_URL || "http://localhost:3004";
-        const scmsUrl = process.env.NEXT_PUBLIC_SCMS_URL || "http://localhost:3000";
-        window.location.href = `${hostUrl}/signin?redirect=${encodeURIComponent(scmsUrl)}`;
+        window.location.href = "/signin";
       }}
     >
       {children}

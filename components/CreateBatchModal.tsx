@@ -113,9 +113,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
             api.get("/api/scms/api/Recipes"),
             api.get("/api/scms/api/Items?pageSize=1000"),
           ]);
-          setProducts(prodRes.data.data || []);
-          setRecipes(recipeRes.data.data || []);
-          setItems(itemRes.data.data?.items || []);
+          setProducts(prodRes.data.data?.items || prodRes.data.data || []);
+          setRecipes(recipeRes.data.data?.items || recipeRes.data.data || []);
+          setItems(itemRes.data.data?.items || itemRes.data.data || []);
         } catch (err) {
           console.error("Failed to load master data for Create Batch Modal", err);
         } finally {

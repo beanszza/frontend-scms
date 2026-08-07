@@ -53,29 +53,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (refreshed) u = await validate();
 
       if (!u) {
-        // Fallback user for scmsuser in standalone mode
-        u = {
-          id: "scms-user-1",
-          username: "scmsuser",
-          firstName: "SCMS",
-          lastName: "User",
-          email: "scmsuser@r3b2p.com",
-          mustChangePassword: false,
-          roles: ["SCM User"],
-          apps: [
-            {
-              appName: "supply-chain",
-              modules: [
-                { moduleName: "resources-suppliers", canRead: true, canWrite: true, canDelete: true, canExport: true },
-                { moduleName: "orders-procurement", canRead: true, canWrite: true, canDelete: true, canExport: true },
-                { moduleName: "inventory", canRead: true, canWrite: true, canDelete: true, canExport: true },
-                { moduleName: "production-quality", canRead: true, canWrite: true, canDelete: true, canExport: true },
-                { moduleName: "distribution-analytics", canRead: true, canWrite: true, canDelete: true, canExport: true },
-                { moduleName: "reports", canRead: true, canWrite: true, canDelete: true, canExport: true },
-              ],
-            },
-          ],
-        };
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
 
       setUser(u);

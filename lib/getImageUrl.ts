@@ -6,6 +6,7 @@ export function getImageUrl(path: string | null | undefined): string {
   if (
     trimmed.startsWith("data:image/") ||
     trimmed.startsWith("data:application/pdf") ||
+    trimmed.startsWith("blob:") ||
     trimmed.startsWith("http://") ||
     trimmed.startsWith("https://")
   ) {

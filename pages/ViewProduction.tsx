@@ -296,8 +296,9 @@ export default function ProductionPage() {
     try {
       const res = await api.get("/api/scms/api/FinishedProducts");
       if (res.data.success) {
+        const list = res.data.data?.items || res.data.data || [];
         setFinishedProducts(
-          (res.data.data || []).map((p: any) => ({
+          list.map((p: any) => ({
             id: p.productId.toString(),
             name: p.itemName || "",
             sku: p.sku || "",
@@ -443,6 +444,11 @@ export default function ProductionPage() {
     setSubmittingQA(true);
     setShowQaConfirm(false);
     try {
+      if (qaImages.length > 0) {
+        const formData = new FormData();
+        formData.append("file", qaImages[0]);
+        await api.post(`/api/scms/api/ProductionBatches/${selectedBatch.batchId}/images`, formData);
+      }
       if (overallComment) {
         await api.put(`/api/scms/api/ProductionBatches/${selectedBatch.batchId}/qa-notes`, { notes: overallComment });
       }
@@ -456,6 +462,11 @@ export default function ProductionPage() {
   const confirmQaFailure = async () => {
     if (!selectedBatch) return;
     try {
+      if (qaImages.length > 0) {
+        const formData = new FormData();
+        formData.append("file", qaImages[0]);
+        await api.post(`/api/scms/api/ProductionBatches/${selectedBatch.batchId}/images`, formData);
+      }
       if (overallComment) {
         await api.put(`/api/scms/api/ProductionBatches/${selectedBatch.batchId}/qa-notes`, { notes: overallComment });
       }
@@ -522,7 +533,10 @@ export default function ProductionPage() {
   const handlePackagingSubmit = async () => {
     if (packagingSelectedBatchId && packagingQuantity !== "" && packagingDate && packagingExpiration && packagingExpiry && packagingPackedBy) {
       try {
-        await api.put(`/api/scms/api/ProductionBatches/${packagingSelectedBatchId}/stage`, { stage: "Completed" });
+        await api.put(`/api/scms/api/ProductionBatches/${packagingSelectedBatchId}/stage`, { 
+          stage: "Completed",
+          actualQuantity: Number(packagingQuantity)
+        });
         
         setPackagingCompletedSteps(prev => {
           const { [packagingSelectedBatchId]: _, ...rest } = prev;
@@ -687,11 +701,6 @@ export default function ProductionPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Overview of all production batches</p>
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
-              {isInventoryManager && (
-                <span className="px-3 py-1.5 bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-lg">
-                  View-Only Mode (Inventory Manager)
-                </span>
-              )}
               {canViewReports && (
                 <Link href="/reports?tab=production" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-11 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">
                   <FileText size={16} /> Reports
@@ -985,23 +994,32 @@ export default function ProductionPage() {
                         const isLocked = !isCompleted && !isCurrent && !isNext;
 
                         const handleClick = () => {
-                          if (isCompleted) {
-                            const hasData = isCompleted || (isCurrent && batch.stage === stage);
+                          const isStageWithData = isCompleted && idx === currentIdx - 1;
+                          if (isInventoryManager) {
                             setStagePanelStage(stage);
                             setStagePanelVisible(true);
                             setStagePanelReadOnly(true);
                             setStagePanelIsQcTransition(false);
-                            setUploadPreviews(hasData && batch.imageUrl ? [batch.imageUrl] : []);
-                            setUploadComment(hasData && batch.notes ? batch.notes : "");
+                            setUploadPreviews(isStageWithData && batch.imageUrl ? [batch.imageUrl] : []);
+                            setUploadComment(isStageWithData && batch.notes ? batch.notes : "");
+                            setUploadFiles([]);
+                            return;
+                          }
+                          if (isCompleted) {
+                            setStagePanelStage(stage);
+                            setStagePanelVisible(true);
+                            setStagePanelReadOnly(true);
+                            setStagePanelIsQcTransition(false);
+                            setUploadPreviews(isStageWithData && batch.imageUrl ? [batch.imageUrl] : []);
+                            setUploadComment(isStageWithData && batch.notes ? batch.notes : "");
                             setUploadFiles([]);
                           } else if (isCurrent) {
-                            const hasData = batch.stage === stage;
                             setStagePanelStage(stage);
                             setStagePanelVisible(true);
                             setStagePanelReadOnly(false);
                             setStagePanelIsQcTransition(false);
-                            setUploadPreviews(hasData && batch.imageUrl ? [batch.imageUrl] : []);
-                            setUploadComment(hasData && batch.notes ? batch.notes : "");
+                            setUploadPreviews([]);
+                            setUploadComment("");
                             setUploadFiles([]);
                           } else if (isNext) {
                             if (stage === "Quality Control") {
@@ -1024,9 +1042,9 @@ export default function ProductionPage() {
                           }
                         };
 
-                        const hasStageData = isCompleted || (isCurrent && batch.stage === stage);
-                        const imageCount = hasStageData && batch.imageUrl ? 1 : 0;
-                        const commentCount = hasStageData && batch.notes ? 1 : 0;
+                        const isStageWithData = isCompleted && idx === currentIdx - 1;
+                        const imageCount = isStageWithData && batch.imageUrl ? 1 : 0;
+                        const commentCount = isStageWithData && batch.notes ? 1 : 0;
 
                         return (
                           <button
@@ -1072,7 +1090,7 @@ export default function ProductionPage() {
                       })}
                     </div>
 
-                    {isAllCompleted && batch.status !== "Inventory Added" && (
+                    {isAllCompleted && batch.status !== "Inventory Added" && !isInventoryManager && (
                       <div className="mt-4 flex justify-end">
                         <button
                           onClick={async () => {
@@ -1104,7 +1122,7 @@ export default function ProductionPage() {
                                 Stage {(STAGES.indexOf(stagePanelStage as any) + 1)} of {STAGES.length}
                               </p>
                             </div>
-                            {!stagePanelReadOnly && (
+                            {!stagePanelReadOnly && !isInventoryManager && (
                               (stagePanelStage === "Quality Control" || stagePanelStage === "Packaging") ? (
                                 batch.stage === stagePanelStage && (
                                   <button
@@ -1328,8 +1346,8 @@ export default function ProductionPage() {
                         return (
                           <div
                             key={field.label}
-                            onClick={() => field.setter(isPassed ? "Fail" : "Pass")}
-                            className={`flex items-center justify-between rounded-lg border px-4 py-3 cursor-pointer transition-colors select-none ${
+                            onClick={() => !isInventoryManager && field.setter(isPassed ? "Fail" : "Pass")}
+                            className={`flex items-center justify-between rounded-lg border px-4 py-3 select-none ${isInventoryManager ? "cursor-not-allowed opacity-80" : "cursor-pointer"} transition-colors ${
                               isPassed
                                 ? "border-green-300 bg-green-50 dark:bg-green-500/10 dark:border-green-600"
                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -1434,13 +1452,15 @@ export default function ProductionPage() {
                         >
                           Back to Planning
                         </button>
-                        <button
-                          onClick={handleQaSubmit}
-                          disabled={submittingQA || !qaInspector.trim() || qaImages.length === 0}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
-                        >
-                          {submittingQA ? <Loader2 size={15} className="animate-spin" /> : "Submit QA & Decision"}
-                        </button>
+                        {!isInventoryManager && (
+                          <button
+                            onClick={handleQaSubmit}
+                            disabled={submittingQA || !qaInspector.trim() || qaImages.length === 0}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                          >
+                            {submittingQA ? <Loader2 size={15} className="animate-spin" /> : "Submit QA & Decision"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>
@@ -1557,11 +1577,11 @@ export default function ProductionPage() {
                           return (
                             <div
                               key={idx}
-                              onClick={() => canCheck && togglePackagingStep(batch.batchId, idx)}
+                              onClick={() => !isInventoryManager && canCheck && togglePackagingStep(batch.batchId, idx)}
                               className={`flex items-center gap-3 p-3.5 rounded-lg border transition-colors ${
                                 isChecked
                                   ? "border-green-300 bg-green-50 dark:bg-green-500/10 dark:border-green-700"
-                                  : canCheck
+                                  : canCheck && !isInventoryManager
                                   ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
                                   : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed"
                               }`}
@@ -1658,15 +1678,17 @@ export default function ProductionPage() {
                             />
                           </div>
                         </div>
-                        <div className="mt-5 flex justify-end">
-                          <button
-                            onClick={() => setShowPackagingConfirm(true)}
-                            disabled={packagingQuantity === "" || !packagingDate || !packagingExpiration || !packagingExpiry || !packagingPackedBy || packagingExpiration < packagingExpiry}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
-                          >
-                            Submit & Go back to Production Tracking
-                          </button>
-                        </div>
+                        {!isInventoryManager && (
+                          <div className="mt-5 flex justify-end">
+                            <button
+                              onClick={() => setShowPackagingConfirm(true)}
+                              disabled={packagingQuantity === "" || !packagingDate || !packagingExpiration || !packagingExpiry || !packagingPackedBy || packagingExpiration < packagingExpiry}
+                              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                            >
+                              Submit & Go back to Production Tracking
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1698,12 +1720,14 @@ export default function ProductionPage() {
                 Manage finished products and their packaging variants
               </p>
             </div>
-            <button
-              onClick={handleOpenAddProduct}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
-            >
-              <Plus size={16} /> Add Product
-            </button>
+            {!isInventoryManager && (
+              <button
+                onClick={handleOpenAddProduct}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+              >
+                <Plus size={16} /> Add Product
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -1712,19 +1736,21 @@ export default function ProductionPage() {
                 <tr className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">PRODUCT NAME</th>
                   <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">VARIANT</th>
-                  <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
+                  {!isInventoryManager && (
+                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {configLoading ? (
                   <tr>
-                    <td colSpan={3} className="px-5 py-10 text-center text-sm text-gray-400">
+                    <td colSpan={isInventoryManager ? 2 : 3} className="px-5 py-10 text-center text-sm text-gray-400">
                       Loading products…
                     </td>
                   </tr>
                 ) : finishedProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <td colSpan={isInventoryManager ? 2 : 3} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
                       No finished products found.
                     </td>
                   </tr>
@@ -1735,14 +1761,16 @@ export default function ProductionPage() {
                       <td className="px-2 py-2.5 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         {product.variant || <span className="italic text-gray-400">—</span>}
                       </td>
-                      <td className="px-2 py-2.5">
-                        <button
-                          onClick={() => handleOpenEditProduct(product)}
-                          className="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors flex items-center gap-1.5"
-                        >
-                          Edit
-                        </button>
-                      </td>
+                      {!isInventoryManager && (
+                        <td className="px-2 py-2.5">
+                          <button
+                            onClick={() => handleOpenEditProduct(product)}
+                            className="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors flex items-center gap-1.5"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

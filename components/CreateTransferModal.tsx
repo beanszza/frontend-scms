@@ -106,10 +106,10 @@ export default function CreateTransferModal({
           api.get("/api/scms/api/Inventories?pageSize=100"),
         ]);
         if (prodRes.data.success) {
-          setProducts(prodRes.data.data || []);
+          setProducts(prodRes.data.data?.items || prodRes.data.data || []);
         }
         if (invRes.data.success) {
-          setInventories(invRes.data.data?.items || []);
+          setInventories(invRes.data.data?.items || invRes.data.data || []);
         }
       } catch (err) {
         console.error("Error fetching transfer modal data", err);
