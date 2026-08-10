@@ -55,11 +55,11 @@ export default function SupplyTable() {
       {/* TOP */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-foreground">
             Supply List
           </h2>
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Raw materials and tools inventory
           </p>
         </div>
@@ -67,7 +67,7 @@ export default function SupplyTable() {
         <button
           className="
             flex items-center gap-2
-            bg-blue-600 hover:bg-blue-700
+            bg-primary hover:bg-primary/90
             text-white
             px-4 py-3
             rounded-xl
@@ -82,59 +82,59 @@ export default function SupplyTable() {
       {/* STATS */}
       <div className="grid grid-cols-3 gap-4">
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <p className="text-sm text-muted-foreground">
             Total Items
           </p>
 
-          <h3 className="text-4xl font-bold text-gray-900 dark:text-white mt-2">
+          <h3 className="text-4xl font-bold text-foreground mt-2">
             14
           </h3>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <p className="text-sm text-muted-foreground">
             Raw Materials
           </p>
 
-          <h3 className="text-4xl font-bold text-blue-600 mt-2">
+          <h3 className="text-4xl font-bold text-foreground mt-2">
             9
           </h3>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <p className="text-sm text-muted-foreground">
             Tools
           </p>
 
-          <h3 className="text-4xl font-bold text-green-600 mt-2">
+          <h3 className="text-4xl font-bold text-foreground mt-2">
             5
           </h3>
         </div>
       </div>
 
       {/* TABLE */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
 
         {/* FILTER */}
-        <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+        <div className="p-5 border-b border-border flex items-center gap-3">
 
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">
             All
           </button>
 
-          <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium">
+          <button className="border border-border text-foreground px-4 py-2 rounded-lg text-sm font-medium">
             Raw Materials
           </button>
 
-          <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium">
+          <button className="border border-border text-foreground px-4 py-2 rounded-lg text-sm font-medium">
             Tools
           </button>
 
           <div className="relative ml-auto w-[300px]">
             <Search
               size={18}
-              className="absolute left-3 top-3 text-gray-400"
+              className="absolute left-3 top-3 text-muted-foreground"
             />
 
             <input
@@ -144,10 +144,10 @@ export default function SupplyTable() {
                 w-full
                 pl-10 pr-4 py-3
                 rounded-xl
-                border border-gray-300 dark:border-gray-600
-                bg-white dark:bg-gray-800
+                border border-border
+                bg-card
                 text-sm
-                text-gray-900 dark:text-white
+                text-foreground
                 outline-none
               "
             />
@@ -159,29 +159,29 @@ export default function SupplyTable() {
           <table className="w-full">
 
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
+              <tr className="border-b border-border">
 
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
+                <th className="text-left px-6 py-4 text-xs font-bold text-muted-foreground">
                   ITEM NO.
                 </th>
 
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
+                <th className="text-left px-6 py-4 text-xs font-bold text-muted-foreground">
                   NAME
                 </th>
 
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
+                <th className="text-left px-6 py-4 text-xs font-bold text-muted-foreground">
                   CATEGORY
                 </th>
 
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
+                <th className="text-left px-6 py-4 text-xs font-bold text-muted-foreground">
                   UNIT
                 </th>
 
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
+                <th className="text-left px-6 py-4 text-xs font-bold text-muted-foreground">
                   MIN STOCK
                 </th>
 
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
+                <th className="text-left px-6 py-4 text-xs font-bold text-muted-foreground">
                   ACTIONS
                 </th>
               </tr>
@@ -191,32 +191,32 @@ export default function SupplyTable() {
               {supplies.map((item, idx) => (
                 <tr
                   key={item.id}
-                  className="border-b border-gray-100 dark:border-gray-800"
+                  className="border-b border-border"
                 >
-                  <td className="px-6 py-5 text-sm text-gray-700 dark:text-gray-300">
+                  <td className="px-6 py-5 text-sm text-foreground">
                     {idx + 1}
                   </td>
 
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900 dark:text-white">
+                  <td className="px-6 py-5 text-sm font-medium text-foreground">
                     {item.name}
                   </td>
 
                   <td className="px-6 py-5">
-                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-xs font-semibold">
+                    <span className="bg-blue-100 text-foreground px-3 py-1 rounded-lg text-xs font-semibold">
                       {item.category}
                     </span>
                   </td>
 
-                  <td className="px-6 py-5 text-sm text-gray-700 dark:text-gray-300">
+                  <td className="px-6 py-5 text-sm text-foreground">
                     {item.unit}
                   </td>
 
-                  <td className="px-6 py-5 text-sm text-gray-700 dark:text-gray-300">
+                  <td className="px-6 py-5 text-sm text-foreground">
                     {item.minStock}
                   </td>
 
                   <td className="px-6 py-5">
-                    <button className="flex items-center gap-2 text-blue-600 font-medium text-sm">
+                    <button className="flex items-center gap-2 text-foreground font-medium text-sm">
                       <Pencil size={16} />
                       Edit
                     </button>

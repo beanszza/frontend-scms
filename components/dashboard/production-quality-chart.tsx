@@ -20,17 +20,17 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const item = payload[0];
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-theme-md">
+      <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-md">
         <div className="flex items-center gap-2">
           <span
             className="w-2.5 h-2.5 rounded-full"
             style={{ background: item.payload.color }}
           />
-          <span className="text-theme-xs font-semibold text-gray-700 dark:text-gray-300">
+          <span className="text-xs font-semibold text-foreground">
             {item.name}
           </span>
         </div>
-        <p className="text-theme-sm font-bold text-gray-900 dark:text-white mt-0.5">
+        <p className="text-sm font-bold text-foreground mt-0.5">
           {item.value} Batches
         </p>
       </div>
@@ -46,24 +46,24 @@ export default function ProductionQualityChart() {
 
   // Badge styles matching Orders & Procurement palette
   const badgeStyle: Record<string, { bg: string; text: string }> = {
-    Passed:    { bg: "bg-green-100 dark:bg-green-900/40",  text: "text-green-700 dark:text-green-400" },
-    Rejected:  { bg: "bg-rose-100 dark:bg-rose-900/40",   text: "text-rose-700 dark:text-rose-400" },
-    Cancelled: { bg: "bg-red-100 dark:bg-red-900/40",     text: "text-red-700 dark:text-red-400" },
+    Passed:    { bg: "bg-green-100",  text: "text-green-700" },
+    Rejected:  { bg: "bg-rose-100",   text: "text-rose-700" },
+    Cancelled: { bg: "bg-red-100",     text: "text-red-700" },
   };
 
   return (
-    <div className="bg-white dark:bg-gray-dark rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-theme-xs">
+    <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-theme-xl font-bold text-gray-800 dark:text-white/90">
+          <h3 className="text-xl font-bold text-foreground/90">
             Production Quality
           </h3>
-          <p className="text-theme-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {total} total batches · current period
           </p>
         </div>
-        <span className="px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-theme-xs font-semibold">
+        <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">
           In Cycle
         </span>
       </div>
@@ -90,7 +90,7 @@ export default function ProductionQualityChart() {
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span className="text-theme-xs text-gray-600 dark:text-gray-400">{value}</span>
+              <span className="text-xs text-foreground">{value}</span>
             )}
           />
           {/* Center pass-rate label */}
@@ -122,17 +122,17 @@ export default function ProductionQualityChart() {
       {/* Stat row — Passed / Rejected / Cancelled */}
       <div className="grid grid-cols-3 gap-2 mt-3">
         {productionQuality.map((d) => {
-          const style = badgeStyle[d.name] ?? { bg: "bg-gray-100", text: "text-gray-700" };
+          const style = badgeStyle[d.name] ?? { bg: "bg-muted", text: "text-foreground" };
           return (
             <div
               key={d.name}
               className={`rounded-xl p-3 text-center ${style.bg}`}
             >
               <p className={`text-xl font-bold ${style.text}`}>{d.value}</p>
-              <p className={`text-theme-xs font-semibold mt-0.5 ${style.text} opacity-80`}>
+              <p className={`text-xs font-semibold mt-0.5 ${style.text} opacity-80`}>
                 {d.name}
               </p>
-              <p className="text-theme-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {Math.round((d.value / total) * 100)}%
               </p>
             </div>

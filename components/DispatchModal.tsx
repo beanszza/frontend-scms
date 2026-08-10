@@ -119,32 +119,32 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col p-6 text-slate-900 dark:text-white" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground" onClick={e => e.stopPropagation()}>
         
-        <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
+        <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Dispatch Transfer</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Assign vehicle and driver details to initiate stock transit</p>
+            <h2 className="text-lg font-bold text-foreground">Dispatch Transfer</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Assign vehicle and driver details to initiate stock transit</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold">✕</button>
+          <button onClick={onClose} className="text-muted-foreground hover:opacity-80 transition-opacity text-xl font-bold">✕</button>
         </div>
 
         {/* Info card layout block */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs p-4 bg-slate-50 dark:bg-[#24303f] border border-slate-100 dark:border-slate-700 rounded-xl mb-4">
-          <div><p className="text-[10px] text-slate-400 font-medium">Product</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.product}</p></div>
-          <div><p className="text-[10px] text-slate-400 font-medium">Quantity</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.quantity}</p></div>
-          <div><p className="text-[10px] text-slate-400 font-medium">From</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.from}</p></div>
-          <div><p className="text-[10px] text-slate-400 font-medium">To</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.to}</p></div>
-          <div className="col-span-2 border-t border-slate-200 dark:border-slate-700 pt-2"><p className="text-[10px] text-slate-400 font-medium">Transfer Date</p><p className="font-semibold text-slate-900 dark:text-white">{transfer.date}</p></div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs p-4 bg-muted border border-border rounded-xl mb-4">
+          <div><p className="text-[10px] text-muted-foreground font-medium">Product</p><p className="font-semibold text-foreground">{transfer.product}</p></div>
+          <div><p className="text-[10px] text-muted-foreground font-medium">Quantity</p><p className="font-semibold text-foreground">{transfer.quantity}</p></div>
+          <div><p className="text-[10px] text-muted-foreground font-medium">From</p><p className="font-semibold text-foreground">{transfer.from}</p></div>
+          <div><p className="text-[10px] text-muted-foreground font-medium">To</p><p className="font-semibold text-foreground">{transfer.to}</p></div>
+          <div className="col-span-2 border-t border-border pt-2"><p className="text-[10px] text-muted-foreground font-medium">Transfer Date</p><p className="font-semibold text-foreground">{transfer.date}</p></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dispatch Date <span className="text-red-500">*</span></label>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Dispatch Date <span className="text-muted-foreground">*</span></label>
             <input 
               type="date" 
-              className={`w-full px-3 py-2 text-sm rounded-lg border ${dispatchDateError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500`} 
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${dispatchDateError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
               value={dispatchDate} 
               onChange={e => {
                 const val = e.target.value;
@@ -162,22 +162,22 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Driver Name</label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Driver Name</label>
               <input 
                 type="text" 
                 placeholder="Driver name" 
-                className={`w-full px-3 py-2 text-sm rounded-lg border ${driverNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500`} 
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${driverNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
                 value={driverName} 
                 onChange={handleDriverNameChange} 
               />
               {driverNameError && <p className="mt-1 text-xs text-red-500">{driverNameError}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Tracking/Vehicle Number</label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Tracking/Vehicle Number</label>
               <input 
                 type="text" 
                 placeholder="e.g., ABC1234" 
-                className={`w-full px-3 py-2 text-sm rounded-lg border ${trackingNumberError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500`} 
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${trackingNumberError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
                 value={trackingNumber} 
                 onChange={handleTrackingNumberChange} 
               />
@@ -187,14 +187,14 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
 
           {/* Receipt Upload Section */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Proof of Transaction (Receipt) <span className="text-red-500">*</span></label>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Proof of Transaction (Receipt) <span className="text-muted-foreground">*</span></label>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed ${receiptError ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} p-6 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-white dark:bg-[#24303f]`}
+              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed ${receiptError ? 'border-red-500' : 'border-border'} p-6 cursor-pointer hover:bg-muted/50 transition-colors bg-card`}
             >
-              <Upload size={24} className="text-slate-400 mb-2" />
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <Upload size={24} className="text-muted-foreground mb-2" />
+              <p className="text-xs text-muted-foreground">
                 Click to add JPG, PNG, or JPEG files
               </p>
             </div>
@@ -213,7 +213,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
                 {previews.map((src, idx) => (
                   <div
                     key={idx}
-                    className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 h-20"
+                    className="relative group rounded-lg overflow-hidden border border-border h-20"
                   >
                     <img
                       src={src}
@@ -223,9 +223,9 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
-                      className="absolute top-1 right-1 p-1 bg-white dark:bg-slate-800 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-card rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Trash2 size={12} className="text-red-500" />
+                      <Trash2 size={12} className="text-muted-foreground" />
                     </button>
                   </div>
                 ))}
@@ -233,9 +233,9 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-slate-700">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm shadow-blue-500/30">Start Transit</button>
+          <div className="flex justify-end gap-3 pt-6 border-t border-border">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity">Cancel</button>
+            <button type="submit" className="px-5 py-2 text-xs font-semibold text-white bg-primary hover:opacity-80 transition-opacity shadow-sm shadow-blue-500/30">Start Transit</button>
           </div>
         </form>
       </div>

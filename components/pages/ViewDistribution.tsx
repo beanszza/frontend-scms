@@ -1,9 +1,19 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { useState, useEffect } from "react";
 import StockTransferTable from "@/components/StockTransferTable";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import LocationManager from "@/components/LocationManager";
 import CreateTransferModal from "@/components/CreateTransferModal";
 import DispatchModal from "@/components/DispatchModal";
@@ -223,26 +233,25 @@ export default function DistributionAnalyticsPage() {
   };
 
   return (
-    <div className="w-full p-4 sm:p-6 space-y-5 max-w-full text-black dark:text-white bg-transparent">
+    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
       
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Distribution</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Stock transfers and branch location management</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Distribution</h1>
+        <p className="text-sm text-muted-foreground mt-1">Stock transfers and branch location management</p>
       </div>
 
-      <div className="flex border-b border-gray-200 dark:border-strokedark gap-6 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
-        {(["Stock Transfer", "Locations"] as TabState[]).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 font-semibold border-b-2 transition-colors ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-400"}`}>
-            {tab}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabState)}>
+        <TabsList>
+          <TabsTrigger value="Stock Transfer">Stock Transfer</TabsTrigger>
+          <TabsTrigger value="Locations">Locations</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* FIXED: Reconfigured header wrapper container layout using responsive flex behaviors */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-black dark:text-white">{activeTab}</h2>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <h2 className="text-xl font-bold text-foreground">{activeTab}</h2>
+          <p className="text-xs text-muted-foreground">
             {activeTab === "Stock Transfer" ? "Transfer finished goods between locations" : "Manage warehouses, branches, and bazaar locations"}
           </p>
         </div>
@@ -250,26 +259,26 @@ export default function DistributionAnalyticsPage() {
         {/* FIXED: Forced full-width matching inline alignments for action options when running small resolutions */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {isAuthorizedForReports && (
-            <Link href="/reports?tab=distribution" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-10 text-xs font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm whitespace-nowrap">
+            <Link href="/reports?tab=distribution" className="flex items-center justify-center gap-2 rounded-lg bg-card border border-border px-4 h-10 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-sm whitespace-nowrap">
               <FileText size={16} /> Reports
             </Link>
           )}
           {activeTab === "Stock Transfer" && (
             <>
               {isAuthorizedForReports && (
-                <button onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_SCMS_URL || 'http://localhost:5033'}/api/scms/api/StockTransfers/export-history`} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-bold border border-gray-300 dark:border-slate-700 rounded-lg bg-white text-slate-900 dark:text-slate-900 hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm text-center">
+                <Button onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_SCMS_URL || 'http://localhost:5033'}/api/scms/api/StockTransfers/export-history`} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-bold border border-border rounded-lg bg-card text-foreground hover:bg-muted transition-colors whitespace-nowrap shadow-sm text-center">
                   Transfer History
-                </button>
+                </Button>
               )}
-              <button onClick={() => setShowCreateModal(true)} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors whitespace-nowrap shadow-md text-center">
+              <Button onClick={() => setShowCreateModal(true)} className="flex-1 sm:flex-none h-10 px-3 sm:px-4 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors whitespace-nowrap shadow-md text-center">
                 + New Transfer
-              </button>
+              </Button>
             </>
           )}
           {activeTab === "Locations" && (
-            <button onClick={() => setShowLocationModal(true)} className="w-full sm:w-auto h-10 px-4 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors whitespace-nowrap shadow-md text-center">
+            <Button onClick={() => setShowLocationModal(true)} className="w-full sm:w-auto h-10 px-4 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors whitespace-nowrap shadow-md text-center">
               + Add Location
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -279,55 +288,56 @@ export default function DistributionAnalyticsPage() {
           {/* FIXED: Restructured grids to render cleanly as stacked layouts for mobile viewports */}
           <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { label: "Total Transfers", value: stats.total, color: "text-gray-900 dark:text-white" },
-              { label: "Pending", value: stats.pending, color: "text-amber-600" },
-              { label: "In Transit", value: stats.inTransit, color: "text-blue-600" },
-              { label: "Completed", value: stats.completed, color: "text-emerald-600" },
+              { label: "Total Transfers", value: stats.total, color: "text-foreground" },
+              { label: "Pending", value: stats.pending, color: "text-foreground" },
+              { label: "In Transit", value: stats.inTransit, color: "text-foreground" },
+              { label: "Completed", value: stats.completed, color: "text-foreground" },
             ].map(stat => (
-              <div key={stat.label} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
+              <div key={stat.label} className="rounded-2xl border border-border bg-card p-5">
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
                 <p className={`mt-2 text-3xl font-bold ${stat.color}`}>{stat.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
-                {['All', 'Pending', 'In Transit', 'Completed', 'Cancelled'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => { setFilterStatus(status); setPage(1); }}
-                    className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${filterStatus === status ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-                  >
-                    {status}
-                  </button>
-                ))}
+          <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
+            <div className="flex items-center justify-between gap-sm px-md py-sm border-b border-border bg-muted/20">
+              <div className="flex items-center gap-sm flex-1">
+                <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Input
+                  type="text"
+                  placeholder="Search by Transfer ID, Product, or Location..."
+                  value={searchQuery}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setSearchQuery(val);
+                    if (!validateNoSpecialChars(val)) {
+                      setSearchError("Special characters are not allowed.");
+                    } else {
+                      setSearchError("");
+                      setPage(1);
+                    }
+                  }}
+                  className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1"
+                />
+              </div>
+              <div className="flex items-center gap-sm shrink-0">
+                <Select value={filterStatus} onValueChange={(val) => { setFilterStatus(val); setPage(1); }}>
+                  <SelectTrigger className="w-[150px] h-8 text-body-sm bg-transparent border-input">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['All', 'Pending', 'In Transit', 'Completed', 'Cancelled'].map(status => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="relative w-full lg:max-w-md">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                placeholder="Search by Transfer ID, Product, or Location..."
-                value={searchQuery}
-                onChange={e => {
-                  const val = e.target.value;
-                  setSearchQuery(val);
-                  if (!validateNoSpecialChars(val)) {
-                    setSearchError("Special characters are not allowed.");
-                  } else {
-                    setSearchError("");
-                    setPage(1);
-                  }
-                }}
-                className={`w-full rounded-xl border ${searchError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]`}
-              />
-              {searchError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500">{searchError}</p>}
-            </div>
+            {searchError && <div className="px-md pb-sm"><p className="text-xs text-destructive">{searchError}</p></div>}
           </div>
 
-          <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-strokedark shadow-sm">
+          <div className="w-full overflow-x-auto rounded-xl border border-border shadow-sm">
             <StockTransferTable 
               transfers={filteredTransfers} 
               onDispatchClick={setSelectedDispatch} 
@@ -351,50 +361,52 @@ export default function DistributionAnalyticsPage() {
         <>
           <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { label: "Total Locations", value: locations.length, color: "text-gray-900 dark:text-white" },
-              { label: "Warehouses", value: locations.filter(l => l.type === "Warehouse").length, color: "text-blue-600" },
-              { label: "Branches", value: locations.filter(l => l.type === "Branch").length, color: "text-emerald-600" },
-              { label: "Bazaar Booths", value: locations.filter(l => l.type === "Bazaar").length, color: "text-amber-600" },
+              { label: "Total Locations", value: locations.length, color: "text-foreground" },
+              { label: "Warehouses", value: locations.filter(l => l.type === "Warehouse").length, color: "text-foreground" },
+              { label: "Branches", value: locations.filter(l => l.type === "Branch").length, color: "text-foreground" },
+              { label: "Bazaar Booths", value: locations.filter(l => l.type === "Bazaar").length, color: "text-foreground" },
             ].map(stat => (
-              <div key={stat.label} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
+              <div key={stat.label} className="rounded-2xl border border-border bg-card p-5">
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
                 <p className={`mt-2 text-3xl font-bold ${stat.color}`}>{stat.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
-                {['All', 'Warehouse', 'Branch', 'Bazaar'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setLocTypeFilter(type)}
-                    className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${locTypeFilter === type ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-                  >
-                    {type}
-                  </button>
-                ))}
+          <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
+            <div className="flex items-center justify-between gap-sm px-md py-sm border-b border-border bg-muted/20">
+              <div className="flex items-center gap-sm flex-1">
+                <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Input
+                  type="text"
+                  placeholder="Search by Location ID, Name, or Address..."
+                  value={locSearchQuery}
+                  onChange={e => setLocSearchQuery(e.target.value)}
+                  className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1"
+                />
               </div>
-              <select
-                value={locStatusFilter}
-                onChange={(e) => setLocStatusFilter(e.target.value)}
-                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] px-4 text-sm font-semibold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer h-[42px]"
-              >
-                <option value="All Status">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-            <div className="relative w-full lg:max-w-md">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                placeholder="Search by Location ID, Name, or Address..."
-                value={locSearchQuery}
-                onChange={e => setLocSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
-              />
+              <div className="flex items-center gap-sm shrink-0">
+                <Select value={locTypeFilter} onValueChange={(val) => setLocTypeFilter(val)}>
+                  <SelectTrigger className="w-[130px] h-8 text-body-sm bg-transparent border-input">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['All', 'Warehouse', 'Branch', 'Bazaar'].map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={locStatusFilter} onValueChange={(val) => setLocStatusFilter(val)}>
+                  <SelectTrigger className="w-[130px] h-8 text-body-sm bg-transparent border-input">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All Status">All Status</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <LocationManager 
@@ -454,24 +466,24 @@ export default function DistributionAnalyticsPage() {
       )}
 
       {showLocationModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowLocationModal(false)}>
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col p-6 text-black dark:text-white" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowLocationModal(false)}>
+          <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground" onClick={e => e.stopPropagation()}>
             
-            <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
+            <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add New Location</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Register a new warehouse node or branch outlet</p>
+                <h2 className="text-lg font-bold text-foreground">Add New Location</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Register a new warehouse node or branch outlet</p>
               </div>
-              <button onClick={() => setShowLocationModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold">✕</button>
+              <Button onClick={() => setShowLocationModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold">✕</Button>
             </div>
             
             <form onSubmit={handleAddLocationSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Location Name <span className="text-red-500">*</span></label>
-                <input 
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Location Name <span className="text-muted-foreground">*</span></label>
+                <Input 
                   type="text" 
                   placeholder="e.g., Branch 3 - Cebu" 
-                  className={`w-full px-3 py-2 text-sm rounded-lg border ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={`w-full px-3 py-2 text-sm rounded-lg border ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
                   value={newLocName}
                   onChange={e => {
                     const val = e.target.value;
@@ -489,9 +501,9 @@ export default function DistributionAnalyticsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Type <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Type <span className="text-muted-foreground">*</span></label>
                 <select 
-                  className={`w-full px-3 py-2 text-sm rounded-lg border ${typeError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={`w-full px-3 py-2 text-sm rounded-lg border ${typeError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
                   value={newLocType}
                   onChange={e => {
                     setNewLocType(e.target.value);
@@ -499,20 +511,20 @@ export default function DistributionAnalyticsPage() {
                     else setTypeError("Type is required.");
                   }}
                 >
-                  <option value="" className="dark:bg-[#24303f]">Select type...</option>
-                  <option value="Warehouse" className="dark:bg-[#24303f]">Warehouse</option>
-                  <option value="Branch" className="dark:bg-[#24303f]">Branch</option>
-                  <option value="Bazaar" className="dark:bg-[#24303f]">Bazaar Booth</option>
+                  <option value="">Select type...</option>
+                  <option value="Warehouse">Warehouse</option>
+                  <option value="Branch">Branch</option>
+                  <option value="Bazaar">Bazaar Booth</option>
                 </select>
                 {typeError && <p className="mt-1 text-xs text-red-500">{typeError}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Address <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Address <span className="text-muted-foreground">*</span></label>
                 <textarea 
                   placeholder="Complete address details..." 
                   rows={3}
-                  className={`w-full px-3 py-2 text-sm rounded-lg border ${addressError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none`}
+                  className={`w-full px-3 py-2 text-sm rounded-lg border ${addressError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none`}
                   value={newLocAddress}
                   onChange={e => {
                     const val = e.target.value;
@@ -529,9 +541,9 @@ export default function DistributionAnalyticsPage() {
                 {addressError && <p className="mt-1 text-xs text-red-500">{addressError}</p>}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
-                <button type="button" onClick={() => setShowLocationModal(false)} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-                <button type="submit" disabled={!!nameError || !!addressError} className="h-9 px-5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50">Add Location</button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <Button type="button" onClick={() => setShowLocationModal(false)} className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:bg-muted transition-colors">Cancel</Button>
+                <Button type="submit" disabled={!!nameError || !!addressError} className="h-9 px-5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors shadow-sm disabled:opacity-50">Add Location</Button>
               </div>
             </form>
           </div>
@@ -539,19 +551,19 @@ export default function DistributionAnalyticsPage() {
       )}
 
       {selectedEditLoc && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedEditLoc(null)}>
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col p-6 text-black dark:text-white" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedEditLoc(null)}>
+          <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Edit Location</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update warehouse or branch details</p>
+                <h2 className="text-lg font-bold text-foreground">Edit Location</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Update warehouse or branch details</p>
               </div>
-              <button onClick={() => setSelectedEditLoc(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold">✕</button>
+              <Button onClick={() => setSelectedEditLoc(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold">✕</Button>
             </div>
             <form onSubmit={handleEditLocationSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Location Name <span className="text-red-500">*</span></label>
-                <input type="text" className={`w-full px-3 py-2 text-sm rounded-lg border ${nameError ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f]`}
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Location Name <span className="text-muted-foreground">*</span></label>
+                <Input type="text" className={`w-full px-3 py-2 text-sm rounded-lg border ${nameError ? 'border-red-500' : 'border-border'} bg-card`}
                   value={selectedEditLoc.name}
                   onChange={e => {
                     const val = e.target.value;
@@ -564,8 +576,8 @@ export default function DistributionAnalyticsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Type <span className="text-red-500">*</span></label>
-                  <select className={`w-full px-3 py-2 text-sm rounded-lg border ${typeError ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f]`}
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Type <span className="text-muted-foreground">*</span></label>
+                  <select className={`w-full px-3 py-2 text-sm rounded-lg border ${typeError ? 'border-red-500' : 'border-border'} bg-card`}
                     value={selectedEditLoc.type} onChange={e => {
                       setSelectedEditLoc({...selectedEditLoc, type: e.target.value});
                       if (e.target.value) setTypeError("");
@@ -578,8 +590,8 @@ export default function DistributionAnalyticsPage() {
                   {typeError && <p className="mt-1 text-xs text-red-500">{typeError}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Status <span className="text-red-500">*</span></label>
-                  <select className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-[#24303f]"
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Status <span className="text-muted-foreground">*</span></label>
+                  <select className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-card"
                     value={selectedEditLoc.status} onChange={e => setSelectedEditLoc({...selectedEditLoc, status: e.target.value})}>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -587,8 +599,8 @@ export default function DistributionAnalyticsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Address <span className="text-red-500">*</span></label>
-                <textarea rows={3} className={`w-full px-3 py-2 text-sm rounded-lg border ${addressError ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-[#24303f] resize-none`}
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Address <span className="text-muted-foreground">*</span></label>
+                <textarea rows={3} className={`w-full px-3 py-2 text-sm rounded-lg border ${addressError ? 'border-red-500' : 'border-border'} bg-card resize-none`}
                   value={selectedEditLoc.address}
                   onChange={e => {
                     const val = e.target.value;
@@ -599,9 +611,9 @@ export default function DistributionAnalyticsPage() {
                   }} />
                 {addressError && <p className="mt-1 text-xs text-red-500">{addressError}</p>}
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
-                <button type="button" onClick={() => setSelectedEditLoc(null)} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
-                <button type="submit" disabled={!!nameError || !!addressError} className="h-9 px-5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Save Changes</button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <Button type="button" onClick={() => setSelectedEditLoc(null)} className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:bg-muted transition-colors">Cancel</Button>
+                <Button type="submit" disabled={!!nameError || !!addressError} className="h-9 px-5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors">Save Changes</Button>
               </div>
             </form>
           </div>
@@ -609,36 +621,36 @@ export default function DistributionAnalyticsPage() {
       )}
 
       {selectedViewLoc && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedViewLoc(null)}>
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col p-6 text-black dark:text-white" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedViewLoc(null)}>
+          <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">View Location</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Location details</p>
+                <h2 className="text-lg font-bold text-foreground">View Location</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Location details</p>
               </div>
-              <button onClick={() => setSelectedViewLoc(null)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+              <Button onClick={() => setSelectedViewLoc(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold">✕</Button>
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-semibold text-slate-500">Location Name</p>
+                <p className="text-xs font-semibold text-muted-foreground">Location Name</p>
                 <p className="font-medium">{selectedViewLoc.name}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500">Type</p>
+                  <p className="text-xs font-semibold text-muted-foreground">Type</p>
                   <p className="font-medium">{selectedViewLoc.type}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500">Status</p>
+                  <p className="text-xs font-semibold text-muted-foreground">Status</p>
                   <p className="font-medium">{selectedViewLoc.status}</p>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-500">Address</p>
+                <p className="text-xs font-semibold text-muted-foreground">Address</p>
                 <p className="font-medium">{selectedViewLoc.address}</p>
               </div>
-              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
-                <button onClick={() => setSelectedViewLoc(null)} className="h-9 px-5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Close</button>
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button onClick={() => setSelectedViewLoc(null)} className="h-9 px-5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg">Close</Button>
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import ViewOrdersProcurement from "@/pages/ViewOrdersProcurement";
+import ViewOrdersProcurement from "@/components/pages/ViewOrdersProcurement";
 
 export default function OrdersProcurementPage() {
   return <ViewOrdersProcurement />;

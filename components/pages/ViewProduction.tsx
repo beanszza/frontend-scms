@@ -2,6 +2,16 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Package,
   AlertTriangle,
@@ -25,11 +35,11 @@ import {
   FileText
 } from "lucide-react";
 import Link from "next/link";
-import api from "../lib/api";
-import CreateBatchModal from "../components/CreateBatchModal";
-import ConfirmModal from "../components/ConfirmModal";
+import api from "@/lib/api";
+import CreateBatchModal from "@/components/CreateBatchModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import PaginationFooter from "./PaginationFooter";
-import { getImageUrl } from "../lib/getImageUrl";
+import { getImageUrl } from "@/lib/getImageUrl";
 import { useAuth } from "@/context/AuthContext";
 
 // ---------- Types ----------
@@ -108,16 +118,17 @@ function useDarkMode() {
 // ---------- Status Badge ----------
 function StatusBadge({ status }: { status: string }) {
   const displayStatus = status === "Inventory Added" ? "Completed" : status;
-  const styles: Record<string, string> = {
-    "Scheduled": "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
-    "In Progress": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
-    "Passed QA": "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400",
-    "Rejected": "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
-    "Cancelled": "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400",
-    "Completed": "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400",
-  };
+  const normalized = displayStatus.toLowerCase();
+  let badgeStyle = "bg-muted text-foreground border border-border";
+  if (normalized === "completed" || normalized === "passed qa") {
+    badgeStyle = "bg-foreground text-background border border-foreground font-bold";
+  } else if (normalized === "in progress") {
+    badgeStyle = "bg-muted/70 text-foreground border border-muted-foreground/30 font-semibold";
+  } else if (normalized === "rejected" || normalized === "cancelled") {
+    badgeStyle = "bg-muted/30 text-muted-foreground border border-border opacity-75";
+  }
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${styles[displayStatus] ?? "bg-gray-100 text-gray-600"}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap border ${badgeStyle}`}>
       {displayStatus}
     </span>
   );
@@ -158,51 +169,51 @@ const ConfigProductModal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card border border-border shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-base font-semibold text-foreground">
             {mode === "add" ? "Add Finished Product" : "Edit Finished Product"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"><X size={20} /></button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Product Name <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              Product Name <span className="text-muted-foreground">*</span>
             </label>
-            <input
+            <Input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Ube Jam"
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-lg border border-border bg-card py-2.5 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Variant <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              Variant <span className="text-muted-foreground">*</span>
             </label>
-            <input
+            <Input
               type="text"
               value={variant}
               onChange={e => setVariant(e.target.value)}
               placeholder="e.g., 100g, 250g, 500g"
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-lg border border-border bg-card py-2.5 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <Button onClick={onClose} className="px-4 py-2 text-sm font-semibold rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={!name.trim() || !variant.trim()}
-            className="px-4 py-2 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
             {mode === "add" ? "Add Product" : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -587,9 +598,9 @@ export default function ProductionPage() {
 
   // ---------- Summary Cards ----------
   const summaryCards = [
-    { label: "Active Batches", value: summary.activeBatches, color: "text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400" },
-    { label: "Passed QA", value: summary.passedQaBatches, color: "text-purple-600 bg-purple-50 dark:bg-purple-500/10 dark:text-purple-400" },
-    { label: "Completed", value: summary.completedBatches, color: "text-green-600 bg-green-50 dark:bg-green-500/10 dark:text-green-400" },
+    { label: "Active Batches", value: summary.activeBatches, color: "text-foreground bg-muted" },
+    { label: "Passed QA", value: summary.passedQaBatches, color: "text-foreground bg-muted" },
+    { label: "Completed", value: summary.completedBatches, color: "text-foreground bg-muted" },
   ];
 
   const formatBatchId = (id: number | undefined | null) => {
@@ -658,62 +669,58 @@ export default function ProductionPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 transition-colors">
+    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Production & Quality</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Production & Quality</h1>
+          <p className="text-xs text-muted-foreground mt-1">
             Manage production batches, track stages, and perform QA reviews.
           </p>
         </div>
       </div>
 
       {/* Main Tabs */}
-      <div className="mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-        <div className="flex gap-0">
-          {mainTabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveMainTab(tab.key as any);
-                if (tab.key === "planning") setSelectedBatchId(null);
-              }}
-              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-                activeMainTab === tab.key
-                  ? "border-brand-500 text-brand-500 dark:text-brand-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
+      <Tabs
+        value={activeMainTab}
+        onValueChange={(val) => {
+          setActiveMainTab(val as any);
+          if (val === "planning") setSelectedBatchId(null);
+        }}
+        className="mb-6"
+      >
+        <TabsList className="max-w-full overflow-x-auto inline-flex justify-start h-auto p-1 gap-1">
+          {mainTabs.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key} className="whitespace-nowrap">
               {tab.label}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
-      </div>
+        </TabsList>
+      </Tabs>
 
       {/* ========== PRODUCTION PLANNING TAB ========== */}
       {activeMainTab === "planning" && (
         <>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 mt-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Production Planning</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Overview of all production batches</p>
+              <h2 className="text-xl font-bold text-foreground">Production Planning</h2>
+              <p className="text-sm text-muted-foreground mt-1">Overview of all production batches</p>
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
               {canViewReports && (
-                <Link href="/reports?tab=production" className="flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-300 dark:border-gray-700 px-4 h-11 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">
+                <Link href="/reports?tab=production" className="flex items-center justify-center gap-2 rounded-lg bg-card border border-border px-4 h-11 text-sm font-semibold text-foreground hover:bg-muted transition-colors whitespace-nowrap">
                   <FileText size={16} /> Reports
                 </Link>
               )}
               {!isInventoryManager && (
-                <button
+                <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="h-11 px-5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+                  className="h-11 px-5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
                 >
                   <Plus size={16} />
                   Create Batch
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -721,35 +728,20 @@ export default function ProductionPage() {
           {/* Summary Cards */}
           <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
             {summaryCards.map(card => (
-              <div key={card.label} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{card.label}</p>
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{card.value}</h2>
+              <div key={card.label} className="rounded-xl border border-border bg-card p-5">
+                <p className="text-sm text-muted-foreground mb-1">{card.label}</p>
+                <h2 className="text-3xl font-bold text-foreground">{card.value}</h2>
 
               </div>
             ))}
           </div>
 
           {/* Actions Bar & Status Filter */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-5">
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <div className="flex flex-wrap gap-1.5">
-                {(["All", "Scheduled", "In Progress", "Rejected", "Cancelled", "Completed"]).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setStatusFilter(tab)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                      statusFilter === tab 
-                        ? "bg-brand-600 text-white" 
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-              <div className="relative w-full lg:max-w-md">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <input
+          <div className="bg-card border border-border rounded-md overflow-hidden mb-5">
+            <div className="flex items-center justify-between gap-sm px-md py-sm border-b border-border bg-muted/20">
+              <div className="flex items-center gap-sm flex-1">
+                <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => {
@@ -757,38 +749,50 @@ export default function ProductionPage() {
                     setSearchError(/^[A-Za-z0-9\s]*$/.test(e.target.value) ? "" : "Special characters are not allowed.");
                   }}
                   placeholder="Search by product name..."
-                  className={`w-full rounded-xl border ${searchError ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 h-[42px]`}
+                  className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1"
                 />
               </div>
+              <div className="flex items-center gap-sm shrink-0">
+                <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
+                  <SelectTrigger className="w-[150px] h-8 text-body-sm bg-transparent border-input">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["All", "Scheduled", "In Progress", "Rejected", "Cancelled", "Completed"]).map(tab => (
+                      <SelectItem key={tab} value={tab}>{tab}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            {searchError && <div className="px-3 pb-2"><p className="text-xs text-red-500">{searchError}</p></div>}
+            {searchError && <div className="px-md pb-sm"><p className="text-xs text-destructive">{searchError}</p></div>}
           </div>
 
           {/* Table */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-visible">
+          <div className="bg-card border border-border rounded-xl overflow-visible">
             <div className="overflow-x-auto min-h-[200px]">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">BATCH NO.</th>
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">PRODUCT</th>
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">QUANTITY</th>
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">SCHEDULE DATE</th>
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">CURRENT STAGE</th>
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">STATUS</th>
-                    <th className="px-2 py-2 text-center font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
+                  <tr className="border-b border-border bg-background/50">
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">BATCH NO.</th>
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PRODUCT</th>
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">QUANTITY</th>
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SCHEDULE DATE</th>
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">CURRENT STAGE</th>
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
+                    <th className="px-2 py-2 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                         Loading batches...
                       </td>
                     </tr>
                   ) : batches.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                         No Results Found
                       </td>
                     </tr>
@@ -798,18 +802,18 @@ export default function ProductionPage() {
                       return (
                         <tr
                           key={batch.batchId}
-                          className={`${idx < batches.length - 1 ? "border-b border-gray-100 dark:border-gray-700" : ""} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${overdue ? "bg-red-50/60 dark:bg-red-500/5" : ""}`}
+                          className={`${idx < batches.length - 1 ? "border-b border-border" : ""} hover:bg-muted/50 transition-colors ${overdue ? "bg-red-50/60" : ""}`}
                         >
-                          <td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                          <td className="px-2 py-2.5 font-bold text-foreground whitespace-nowrap">
                             {(currentPage - 1) * 10 + idx + 1}
                           </td>
-                          <td className="px-2 py-2.5 font-medium text-gray-800 dark:text-gray-200 max-w-[160px] truncate">
+                          <td className="px-2 py-2.5 font-medium text-foreground max-w-[160px] truncate">
                             {batch.productName}
                           </td>
-                          <td className="px-2 py-2.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
                             {batch.estimatedQuantity}
                           </td>
-                          <td className="px-2 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
                             <span className="flex items-center gap-1.5">
                               <span>
                                 {batch.productionDate
@@ -821,14 +825,14 @@ export default function ProductionPage() {
                                   : "—"}
                               </span>
                               {overdue && (
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400">
-                                  <AlertTriangle size={13} /> Overdue
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-foreground">
+                                  <AlertTriangle size={13} className="text-foreground" /> Overdue
                                 </span>
                               )}
                             </span>
                           </td>
                           <td className="px-2 py-2.5 whitespace-nowrap">
-                            <span className="rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                            <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                               {batch.stage}
                             </span>
                           </td>
@@ -837,36 +841,36 @@ export default function ProductionPage() {
                           </td>
                           <td className="px-2 py-2.5 text-center relative">
                             <div className="relative inline-block text-center" ref={openDropdownId === batch.batchId ? dropdownRef : undefined}>
-                              <button
+                              <Button
                                 onClick={() => setOpenDropdownId(openDropdownId === batch.batchId ? null : batch.batchId)}
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none"
                               >
                                 <MoreHorizontal size={18} />
-                              </button>
+                              </Button>
                               {openDropdownId === batch.batchId && (
-                                <div className="absolute right-[40px] top-[10px] w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left">
+                                <div className="absolute right-[40px] top-[10px] w-44 rounded-xl border border-border bg-card shadow-xl z-[200] py-1.5 focus:outline-none text-left">
                                   {isInventoryManager ? (
-                                    <p className="px-3 py-2 text-xs text-amber-600 dark:text-amber-400 font-semibold">View-Only Access</p>
+                                    <p className="px-3 py-2 text-xs text-muted-foreground font-semibold">View-Only Access</p>
                                   ) : (
                                     <>
                                       {batch.status === "Scheduled" && (
-                                        <button
+                                        <Button
                                           onClick={() => { startStageBatch(batch.batchId); setOpenDropdownId(null); }}
-                                          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                                         >
-                                          <ChevronRight size={14} className="text-brand-600 dark:text-brand-400" /> Start Production
-                                        </button>
+                                          <ChevronRight size={14} className="text-foreground" /> Start Production
+                                        </Button>
                                       )}
                                       {batch.status === "Scheduled" && (
-                                        <button
+                                        <Button
                                           onClick={() => handleCancelBatch(batch.batchId)}
-                                          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                                          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-red-600 hover:bg-muted transition-colors"
                                         >
                                           <XCircle size={14} /> Cancel Batch
-                                        </button>
+                                        </Button>
                                       )}
                                       {batch.status !== "Scheduled" && (
-                                        <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 font-medium">No actions available</p>
+                                        <p className="px-3 py-2 text-xs text-muted-foreground font-medium">No actions available</p>
                                       )}
                                     </>
                                   )}
@@ -898,13 +902,13 @@ export default function ProductionPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <div className="lg:w-72 order-2 lg:order-1">
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Active Batches</h3>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Active Batches</h3>
               </div>
               <div className="p-3 space-y-2 max-h-[60vh] overflow-y-auto">
                 {batches.filter(b => b.status === "In Progress" || b.status === "Passed QA").length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No active batches.</p>
+                  <p className="text-sm text-muted-foreground py-4 text-center">No active batches.</p>
                 ) : (
                   batches.filter(b => b.status === "In Progress" || b.status === "Passed QA").map(batch => {
                     const currentIdx = STAGES.indexOf(batch.stage as any);
@@ -912,27 +916,27 @@ export default function ProductionPage() {
                     const progressPercent = (completedCount / STAGES.length) * 100;
                     
                     return (
-                      <button
+                      <Button
                         key={batch.batchId}
                         onClick={() => setTrackingSelectedBatchId(batch.batchId)}
                         className={`w-full text-left p-3 rounded-lg border transition-colors ${
                           trackingSelectedBatchId === batch.batchId
-                            ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
-                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                            ? "border-blue-600 bg-muted"
+                            : "border-border hover:bg-muted/50"
                         }`}
                       >
-                        <p className="text-sm font-bold text-brand-600 dark:text-brand-400">BATCH-{formatBatchId(batch.batchId).padStart(3, '0')}</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5 mb-2">{batch.productName}</p>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-1">
+                        <p className="text-sm font-bold text-foreground">BATCH-{formatBatchId(batch.batchId).padStart(3, '0')}</p>
+                        <p className="text-xs font-semibold text-muted-foreground mt-0.5 mb-2">{batch.productName}</p>
+                        <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-1">
                           <div
-                            className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                            className="h-full bg-primary rounded-full transition-all duration-500"
                             style={{ width: `${progressPercent}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                        <span className="text-[10px] font-medium text-muted-foreground">
                           {completedCount}/{STAGES.length} stages
                         </span>
-                      </button>
+                      </Button>
                     );
                   })
                 )}
@@ -946,7 +950,7 @@ export default function ProductionPage() {
               (() => {
                 const batch = batches.find(b => b.batchId === trackingSelectedBatchId);
                 if (!batch) return (
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-500">
+                  <div className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">
                     Batch not found.
                   </div>
                 );
@@ -958,27 +962,27 @@ export default function ProductionPage() {
                 const progressPercent = (completedCount / STAGES.length) * 100;
 
                 return (
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+                  <div className="rounded-xl border border-border bg-card p-6">
                     <div className="mb-6">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                          <h2 className="text-xl font-bold text-foreground">
                             {formatBatchId(batch.batchId)}
                           </h2>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          <p className="text-sm text-muted-foreground mt-0.5">
                             {batch.productName} &mdash; {batch.estimatedQuantity} units
                           </p>
                         </div>
                         <StatusBadge status={batch.status} />
                       </div>
                       <div className="mt-4">
-                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                           <span>Progress</span>
                           <span>{Math.round(progressPercent)}%</span>
                         </div>
-                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                           <div
-                            className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                            className="h-full bg-primary rounded-full transition-all duration-500"
                             style={{ width: `${progressPercent}%` }}
                           />
                         </div>
@@ -1047,52 +1051,52 @@ export default function ProductionPage() {
                         const commentCount = isStageWithData && batch.notes ? 1 : 0;
 
                         return (
-                          <button
+                          <Button
                             key={stage}
                             onClick={handleClick}
                             disabled={isLocked}
                             className={`flex flex-col p-4 rounded-xl border text-left transition-all ${
                               isCompleted
-                                ? "border-brand-500 bg-white dark:bg-gray-800 cursor-pointer hover:bg-brand-50 dark:hover:bg-gray-700 shadow-sm"
+                                ? "border-blue-600 bg-card cursor-pointer hover:bg-muted shadow-sm"
                                 : isCurrent
-                                ? "border-gray-900 dark:border-gray-300 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm"
+                                ? "border-border bg-card cursor-pointer hover:bg-muted shadow-sm"
                                 : isNext
-                                ? "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                : "border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 opacity-60 cursor-not-allowed"
+                                ? "border-border bg-muted/50 cursor-pointer hover:bg-muted"
+                                : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-3">
                               <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                isCompleted ? "bg-brand-500" : isCurrent ? "border-2 border-gray-400 dark:border-gray-500" : "border-2 border-gray-200 dark:border-gray-700"
+                                isCompleted ? "bg-primary" : isCurrent ? "border-2 border-border" : "border-2 border-border"
                               }`}>
                                 {isCompleted && <Check size={12} className="text-white" strokeWidth={3} />}
                               </div>
                               <span className={`text-sm font-bold leading-tight ${
-                                isCompleted ? "text-brand-600 dark:text-brand-400"
-                                : isCurrent ? "text-gray-900 dark:text-white"
-                                : "text-gray-400 dark:text-gray-500"
+                                isCompleted ? "text-foreground"
+                                : isCurrent ? "text-foreground"
+                                : "text-muted-foreground"
                               }`}>
                                 {stage}
                               </span>
                             </div>
                             <div className="flex items-center gap-4 mt-auto">
-                              <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
                                 <Camera size={13} />
                                 <span className="text-[11px] font-semibold">{imageCount}</span>
                               </div>
-                              <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
                                 <MessageSquare size={13} />
                                 <span className="text-[11px] font-semibold">{commentCount}</span>
                               </div>
                             </div>
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
 
                     {isAllCompleted && batch.status !== "Inventory Added" && !isInventoryManager && (
                       <div className="mt-4 flex justify-end">
-                        <button
+                        <Button
                           onClick={async () => {
                             try {
                               setIsStageSubmitting(true);
@@ -1106,26 +1110,26 @@ export default function ProductionPage() {
                             }
                           }}
                           disabled={isStageSubmitting}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 transition-colors"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
                         >
                           {isStageSubmitting ? <Loader2 size={15} className="animate-spin" /> : "Add to Inventory"}
-                        </button>
+                        </Button>
                       </div>
                     )}
 
                     {stagePanelVisible && stagePanelStage && (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-gray-50 dark:bg-gray-900/50 mt-2">
+                        <div className="border border-border rounded-xl p-5 bg-background/50 mt-2">
                           <div className="flex items-center justify-between mb-4">
                             <div>
-                              <h3 className="text-base font-semibold text-gray-900 dark:text-white">{stagePanelStage}</h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              <h3 className="text-base font-semibold text-foreground">{stagePanelStage}</h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
                                 Stage {(STAGES.indexOf(stagePanelStage as any) + 1)} of {STAGES.length}
                               </p>
                             </div>
                             {!stagePanelReadOnly && !isInventoryManager && (
                               (stagePanelStage === "Quality Control" || stagePanelStage === "Packaging") ? (
                                 batch.stage === stagePanelStage && (
-                                  <button
+                                  <Button
                                     onClick={() => {
                                       if (stagePanelStage === "Quality Control") {
                                         setSelectedBatchId(batch.batchId);
@@ -1135,25 +1139,25 @@ export default function ProductionPage() {
                                         setActiveMainTab("packaging");
                                       }
                                     }}
-                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                                   >
                                     Proceed to {stagePanelStage} <ArrowRight size={15} />
-                                  </button>
+                                  </Button>
                                 )
                               ) : (
-                                <button
+                                <Button
                                   onClick={() => setShowStageConfirm(true)}
                                   disabled={uploadFiles.length === 0 || isStageSubmitting}
-                                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                                 >
                                   {isStageSubmitting ? <Loader2 size={15} className="animate-spin" /> : "Submit Stage Update"}
-                                </button>
+                                </Button>
                               )
                             )}
                           </div>
 
                           {(stagePanelStage === "Quality Control" || stagePanelStage === "Packaging") ? (
-                            <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+                            <div className="text-sm text-muted-foreground py-4 text-center border-2 border-dashed border-border rounded-xl">
                               {stagePanelReadOnly 
                                 ? `This batch has already passed the ${stagePanelStage} stage.` 
                                 : batch.stage !== stagePanelStage
@@ -1163,26 +1167,26 @@ export default function ProductionPage() {
                           ) : stagePanelReadOnly ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uploaded Images</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">Uploaded Images</label>
                                 {uploadPreviews.length > 0 ? (
                                   <div className="grid grid-cols-2 gap-2">
                                     {uploadPreviews.map((src, i) => (
-                                      <img key={i} src={src} className="w-full h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+                                      <img key={i} src={src} className="w-full h-24 object-cover rounded-lg border border-border" />
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-6 text-gray-400">
+                                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-6 text-muted-foreground">
                                     <Upload size={24} className="mb-1" />
                                     <p className="text-sm">No images uploaded.</p>
                                   </div>
                                 )}
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comments</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">Comments</label>
                                 <textarea
                                   value={uploadComment}
                                   readOnly
-                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-3 text-sm resize-none opacity-70 text-gray-700 dark:text-gray-300"
+                                  className="w-full rounded-xl border border-border bg-muted p-3 text-sm resize-none opacity-70 text-muted-foreground"
                                   rows={4}
                                 />
                               </div>
@@ -1190,15 +1194,15 @@ export default function ProductionPage() {
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Images</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">Upload Images</label>
                                 <div
                                   onClick={() => fileInputRef.current?.click()}
-                                  className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                                  className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-6 cursor-pointer hover:bg-muted/50 transition-colors"
                                 >
-                                  <Upload size={24} className="text-gray-400 mb-1.5" />
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">Click to add images</p>
+                                  <Upload size={24} className="text-muted-foreground mb-1.5" />
+                                  <p className="text-sm text-muted-foreground">Click to add images</p>
                                 </div>
-                                <input
+                                <Input
                                   ref={fileInputRef}
                                   type="file"
                                   multiple
@@ -1214,29 +1218,29 @@ export default function ProductionPage() {
                                 {uploadPreviews.length > 0 && (
                                   <div className="mt-3 grid grid-cols-3 gap-2">
                                     {uploadPreviews.map((src, i) => (
-                                      <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                                      <div key={i} className="relative group rounded-lg overflow-hidden border border-border">
                                         <img src={src} className="w-full h-20 object-cover" />
-                                        <button
+                                        <Button
                                           onClick={() => {
                                             setUploadPreviews(prev => prev.filter((_, j) => j !== i));
                                             setUploadFiles(prev => prev.filter((_, j) => j !== i));
                                           }}
-                                          className="absolute top-1 right-1 p-1 bg-white dark:bg-gray-800 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                                          className="absolute top-1 right-1 p-1 bg-card rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                          <Trash2 size={12} className="text-red-500" />
-                                        </button>
+                                          <Trash2 size={12} className="text-muted-foreground" />
+                                        </Button>
                                       </div>
                                     ))}
                                   </div>
                                 )}
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Comments</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">Add Comments</label>
                                 <textarea
                                   value={uploadComment}
                                   onChange={e => setUploadComment(e.target.value)}
                                   placeholder="Optional comments..."
-                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 text-sm resize-none text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                  className="w-full rounded-xl border border-border bg-card p-3 text-sm resize-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                                   rows={4}
                                 />
                               </div>
@@ -1256,11 +1260,11 @@ export default function ProductionPage() {
                 );
               })()
             ) : (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
-                  <Package size={22} className="text-gray-400" />
+              <div className="rounded-xl border border-border bg-card p-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                  <Package size={22} className="text-muted-foreground" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Select an active batch from the list to view tracking details.
                 </p>
               </div>
@@ -1274,27 +1278,27 @@ export default function ProductionPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <div className="lg:w-72 order-2 lg:order-1">
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Ready for QA</h3>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Ready for QA</h3>
               </div>
               <div className="p-3 space-y-2 max-h-[60vh] overflow-y-auto">
                 {batches.filter(b => b.status === "In Progress" && b.stage === "Quality Control").length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No batches ready for QA.</p>
+                  <p className="text-sm text-muted-foreground py-4 text-center">No batches ready for QA.</p>
                 ) : (
                   batches.filter(b => b.status === "In Progress" && b.stage === "Quality Control").map(batch => (
-                    <button
+                    <Button
                       key={batch.batchId}
                       onClick={() => { setSelectedBatchId(batch.batchId); setQaPassedBatchId(null); }}
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${
                         selectedBatchId === batch.batchId
-                          ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
-                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          ? "border-blue-600 bg-muted"
+                          : "border-border hover:bg-muted/50"
                       }`}
                     >
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatBatchId(batch.batchId)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{batch.productName}</p>
-                    </button>
+                      <p className="text-sm font-semibold text-foreground">{formatBatchId(batch.batchId)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{batch.productName}</p>
+                    </Button>
                   ))
                 )}
               </div>
@@ -1304,32 +1308,32 @@ export default function ProductionPage() {
           {/* QA Panel */}
           <div className="flex-1 order-1 lg:order-2">
             {selectedBatch ? (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <div className="rounded-xl border border-border bg-card p-6">
                 {qaPassedBatchId === selectedBatch.batchId ? (
                   <div className="text-center py-10">
-                    <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle size={32} className="text-foreground" />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h2 className="text-xl font-bold text-foreground mb-2">
                       Batch Passed Quality Control
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    <p className="text-sm text-muted-foreground mb-6">
                       Proceed to the Packaging tab to complete packaging and add to inventory.
                     </p>
-                    <button
+                    <Button
                       onClick={() => { setActiveMainTab("packaging"); setPackagingSelectedBatchId(selectedBatch.batchId); }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       Proceed to Packaging <ArrowRight size={15} />
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <>
                     <div className="mb-6">
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                      <h2 className="text-xl font-bold text-foreground">
                         Quality Control &mdash; {formatBatchId(selectedBatch.batchId)}
                       </h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         {selectedBatch.productName}
                       </p>
                     </div>
@@ -1349,21 +1353,21 @@ export default function ProductionPage() {
                             onClick={() => !isInventoryManager && field.setter(isPassed ? "Fail" : "Pass")}
                             className={`flex items-center justify-between rounded-lg border px-4 py-3 select-none ${isInventoryManager ? "cursor-not-allowed opacity-80" : "cursor-pointer"} transition-colors ${
                               isPassed
-                                ? "border-green-300 bg-green-50 dark:bg-green-500/10 dark:border-green-600"
-                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                ? "border-foreground bg-muted"
+                                : "border-border bg-card hover:bg-muted"
                             }`}
                           >
-                            <span className={`text-sm font-medium ${isPassed ? "text-green-700 dark:text-green-400" : "text-gray-700 dark:text-gray-300"}`}>
+                            <span className={`text-sm font-medium ${isPassed ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
                               {field.label}
                             </span>
                             <div className="flex items-center gap-2">
-                              <span className={`text-xs font-semibold ${isPassed ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                              <span className={`text-xs font-bold ${isPassed ? "text-foreground" : "text-muted-foreground"}`}>
                                 {isPassed ? "Pass" : "Fail"}
                               </span>
                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                                isPassed ? "bg-green-500 border-green-500" : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                                isPassed ? "bg-foreground border-foreground" : "bg-card border-border"
                               }`}>
-                                {isPassed && <Check size={11} className="text-white" strokeWidth={3} />}
+                                {isPassed && <Check size={11} className="text-background" strokeWidth={3} />}
                               </div>
                             </div>
                           </div>
@@ -1374,31 +1378,31 @@ export default function ProductionPage() {
                     <div className="max-w-xl space-y-4">
                       {/* Inspector */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                          Quality Control Inspector <span className="text-red-500">*</span>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                          Quality Control Inspector <span className="text-muted-foreground">*</span>
                         </label>
-                        <input
+                        <Input
                           type="text"
                           value={qaInspector}
                           onChange={e => setQaInspector(e.target.value)}
                           placeholder="Inspector name"
-                          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-2.5 px-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          className="w-full rounded-lg border border-border bg-card py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                         />
                       </div>
 
                       {/* QA Image Upload */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                          Upload QA Images <span className="text-red-500">*</span>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                          Upload QA Images <span className="text-muted-foreground">*</span>
                         </label>
                         <div
                           onClick={() => { const input = document.getElementById("qa-image-upload") as HTMLInputElement; input?.click(); }}
-                          className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                          className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-5 cursor-pointer hover:bg-muted/50 transition-colors"
                         >
-                          <Upload size={22} className="text-gray-400 mb-1.5" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Click to add QA images (required)</p>
+                          <Upload size={22} className="text-muted-foreground mb-1.5" />
+                          <p className="text-sm text-muted-foreground">Click to add QA images (required)</p>
                         </div>
-                        <input
+                        <Input
                           id="qa-image-upload"
                           type="file"
                           multiple
@@ -1414,17 +1418,17 @@ export default function ProductionPage() {
                         {qaImagePreviews.length > 0 && (
                           <div className="mt-3 grid grid-cols-3 gap-2">
                             {qaImagePreviews.map((src, i) => (
-                              <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                              <div key={i} className="relative group rounded-lg overflow-hidden border border-border">
                                 <img src={getImageUrl(src)} alt="QA Preview" className="w-full h-20 object-cover" />
-                                <button
+                                <Button
                                   onClick={() => {
                                     setQaImagePreviews(prev => prev.filter((_, j) => j !== i));
                                     setQaImages(prev => prev.filter((_, j) => j !== i));
                                   }}
-                                  className="absolute top-1 right-1 p-1 bg-white dark:bg-gray-800 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="absolute top-1 right-1 p-1 bg-card rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                  <Trash2 size={12} className="text-red-500" />
-                                </button>
+                                  <Trash2 size={12} className="text-muted-foreground" />
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -1433,33 +1437,33 @@ export default function ProductionPage() {
 
                       {/* Comment */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                           Overall Inspection Comment
                         </label>
                         <textarea
                           value={overallComment}
                           onChange={e => setOverallComment(e.target.value)}
                           placeholder="Any additional comments..."
-                          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 text-sm resize-none text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          className="w-full rounded-lg border border-border bg-card p-3 text-sm resize-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                           rows={3}
                         />
                       </div>
 
                       <div className="flex justify-between items-center pt-2">
-                        <button
+                        <Button
                           onClick={() => { setSelectedBatchId(null); setActiveMainTab("planning"); }}
-                          className="px-4 py-2 text-sm font-semibold rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          className="px-4 py-2 text-sm font-semibold rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
                         >
                           Back to Planning
-                        </button>
+                        </Button>
                         {!isInventoryManager && (
-                          <button
+                          <Button
                             onClick={handleQaSubmit}
                             disabled={submittingQA || !qaInspector.trim() || qaImages.length === 0}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                           >
                             {submittingQA ? <Loader2 size={15} className="animate-spin" /> : "Submit QA & Decision"}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -1467,11 +1471,11 @@ export default function ProductionPage() {
                 )}
               </div>
             ) : (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
-                  <ClipboardCheck size={22} className="text-gray-400" />
+              <div className="rounded-xl border border-border bg-card p-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                  <ClipboardCheck size={22} className="text-muted-foreground" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Select a batch from the list to begin quality control.
                 </p>
               </div>
@@ -1485,16 +1489,16 @@ export default function ProductionPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <div className="lg:w-72 order-2 lg:order-1">
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Passed QA</h3>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Passed QA</h3>
               </div>
               <div className="p-3 space-y-2 max-h-[60vh] overflow-y-auto">
                 {batches.filter(b => b.status === "Passed QA").length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No batches ready for packaging.</p>
+                  <p className="text-sm text-muted-foreground py-4 text-center">No batches ready for packaging.</p>
                 ) : (
                   batches.filter(b => b.status === "Passed QA").map(batch => (
-                    <button
+                    <Button
                       key={batch.batchId}
                       onClick={() => {
                         setPackagingSelectedBatchId(batch.batchId);
@@ -1507,14 +1511,14 @@ export default function ProductionPage() {
                       }}
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${
                         packagingSelectedBatchId === batch.batchId
-                          ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
-                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          ? "border-blue-600 bg-muted"
+                          : "border-border hover:bg-muted/50"
                       }`}
                     >
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatBatchId(batch.batchId)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{batch.productName}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Qty: {batch.estimatedQuantity}</p>
-                    </button>
+                      <p className="text-sm font-semibold text-foreground">{formatBatchId(batch.batchId)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{batch.productName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Qty: {batch.estimatedQuantity}</p>
+                    </Button>
                   ))
                 )}
               </div>
@@ -1527,7 +1531,7 @@ export default function ProductionPage() {
               (() => {
                 const batch = batches.find(b => b.batchId === packagingSelectedBatchId);
                 if (!batch) return (
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-500">
+                  <div className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">
                     Batch not found.
                   </div>
                 );
@@ -1537,27 +1541,27 @@ export default function ProductionPage() {
                 const allStepsDone = stepsDone === PACKAGING_STEPS.length;
 
                 return (
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+                  <div className="rounded-xl border border-border bg-card p-6">
                     <div className="mb-6">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                          <h2 className="text-xl font-bold text-foreground">
                             {formatBatchId(batch.batchId)}
                           </h2>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          <p className="text-sm text-muted-foreground mt-0.5">
                             {batch.productName} &mdash; {batch.estimatedQuantity} units
                           </p>
                         </div>
                         <StatusBadge status={batch.status} />
                       </div>
                       <div className="mt-4">
-                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                           <span>Checklist Progress</span>
                           <span>{stepsDone}/{PACKAGING_STEPS.length} steps</span>
                         </div>
-                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                           <div
-                            className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                            className="h-full bg-primary rounded-full transition-all duration-500"
                             style={{ width: `${progressPercent}%` }}
                           />
                         </div>
@@ -1567,8 +1571,8 @@ export default function ProductionPage() {
                     {/* Packaging Checklist */}
                     <div className="mb-6">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Packaging Checklist</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Complete steps in order</p>
+                        <h3 className="text-sm font-semibold text-foreground">Packaging Checklist</h3>
+                        <p className="text-xs text-muted-foreground">Complete steps in order</p>
                       </div>
                       <div className="space-y-2">
                         {PACKAGING_STEPS.map((step, idx) => {
@@ -1580,19 +1584,19 @@ export default function ProductionPage() {
                               onClick={() => !isInventoryManager && canCheck && togglePackagingStep(batch.batchId, idx)}
                               className={`flex items-center gap-3 p-3.5 rounded-lg border transition-colors ${
                                 isChecked
-                                  ? "border-green-300 bg-green-50 dark:bg-green-500/10 dark:border-green-700"
+                                  ? "border-foreground bg-muted"
                                   : canCheck && !isInventoryManager
-                                  ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                                  : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed"
+                                  ? "border-border bg-card hover:bg-muted/50 cursor-pointer"
+                                  : "border-border bg-muted/50 opacity-50 cursor-not-allowed"
                               }`}
                             >
                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                isChecked ? "bg-green-500 border-green-500" : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                isChecked ? "bg-foreground border-foreground" : "border-border bg-card"
                               }`}>
-                                {isChecked && <Check size={11} className="text-white" strokeWidth={3} />}
+                                {isChecked && <Check size={11} className="text-background" strokeWidth={3} />}
                               </div>
                               <span className={`text-sm ${
-                                isChecked ? "text-green-700 dark:text-green-400 line-through" : "text-gray-700 dark:text-gray-300"
+                                isChecked ? "text-foreground line-through opacity-70" : "text-muted-foreground"
                               }`}>
                                 {step}
                               </span>
@@ -1604,69 +1608,69 @@ export default function ProductionPage() {
 
                     {/* Packaging Details Form */}
                     {allStepsDone && (
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-gray-50 dark:bg-gray-900/50">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Packaging Details</h3>
+                      <div className="border border-border rounded-xl p-5 bg-background/50">
+                        <h3 className="text-base font-semibold text-foreground mb-4">Packaging Details</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                              Packaging Date <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                              Packaging Date <span className="text-muted-foreground">*</span>
                             </label>
-                            <input
+                            <Input
                               type="date"
                               value={packagingDate}
                               onChange={e => setPackagingDate(e.target.value)}
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                              Production Date <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                              Production Date <span className="text-muted-foreground">*</span>
                             </label>
-                            <input
+                            <Input
                               type="date"
                               value={packagingExpiry}
                               onChange={e => setPackagingExpiry(e.target.value)}
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                              Expiration Date <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                              Expiration Date <span className="text-muted-foreground">*</span>
                             </label>
-                            <input
+                            <Input
                               type="date"
                               min={packagingExpiry || undefined}
                               value={packagingExpiration}
                               onChange={e => setPackagingExpiration(e.target.value)}
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                              Actual Quantity Produced <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                              Actual Quantity Produced <span className="text-muted-foreground">*</span>
                             </label>
-                            <input
+                            <Input
                               type="number"
                               value={packagingQuantity}
                               onChange={e => setPackagingQuantity(e.target.value === "" ? "" : Number(e.target.value))}
                               placeholder="Enter quantity"
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                              Packed By <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                              Packed By <span className="text-muted-foreground">*</span>
                             </label>
-                            <input
+                            <Input
                               type="text"
                               value={packagingPackedBy}
                               onChange={e => setPackagingPackedBy(e.target.value)}
                               placeholder="Name of packer"
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                            <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                               Package Notes
                             </label>
                             <textarea
@@ -1674,19 +1678,19 @@ export default function ProductionPage() {
                               onChange={e => setPackagingNotes(e.target.value)}
                               rows={2}
                               placeholder="Optional notes"
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm resize-none text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm resize-none text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                         </div>
                         {!isInventoryManager && (
                           <div className="mt-5 flex justify-end">
-                            <button
+                            <Button
                               onClick={() => setShowPackagingConfirm(true)}
                               disabled={packagingQuantity === "" || !packagingDate || !packagingExpiration || !packagingExpiry || !packagingPackedBy || packagingExpiration < packagingExpiry}
-                              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                             >
                               Submit & Go back to Production Tracking
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -1695,11 +1699,11 @@ export default function ProductionPage() {
                 );
               })()
             ) : (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
-                  <Package size={22} className="text-gray-400" />
+              <div className="rounded-xl border border-border bg-card p-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                  <Package size={22} className="text-muted-foreground" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Select a batch from the list to start packaging.
                 </p>
               </div>
@@ -1712,63 +1716,63 @@ export default function ProductionPage() {
 
       {/* ========== CONFIGURATION TAB ========== */}
       {activeMainTab === "configuration" && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-6 py-5 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Production Configuration</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <h2 className="text-lg font-bold text-foreground">Production Configuration</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Manage finished products and their packaging variants
               </p>
             </div>
             {!isInventoryManager && (
-              <button
+              <Button
                 onClick={handleOpenAddProduct}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Plus size={16} /> Add Product
-              </button>
+              </Button>
             )}
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                <tr className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">PRODUCT NAME</th>
-                  <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">VARIANT</th>
+              <thead className="bg-background/50 border-b border-border">
+                <tr className="text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PRODUCT NAME</th>
+                  <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">VARIANT</th>
                   {!isInventoryManager && (
-                    <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
+                    <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ACTIONS</th>
                   )}
                 </tr>
               </thead>
               <tbody>
                 {configLoading ? (
                   <tr>
-                    <td colSpan={isInventoryManager ? 2 : 3} className="px-5 py-10 text-center text-sm text-gray-400">
+                    <td colSpan={isInventoryManager ? 2 : 3} className="px-5 py-10 text-center text-sm text-muted-foreground">
                       Loading products…
                     </td>
                   </tr>
                 ) : finishedProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={isInventoryManager ? 2 : 3} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <td colSpan={isInventoryManager ? 2 : 3} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                       No finished products found.
                     </td>
                   </tr>
                 ) : (
                   finishedProducts.map((product, idx) => (
-                    <tr key={product.id} className={`${idx < finishedProducts.length - 1 ? "border-b border-gray-100 dark:border-gray-700" : ""} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}>
-                      <td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white whitespace-nowrap">{product.name}</td>
-                      <td className="px-2 py-2.5 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {product.variant || <span className="italic text-gray-400">—</span>}
+                    <tr key={product.id} className={`${idx < finishedProducts.length - 1 ? "border-b border-border" : ""} hover:bg-muted/50 transition-colors`}>
+                      <td className="px-2 py-2.5 font-bold text-foreground whitespace-nowrap">{product.name}</td>
+                      <td className="px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">
+                        {product.variant || <span className="italic text-muted-foreground">—</span>}
                       </td>
                       {!isInventoryManager && (
                         <td className="px-2 py-2.5">
-                          <button
+                          <Button
                             onClick={() => handleOpenEditProduct(product)}
-                            className="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors flex items-center gap-1.5"
+                            className="text-xs font-bold text-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
                           >
                             Edit
-                          </button>
+                          </Button>
                         </td>
                       )}
                     </tr>

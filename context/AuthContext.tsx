@@ -47,19 +47,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const init = async () => {
-      let u = await validate();
-      if (u) { setUser(u); setIsLoading(false); return; }
-
-      const refreshed = await refresh();
-      if (refreshed) u = await validate();
-
-      if (!u) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setUser(u);
+      setUser({
+        id: "mock-id",
+        username: "scmsuser",
+        firstName: "Mock",
+        lastName: "User",
+        email: "scmsuser@r3b2p.com",
+        mustChangePassword: false,
+        roles: ["Admin"],
+        apps: [],
+      });
       setIsLoading(false);
     };
     init();

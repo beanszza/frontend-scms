@@ -32,15 +32,15 @@ export default function DistributionReportView({
   const velocity = velocityAll.slice(startIdx, startIdx + itemsPerPage);
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm w-full">
-      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-base font-bold text-gray-900 dark:text-white">
+    <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm w-full">
+      <div className="px-5 py-4 border-b border-border">
+        <h3 className="text-base font-bold text-foreground">
           Main Table: Logistics & Branch Transfer Velocity Report
         </h3>
       </div>
       <div className="w-full overflow-x-auto">
         <table className="w-full text-xs text-left border-collapse">
-          <thead className="bg-gray-50 dark:bg-gray-900/50 text-[11px] uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+          <thead className="bg-background/50 text-[11px] uppercase text-muted-foreground border-b border-border">
             <tr>
               <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center w-10">#</th>
               <th className="whitespace-nowrap px-3 py-2.5 font-semibold">Source Location</th>
@@ -52,19 +52,19 @@ export default function DistributionReportView({
               <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center">Transfer Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+          <tbody className="divide-y divide-border">
             {velocity.map((row: any, i: number) => (
-              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-gray-500 dark:text-gray-400">
+              <tr key={i} className="hover:bg-muted/50 transition-colors">
+                <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-muted-foreground">
                   {startIdx + i + 1}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 font-bold text-gray-900 dark:text-white">{row.sourceLocation}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-gray-700 dark:text-gray-300 font-medium">{row.destinationBranch}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-600 dark:text-gray-400 text-xs font-mono">{row.dispatchDate}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-600 dark:text-gray-400 text-xs font-mono">{row.receiveDate}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.transitDuration}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-gray-700 dark:text-gray-300">{row.assignedDriver}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center font-bold text-emerald-600 dark:text-emerald-400">{row.transferStatus}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground">{row.sourceLocation}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground font-medium">{row.destinationBranch}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground text-xs font-mono">{row.dispatchDate}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground text-xs font-mono">{row.receiveDate}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.transitDuration}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{row.assignedDriver}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-center font-bold text-emerald-600">{row.transferStatus}</td>
               </tr>
             ))}
           </tbody>

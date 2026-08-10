@@ -32,38 +32,38 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       <div className="w-full overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <tr className="border-b border-border bg-muted/50">
               {["TRANSFER NO.", "PRODUCT", "FROM", "TO", "QUANTITY", "TRANSFER DATE", "STATUS", "ACTIONS"].map(h => (
-                <th key={h} className={`px-4 py-3 ${h === "ACTIONS" ? "text-center" : "text-left"} font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap`}>{h}</th>
+                <th key={h} className={`px-4 py-3 ${h === "ACTIONS" ? "text-center" : "text-left"} font-bold text-muted-foreground tracking-wider whitespace-nowrap`}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {transfers.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                   No Results Found
                 </td>
               </tr>
             ) : (
               transfers.map(t => (
-                <tr key={t.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{t.displayId || t.id}</td>
-                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{t.product}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.from}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.to}</td>
-                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{t.quantity}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.date}</td>
+                <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3 font-bold text-foreground">{t.displayId || t.id}</td>
+                <td className="px-4 py-3 text-foreground">{t.product}</td>
+                <td className="px-4 py-3 text-foreground">{t.from}</td>
+                <td className="px-4 py-3 text-foreground">{t.to}</td>
+                <td className="px-4 py-3 text-foreground">{t.quantity}</td>
+                <td className="px-4 py-3 text-foreground">{t.date}</td>
                 <td className="px-4 py-3">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                    t.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                    t.status === "In Transit" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                    t.status === "Cancelled" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                    t.status === "Completed" ? "bg-foreground text-background border-foreground font-bold" :
+                    t.status === "In Transit" ? "bg-foreground text-background border-foreground font-bold" :
+                    t.status === "Cancelled" ? "bg-muted/30 text-muted-foreground border-border opacity-75" :
+                    "bg-muted/70 text-foreground border-muted-foreground/30"
                   }`}>
                     {t.status}
                   </span>
@@ -85,7 +85,7 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                           setActiveDropdownId(t.id);
                         }
                       }}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none"
                     >
                       <MoreHorizontal size={18} />
                     </button>
@@ -93,7 +93,7 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                     {activeDropdownId === t.id && dropdownPosition && createPortal(
                       <>
                         <div
-                          className="fixed inset-0 z-[9998] cursor-default"
+                          className="fixed inset-0 z-[199] cursor-default"
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveDropdownId(null);
@@ -101,16 +101,16 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                         />
                         <div
                           style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
-                          className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
+                          className="absolute w-44 rounded-xl border border-border bg-card shadow-xl z-[200] py-1.5 focus:outline-none text-left"
                         >
                           <button
                             onClick={() => {
                               onViewClick?.(t);
                               setActiveDropdownId(null);
                             }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                           >
-                            <Eye size={14} className="text-gray-500" />
+                            <Eye size={14} className="text-muted-foreground" />
                             View
                           </button>
                           {t.status === "Pending" && (
@@ -119,9 +119,9 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                                 onEditClick?.(t);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                             >
-                              <Pencil size={14} className="text-blue-600 dark:text-blue-400" />
+                              <Pencil size={14} className="text-foreground" />
                               Edit
                             </button>
                           )}
@@ -131,9 +131,9 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                                 onDispatchClick(t);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                             >
-                              <Truck size={14} className="text-blue-600 dark:text-blue-400" />
+                              <Truck size={14} className="text-foreground" />
                               Dispatch
                             </button>
                           )}
@@ -143,9 +143,9 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                                 onCompleteClick(t.id);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                             >
-                              <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+                              <CheckCircle size={14} className="text-muted-foreground" />
                               Complete
                             </button>
                           )}
@@ -155,7 +155,7 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                                 onCancelClick?.(t);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-muted transition-colors"
                             >
                               <XCircle size={14} />
                               Cancel

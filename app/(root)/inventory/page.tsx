@@ -1,4 +1,4 @@
-import ViewInventory from "@/pages/ViewInventory";
+import ViewInventory from "@/components/pages/ViewInventory";
 
 export default function InventoryPage() {
   return <ViewInventory />;

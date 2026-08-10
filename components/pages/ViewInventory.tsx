@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, AlertCircle, TrendingUp, ShoppingCart, MoreHorizontal, FileText } from "lucide-react";
-import api from "../lib/api";
+import api from "@/lib/api";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
@@ -112,15 +114,15 @@ export default function ViewInventory() {
   const currentTabItems = tabs.find(t => t.name === activeTab)?.data || [];
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] dark:bg-gray-900 p-4 sm:p-6 transition-colors">
+    <div className="min-h-screen bg-background p-4 sm:p-6 transition-colors">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Inventory Management</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Real-time stock levels (view-only, auto-updated from orders and production)</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Real-time stock levels (view-only, auto-updated from orders and production)</p>
         </div>
         <div className="flex items-center gap-3">
           {isAuthorizedForReports && (
-            <Link href="/reports?tab=inventory" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/reports?tab=inventory" className="flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
               <FileText size={18} /> Reports
             </Link>
           )}
@@ -134,45 +136,38 @@ export default function ViewInventory() {
           const lowStockCount = tab.data.filter(i => i.isLowStock || i.currentStock <= i.minStockLevel).length;
 
           return (
-            <div key={tab.name} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 relative">
+            <div key={tab.name} className="rounded-xl border border-border bg-card p-5 relative">
               <div className="flex justify-between items-start">
-                <h3 className="font-bold text-gray-900 dark:text-white">{tab.name}</h3>
+                <h3 className="font-bold text-foreground">{tab.name}</h3>
                 {lowStockCount > 0 && (
-                  <span className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 font-semibold text-xs px-2 py-0.5 rounded">
+                  <span className="bg-red-100 text-red-600 font-semibold text-xs px-2 py-0.5 rounded">
                     {lowStockCount} Low Stock
                   </span>
                 )}
               </div>
               <div className="mt-4">
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{totalItems}</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Items</p>
+                <h2 className="text-3xl font-bold text-foreground">{totalItems}</h2>
+                <p className="text-xs text-muted-foreground mt-1">Total Items</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="border-b border-gray-200 dark:border-gray-700 flex gap-6 mb-6">
-        {["Raw Materials", "Tools", "Finished Goods"].map((tabName) => (
-          <button
-            key={tabName}
-            onClick={() => { setActiveTab(tabName); setPage(1); }}
-            className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName
-                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
-          >
-            {tabName}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setPage(1); }} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="Raw Materials">Raw Materials</TabsTrigger>
+          <TabsTrigger value="Tools">Tools</TabsTrigger>
+          <TabsTrigger value="Finished Goods">Finished Goods</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-6 py-5 border-b border-border">
+          <h2 className="text-lg font-bold text-foreground">
             {activeTab === "Reports" ? "Inventory Report" : `${activeTab} Inventory`}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {activeTab === "Reports" ? `Total records: ${totalCount}` : `Current stock levels for ${totalCount} items`}
           </p>
         </div>
@@ -181,8 +176,8 @@ export default function ViewInventory() {
           <table className="w-full">
             {activeTab === "Reports" ? (
               <>
-                <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                  <tr className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <thead className="bg-background/50 border-b border-border">
+                  <tr className="text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     <th className="px-6 py-4">Item No.</th>
                     <th className="px-6 py-4">Item Name</th>
                     <th className="px-6 py-4">Category</th>
@@ -192,14 +187,14 @@ export default function ViewInventory() {
                     <th className="px-6 py-4">Unit of Measure</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody className="divide-y divide-border">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-gray-500">Loading report data...</td>
+                      <td colSpan={7} className="text-center py-10 text-muted-foreground">Loading report data...</td>
                     </tr>
                   ) : inventories.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                         No Data Found
                       </td>
                     </tr>
@@ -212,26 +207,26 @@ export default function ViewInventory() {
                           : "Normal";
 
                       const badgeStyles = {
-                        Critical: "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800",
-                        Low: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800",
-                        Normal: "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800",
+                        Critical: "bg-foreground text-background border border-foreground font-bold",
+                        Low: "bg-muted/70 text-foreground border border-muted-foreground/30 font-semibold",
+                        Normal: "bg-muted text-muted-foreground border border-border",
                       };
 
                       return (
-                        <tr key={inv.inventoryId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white">
+                        <tr key={inv.inventoryId} className="hover:bg-muted/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-bold text-foreground">
                             {(page - 1) * 10 + index + 1}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.itemName}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.categoryName}
                           </td>
-                          <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white">
+                          <td className="px-6 py-4 text-sm font-bold text-foreground">
                             {inv.currentStock}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.minStockLevel}
                           </td>
                           <td className="px-6 py-4">
@@ -239,7 +234,7 @@ export default function ViewInventory() {
                               {status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.uomName}
                           </td>
                         </tr>
@@ -250,8 +245,8 @@ export default function ViewInventory() {
               </>
             ) : (
               <>
-                <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                  <tr className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <thead className="bg-background/50 border-b border-border">
+                  <tr className="text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     <th className="px-6 py-4">Item No.</th>
                     <th className="px-6 py-4">Item Name</th>
                     <th className="px-6 py-4">Unit</th>
@@ -262,14 +257,14 @@ export default function ViewInventory() {
                     <th className="px-6 py-4 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody className="divide-y divide-border">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-10 text-gray-500">Loading inventory data...</td>
+                      <td colSpan={8} className="text-center py-10 text-muted-foreground">Loading inventory data...</td>
                     </tr>
                   ) : currentTabItems.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                         No Results Found
                       </td>
                     </tr>
@@ -280,53 +275,49 @@ export default function ViewInventory() {
                         : (inv.currentStock > 0 ? 100 : 0);
 
                       let stockLevelLabel = "High";
-                      let barColor = "bg-green-500";
-                      let textColor = "text-green-600 dark:text-green-400";
+                      let barColor = "bg-primary";
+                      let textColor = "text-foreground";
 
                       if (percentage <= 40 || inv.currentStock === 0) {
                         stockLevelLabel = "Low";
-                        barColor = "bg-red-600";
-                        textColor = "text-red-600 dark:text-red-400";
                       } else if (percentage <= 70) {
                         stockLevelLabel = "Medium";
-                        barColor = "bg-yellow-500";
-                        textColor = "text-yellow-600 dark:text-yellow-400";
                       }
 
                       const isCritical = stockLevelLabel === "Low";
 
                       return (
-                        <tr key={inv.inventoryId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white">
+                        <tr key={inv.inventoryId} className="hover:bg-muted/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-bold text-foreground">
                             {(page - 1) * 10 + index + 1}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.itemName}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.uomName}
                           </td>
                           <td className={`px-6 py-4 text-sm font-bold ${textColor}`}>
                             {inv.currentStock}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 text-sm text-muted-foreground">
                             {inv.minStockLevel}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="w-24 h-2 mb-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="w-24 h-2 mb-1.5 bg-muted rounded-full overflow-hidden">
                               <div className={`h-full ${barColor}`} style={{ width: `${percentage}%` }}></div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            <div className="text-xs text-muted-foreground font-medium">
                               {stockLevelLabel} ({percentage}%)
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             {isCritical ? (
-                              <div className="flex items-center gap-1.5 text-sm font-bold text-red-600 dark:text-red-400">
+                              <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
                                 <AlertCircle size={16} /> Critical
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1.5 text-sm font-bold text-green-600 dark:text-green-400">
+                              <div className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground">
                                 <TrendingUp size={16} /> Normal
                               </div>
                             )}
@@ -334,21 +325,21 @@ export default function ViewInventory() {
                           <td className="px-6 py-4 text-center relative">
                             {isCritical && (
                               <div className="relative inline-block text-center">
-                                <button
+                                <Button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setActiveDropdownId(activeDropdownId === inv.inventoryId ? null : inv.inventoryId);
                                   }}
-                                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none"
                                 >
                                   <MoreHorizontal size={18} />
-                                </button>
+                                </Button>
                                 {activeDropdownId === inv.inventoryId && (
-                                  <div className="absolute right-[40px] top-[10px] z-[9999] w-36 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5 focus:outline-none text-left">
+                                  <div className="absolute right-[40px] top-[10px] z-[200] w-36 rounded-xl border border-border bg-card shadow-xl py-1.5 focus:outline-none text-left">
                                     <Link href="/orders-procurement">
-                                      <button className="flex w-full items-center gap-2 px-3 py-2 text-xs font-bold text-[#ea580c] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                      <Button className="flex w-full items-center gap-2 px-3 py-2 text-xs font-bold text-[#ea580c] hover:bg-muted transition-colors">
                                         <ShoppingCart size={14} /> Order Now
-                                      </button>
+                                      </Button>
                                     </Link>
                                   </div>
                                 )}

@@ -1,17 +1,18 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 // Modular Sub-Components from @/pages
-import ReportFilterBar from "@/pages/ReportFilterBar";
-import InventoryReportView from "@/pages/InventoryReportView";
-import ProcurementReportView from "@/pages/ProcurementReportView";
-import ProductionReportView from "@/pages/ProductionReportView";
-import SupplierReportView from "@/pages/SupplierReportView";
-import SupplierOrdersModal from "@/pages/SupplierOrdersModal";
-import DistributionReportView from "@/pages/DistributionReportView";
+import ReportFilterBar from "@/components/pages/ReportFilterBar";
+import InventoryReportView from "@/components/pages/InventoryReportView";
+import ProcurementReportView from "@/components/pages/ProcurementReportView";
+import ProductionReportView from "@/components/pages/ProductionReportView";
+import SupplierReportView from "@/components/pages/SupplierReportView";
+import SupplierOrdersModal from "@/components/pages/SupplierOrdersModal";
+import DistributionReportView from "@/components/pages/DistributionReportView";
 
 export default function ViewReports({ initialTab }: { initialTab: string }) {
   const router = useRouter();
@@ -164,7 +165,7 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
         ].join(","));
       });
     } else {
-      csvRows.push(["Report", initialTab]);
+      csvRows.push(["Report", initialTab].join(","));
     }
 
     const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
@@ -180,21 +181,21 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
   const allSuppliers = data?.vendorScorecard || [];
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-gray-50 dark:bg-gray-900 p-2 sm:p-4 transition-colors font-sans text-gray-900 dark:text-gray-100">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-background p-2 sm:p-4 transition-colors font-sans text-foreground">
       <div className="w-full max-w-full space-y-5">
         {/* Page Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <button
+            <Button
               onClick={() => router.back()}
-              className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+              className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={16} /> Back
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white capitalize tracking-tight">
+            </Button>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground capitalize tracking-tight">
               {initialTab} Performance Report
             </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Detailed operational analytics and historical audit data
             </p>
           </div>
@@ -225,11 +226,11 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
         <div className="w-full">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="animate-spin text-blue-600" size={32} />
-              <span className="ml-3 text-gray-500 dark:text-gray-400 font-medium">Loading report data...</span>
+              <Loader2 className="animate-spin text-foreground" size={32} />
+              <span className="ml-3 text-muted-foreground font-medium">Loading report data...</span>
             </div>
           ) : error ? (
-            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-medium">
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-medium">
               {error}
             </div>
           ) : (

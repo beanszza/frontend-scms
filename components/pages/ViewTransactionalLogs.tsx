@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 
-import AuditLogsFilterBar from "@/pages/AuditLogsFilterBar";
-import AuditLogsTable, { LogEntry } from "@/pages/AuditLogsTable";
+import AuditLogsFilterBar from "@/components/pages/AuditLogsFilterBar";
+import AuditLogsTable, { LogEntry } from "@/components/pages/AuditLogsTable";
 import { useAuth } from "@/context/AuthContext";
 
 const fetchLogs = async (type: string | null): Promise<LogEntry[]> => {
@@ -146,7 +147,7 @@ export default function ViewTransactionalLogs() {
         `"${log.activity || ''}"`,
         `"${log.entityName || ''}"`,
         `"${log.user || ''}"`,
-        `"${(log.details || '').replace(/"/g, '""')}"`
+        `"${((log as any).details || '').replace(/"/g, '""')}"`
       ].join(","));
     });
 
@@ -161,21 +162,21 @@ export default function ViewTransactionalLogs() {
   };
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-gray-50 dark:bg-gray-900 p-2 sm:p-4 transition-colors font-sans text-gray-900 dark:text-gray-100">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-background p-2 sm:p-4 transition-colors font-sans text-foreground">
       <div className="w-full max-w-full space-y-5">
         {/* Header Navigation */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <button
+            <Button
               onClick={() => router.back()}
-              className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+              className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={16} /> Back
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+            </Button>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
               {title}
             </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Audit trail for Supply Add/Edit/Status, Recipe/BOM modifications, and Inventory movements (+/-)
             </p>
           </div>
@@ -200,8 +201,8 @@ export default function ViewTransactionalLogs() {
         {/* Audit Logs Content Table */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="animate-spin text-blue-600" size={32} />
-            <span className="ml-3 text-gray-500 dark:text-gray-400 font-medium">Fetching transaction audit logs...</span>
+            <Loader2 className="animate-spin text-foreground" size={32} />
+            <span className="ml-3 text-muted-foreground font-medium">Fetching transaction audit logs...</span>
           </div>
         ) : (
           <AuditLogsTable

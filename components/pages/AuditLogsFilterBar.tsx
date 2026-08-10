@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Filter, Search, Calendar, RotateCcw, Upload } from "lucide-react";
 
 interface AuditLogsFilterBarProps {
@@ -33,121 +35,121 @@ export default function AuditLogsFilterBar({
   onExportCSV,
 }: AuditLogsFilterBarProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm space-y-4">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Filter Mode Selector */}
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
-            <Filter size={14} className="text-blue-600" /> Filter History:
+          <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+            <Filter size={14} className="text-foreground" /> Filter History:
           </span>
-          <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold">
-            <button
+          <div className="flex p-1 bg-muted rounded-xl border border-border text-xs font-semibold">
+            <Button
               onClick={() => setFilterMode("all")}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
                 filterMode === "all"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-card text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               All History
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setFilterMode("specific")}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
                 filterMode === "specific"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-card text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Specific Date
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setFilterMode("range")}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
                 filterMode === "range"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-card text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Date Range
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Search Input Box & Export CSV Button */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-[200px]">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-            <input
+            <Search className="absolute left-3 top-2.5 text-muted-foreground" size={16} />
+            <Input
               type="text"
               placeholder="Search activity, items, users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
-          <button
+          <Button
             onClick={onExportCSV}
-            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 h-[38px] text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 h-[38px] text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
           >
             <Upload size={14} /> Export CSV
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Specific Date Picker */}
       {filterMode === "specific" && (
-        <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
-          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-            <Calendar size={14} className="text-blue-600" /> Select Date:
+        <div className="pt-3 border-t border-border flex items-center gap-3">
+          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <Calendar size={14} className="text-foreground" /> Select Date:
           </label>
-          <input
+          <Input
             type="date"
             value={specificDate}
             onChange={(e) => setSpecificDate(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1.5 text-sm border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
           />
           {specificDate && (
-            <button
+            <Button
               onClick={onResetFilters}
               className="flex items-center gap-1 text-xs text-rose-600 hover:underline font-semibold"
             >
               <RotateCcw size={12} /> Clear Date
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {/* Date Range Pickers */}
       {filterMode === "range" && (
-        <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center gap-4">
+        <div className="pt-3 border-t border-border flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-              <Calendar size={14} className="text-blue-600" /> Start:
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+              <Calendar size={14} className="text-foreground" /> Start:
             </label>
-            <input
+            <Input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 text-sm border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">End:</label>
-            <input
+            <label className="text-xs font-semibold text-muted-foreground">End:</label>
+            <Input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 text-sm border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
           {(startDate || endDate) && (
-            <button
+            <Button
               onClick={onResetFilters}
               className="flex items-center gap-1 text-xs text-rose-600 hover:underline font-semibold"
             >
               <RotateCcw size={12} /> Clear Range
-            </button>
+            </Button>
           )}
         </div>
       )}

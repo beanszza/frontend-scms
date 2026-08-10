@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationFooterProps {
@@ -41,51 +42,51 @@ export default function PaginationFooter({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 text-xs font-medium text-gray-600 dark:text-gray-400">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border bg-muted/50/30 text-xs font-medium text-muted-foreground">
       <div>
-        Showing <span className="font-bold text-gray-900 dark:text-white">{startIndex + 1}</span> to{" "}
-        <span className="font-bold text-gray-900 dark:text-white">{Math.min(startIndex + itemsPerPage, totalItems)}</span> of{" "}
-        <span className="font-bold text-gray-900 dark:text-white">{totalItems}</span> entries
+        Showing <span className="font-bold text-foreground">{startIndex + 1}</span> to{" "}
+        <span className="font-bold text-foreground">{Math.min(startIndex + itemsPerPage, totalItems)}</span> of{" "}
+        <span className="font-bold text-foreground">{totalItems}</span> entries
       </div>
 
       <div className="flex items-center gap-1.5 flex-wrap justify-center">
-        <button
+        <Button
           onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage === 1}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft size={14} /> Previous
-        </button>
+        </Button>
 
         <div className="flex items-center gap-1">
           {getPageNumbers().map((p, idx) => (
             typeof p === "number" ? (
-              <button
+              <Button
                 key={idx}
                 onClick={() => onPageChange(p)}
                 className={`w-8 h-8 rounded-lg font-bold transition-colors ${
                   currentPage === p
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-card text-muted-foreground border border-border hover:bg-muted"
                 }`}
               >
                 {p}
-              </button>
+              </Button>
             ) : (
-              <span key={idx} className="w-6 text-center text-gray-400 font-bold select-none">
+              <span key={idx} className="w-6 text-center text-muted-foreground font-bold select-none">
                 ...
               </span>
             )
           ))}
         </div>
 
-        <button
+        <Button
           onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
           disabled={currentPage === totalPages}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Next <ChevronRight size={14} />
-        </button>
+        </Button>
       </div>
     </div>
   );

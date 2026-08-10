@@ -23,20 +23,20 @@ function CustomTooltip({
 }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-theme-md min-w-[140px]">
-        <p className="text-theme-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
+      <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-md min-w-[140px]">
+        <p className="text-xs font-bold text-muted-foreground mb-1">
           {label}
         </p>
         {payload.map((p, i) => (
           <div key={i} className="flex items-center justify-between gap-4">
-            <span className="flex items-center gap-1.5 text-theme-xs text-gray-600 dark:text-gray-300">
+            <span className="flex items-center gap-1.5 text-xs text-foreground">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{ background: p.color }}
               />
               {p.name}
             </span>
-            <span className="text-theme-xs font-bold text-gray-900 dark:text-white">
+            <span className="text-xs font-bold text-foreground">
               {p.name === "Order Value (₱K)" ? `₱${p.value}K` : p.value}
             </span>
           </div>
@@ -49,19 +49,19 @@ function CustomTooltip({
 
 export default function ProcurementTrendChart() {
   return (
-    <div className="bg-white dark:bg-gray-dark rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-theme-xs">
+    <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-theme-xl font-bold text-gray-800 dark:text-white/90">
+          <h3 className="text-xl font-bold text-foreground/90">
             Procurement Trend
           </h3>
-          <p className="text-theme-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             6-month purchasing activity overview
           </p>
         </div>
         <div className="flex gap-2">
-          <span className="px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 text-theme-xs font-medium">
+          <span className="px-2 py-0.5 rounded-full bg-muted text-foreground text-xs font-medium">
             Feb – Jul 2026
           </span>
         </div>
@@ -75,7 +75,7 @@ export default function ProcurementTrendChart() {
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="#e4e7ec"
-            className="dark:stroke-gray-700"
+           
           />
           <XAxis
             dataKey="month"
@@ -101,7 +101,7 @@ export default function ProcurementTrendChart() {
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span className="text-theme-xs text-gray-600 dark:text-gray-400">
+              <span className="text-xs text-foreground">
                 {value}
               </span>
             )}

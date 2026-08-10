@@ -195,31 +195,31 @@ export default function CreateTransferModal({
   if (mode === "view" && initialData) {
     return (
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50"
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
         onClick={onClose}
       >
         <div
-          className="relative w-full max-w-[500px] bg-white dark:bg-[#1a2232] rounded-2xl shadow-2xl overflow-hidden flex flex-col p-6 text-slate-900 dark:text-white"
+          className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-bold text-foreground">
               Transfer Details - {initialData.id}
             </h2>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-semibold leading-none"
+              className="text-muted-foreground hover:opacity-80 transition-opacity text-xl font-semibold leading-none"
             >
               ✕
             </button>
           </div>
 
           <div className="mb-6">
-            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-              initialData.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-              initialData.status === 'In Transit' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-              initialData.status === 'Cancelled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+            <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border ${
+              initialData.status === 'Completed' ? 'bg-foreground text-background border-foreground font-bold' :
+              initialData.status === 'In Transit' ? 'bg-foreground text-background border-foreground font-bold' :
+              initialData.status === 'Cancelled' ? 'bg-muted/30 text-muted-foreground border-border opacity-75' :
+              'bg-muted/70 text-foreground border-muted-foreground/30'
             }`}>
               {initialData.status}
             </span>
@@ -227,56 +227,56 @@ export default function CreateTransferModal({
 
           <div className="grid grid-cols-2 gap-y-5 gap-x-4 mb-6">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Product</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.product}</p>
+              <p className="text-xs text-muted-foreground mb-1">Product</p>
+              <p className="text-base font-bold text-foreground">{initialData.product}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Quantity</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.quantity}</p>
+              <p className="text-xs text-muted-foreground mb-1">Quantity</p>
+              <p className="text-base font-bold text-foreground">{initialData.quantity}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">From Location</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.from}</p>
+              <p className="text-xs text-muted-foreground mb-1">From Location</p>
+              <p className="text-base font-bold text-foreground">{initialData.from}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">To Location</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.to}</p>
+              <p className="text-xs text-muted-foreground mb-1">To Location</p>
+              <p className="text-base font-bold text-foreground">{initialData.to}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Transfer Date</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{initialData.date}</p>
+              <p className="text-xs text-muted-foreground mb-1">Transfer Date</p>
+              <p className="text-base font-bold text-foreground">{initialData.date}</p>
             </div>
           </div>
 
           {initialData.status === 'Completed' && (
-            <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-2xl p-4 mb-4">
+            <div className="bg-green-50/50 border border-green-200 rounded-2xl p-4 mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                <h3 className="text-sm font-bold text-green-700 dark:text-green-500">Transfer Completed - Received</h3>
+                <h3 className="text-sm font-bold text-green-700">Transfer Completed - Received</h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Delivery Status</p>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">Arrived & Verified</p>
+                  <p className="text-xs text-muted-foreground mb-1">Delivery Status</p>
+                  <p className="text-sm font-bold text-foreground">Arrived & Verified</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Destination</p>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{initialData.to}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Destination</p>
+                  <p className="text-sm font-bold text-foreground">{initialData.to}</p>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Quantity Verification</h3>
+          <div className="border border-border rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-foreground mb-3">Quantity Verification</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dispatched</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">{initialData.quantity}</p>
+                <p className="text-xs text-muted-foreground mb-1">Dispatched</p>
+                <p className="text-xl font-bold text-foreground">{initialData.quantity}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Received</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xs text-muted-foreground mb-1">Received</p>
+                <p className="text-xl font-bold text-foreground">
                   {initialData.status === 'Completed' ? initialData.quantity : '-'}
                 </p>
               </div>
@@ -289,23 +289,23 @@ export default function CreateTransferModal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xl bg-white dark:bg-[#1a2232] rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col p-6 text-slate-900 dark:text-white"
+        className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-gray-200 dark:border-slate-700 pb-3 mb-4">
+        <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-lg font-bold text-foreground">
               {mode === "create"
                 ? "Create Stock Transfer"
                 : mode === "edit"
                 ? "Edit Stock Transfer"
                 : "View Stock Transfer"}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {mode === "view"
                 ? "Details of stock transfer"
                 : "Transfer finished stock goods across enterprise branches"}
@@ -313,7 +313,7 @@ export default function CreateTransferModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold"
+            className="text-muted-foreground hover:opacity-80 transition-opacity text-xl font-bold"
           >
             ✕
           </button>
@@ -322,15 +322,15 @@ export default function CreateTransferModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Finished Product */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Finished Product <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Finished Product <span className="text-muted-foreground">*</span>
             </label>
             <select
               className={`w-full px-3 py-2 text-sm rounded-lg border ${
                 productError
                   ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  : "border-gray-300 dark:border-slate-600"
-              } bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${
                 isReadOnly ? "opacity-60 cursor-not-allowed" : ""
               }`}
               value={product}
@@ -345,11 +345,11 @@ export default function CreateTransferModal({
               }}
               disabled={isReadOnly || isLoadingProducts}
             >
-              <option value="" className="dark:bg-[#24303f]">
+              <option value="">
                 {isLoadingProducts ? "Loading products…" : "Select product..."}
               </option>
               {products.map((p) => (
-                <option key={p.productId} value={p.productId} className="dark:bg-[#24303f]">
+                <option key={p.productId} value={p.productId}>
                   {p.itemName}{p.variant ? `, ${p.variant}` : ""}
                 </option>
               ))}
@@ -359,19 +359,19 @@ export default function CreateTransferModal({
 
           {/* Source info (read-only) */}
           {product && (
-            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-600 dark:text-slate-400">From Location:</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
+                <span className="font-semibold text-foreground">From Location:</span>
+                <span className="font-medium text-foreground">
                   {selectedInventory ? sourceLocationName : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs mt-1">
-                <span className="font-semibold text-slate-600 dark:text-slate-400">Available Stock:</span>
+                <span className="font-semibold text-foreground">Available Stock:</span>
                 <span
                   className={`font-bold ${
                     availableStock !== null && availableStock > 0
-                      ? "text-green-600 dark:text-green-400"
+                      ? "text-green-600"
                       : "text-red-500"
                   }`}
                 >
@@ -383,15 +383,15 @@ export default function CreateTransferModal({
 
           {/* Destination */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              To Location <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              To Location <span className="text-muted-foreground">*</span>
             </label>
             <select
               className={`w-full px-3 py-2 text-sm rounded-lg border ${
                 toError
                   ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  : "border-gray-300 dark:border-slate-600"
-              } bg-white dark:bg-[#24303f] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${
                 isReadOnly ? "opacity-60 cursor-not-allowed" : ""
               }`}
               value={to}
@@ -401,11 +401,11 @@ export default function CreateTransferModal({
               }}
               disabled={isReadOnly}
             >
-              <option value="" className="dark:bg-[#24303f]">
+              <option value="">
                 Select destination...
               </option>
               {destinationLocations.map((loc) => (
-                <option key={loc.id} value={loc.id} className="dark:bg-[#24303f]">
+                <option key={loc.id} value={loc.id}>
                   {loc.name}
                 </option>
               ))}
@@ -416,8 +416,8 @@ export default function CreateTransferModal({
           {/* Quantity & Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Quantity <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Quantity <span className="text-muted-foreground">*</span>
               </label>
               <input
                 type="number"
@@ -427,8 +427,8 @@ export default function CreateTransferModal({
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${
                   quantityError
                     ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-gray-300 dark:border-slate-600"
-                } bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70`}
+                    : "border-border"
+                } bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-70`}
                 value={quantity}
                 disabled={isReadOnly}
                 onKeyDown={(e) => {
@@ -450,16 +450,16 @@ export default function CreateTransferModal({
               {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Transfer Date <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Transfer Date <span className="text-muted-foreground">*</span>
               </label>
               <input
                 type="date"
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${
                   dateError
                     ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-gray-300 dark:border-slate-600"
-                } bg-white dark:bg-[#24303f] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70`}
+                    : "border-border"
+                } bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-70`}
                 value={date}
                 disabled={isReadOnly}
                 onChange={(e) => {
@@ -479,17 +479,17 @@ export default function CreateTransferModal({
 
           {/* Backend error */}
           {submitError && (
-            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <p className="text-xs font-semibold text-red-600 dark:text-red-400">⚠ {submitError}</p>
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+              <p className="text-xs font-semibold text-red-600">⚠ {submitError}</p>
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-slate-700">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-border">
             {isReadOnly ? (
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity"
               >
                 Close
               </button>
@@ -498,7 +498,7 @@ export default function CreateTransferModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity"
                 >
                   Cancel
                 </button>
@@ -513,7 +513,7 @@ export default function CreateTransferModal({
                     !!dateError ||
                     (availableStock !== null && availableStock <= 0)
                   }
-                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-primary rounded-lg hover:opacity-80 transition-opacity shadow-sm shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {mode === "edit" ? "Save Changes" : "Create Transfer"}
                 </button>

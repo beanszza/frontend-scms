@@ -12,7 +12,7 @@ export default function DarkModeToggle({
   return (
     <button
       onClick={() => setDarkMode(!darkMode)}
-      className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-medium bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+      className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium bg-card hover:bg-muted transition"
     >
       {darkMode ? <Sun size={18} /> : <Moon size={18} />}
       {darkMode ? "Light" : "Dark"}

@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --radius: 0.65rem;
   --background: oklch(1 0 0);
@@ -61,69 +59,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --metric-positive: var(--success);
-  --metric-negative: oklch(0.62 0.18 45);
-  --metric-warning: var(--warning);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.627 0.194 149.214);
-  --success-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.769 0.188 70.08);
-  --warning-foreground: oklch(0.145 0 0);
-  --info: oklch(0.6 0.118 184.704);
-  --info-foreground: oklch(0.985 0 0);
-  /* Badge-specific pastel tokens — dark mode */
-  --badge-success: oklch(0.25 0.07 149);
-  --badge-success-foreground: oklch(0.82 0.10 149);
-  --badge-warning: oklch(0.28 0.07 70);
-  --badge-warning-foreground: oklch(0.88 0.10 70);
-  --badge-destructive: oklch(0.25 0.07 27);
-  --badge-destructive-foreground: oklch(0.82 0.12 27);
-  --badge-info: oklch(0.25 0.06 184);
-  --badge-info-foreground: oklch(0.82 0.09 184);
-  --badge-purple: oklch(0.26 0.07 300);
-  --badge-purple-foreground: oklch(0.85 0.10 300);
-  --badge-indigo: oklch(0.26 0.07 260);
-  --badge-indigo-foreground: oklch(0.85 0.10 260);
-  --badge-teal: oklch(0.25 0.06 170);
-  --badge-teal-foreground: oklch(0.82 0.09 170);
-  --badge-orange: oklch(0.27 0.07 45);
-  --badge-orange-foreground: oklch(0.85 0.12 45);
-  --badge-notification: oklch(0.985 0 0);
-  --badge-notification-foreground: oklch(0.145 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
   --metric-positive: var(--success);
   --metric-negative: oklch(0.62 0.18 45);
   --metric-warning: var(--warning);
@@ -213,17 +148,14 @@ body {
 @keyframes pageSlideIn {
   from {
     opacity: 0;
-    transform: translateX(12px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 
 @utility animate-page-in {
-  animation: pageSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  animation: pageSlideIn 0.2s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,6 +181,20 @@ body {
 }
 
 nav::-webkit-scrollbar { display: none; }
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--muted);
+    border-radius: 9999px;
+  }
+}
 
 @layer utilities {
 }
@@ -356,8 +302,23 @@ nav::-webkit-scrollbar { display: none; }
 }
 
 
+.custom-scrollbar::-webkit-scrollbar,
+.fc .fc-view-harness::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track,
+.fc .fc-view-harness::-webkit-scrollbar-track {
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.fc .fc-view-harness::-webkit-scrollbar-thumb {
+  background-color: var(--muted);
+  border-radius: 9999px;
+}
+
 .fc .fc-view-harness {
-  @apply max-w-full overflow-x-auto custom-scrollbar;
+  @apply max-w-full overflow-x-auto;
 }
 .fc-dayGridMonth-view.fc-view.fc-daygrid {
   @apply min-w-[718px];
@@ -397,7 +358,7 @@ nav::-webkit-scrollbar { display: none; }
   @apply hidden;
 }
 .fc-addEventButton-button {
-  @apply !rounded-lg !border-0 !bg-brand-500 !px-4 !py-2.5 !text-sm !font-medium hover:!bg-brand-600 focus:!shadow-none;
+  @apply !rounded-lg !border-0 !bg-primary !px-4 !py-2.5 !text-sm !font-medium hover:!bg-primary/90 focus:!shadow-none;
 }
 .fc-toolbar-title {
   @apply !text-lg !font-medium text-gray-800 dark:text-white/90;
@@ -460,25 +421,25 @@ nav::-webkit-scrollbar { display: none; }
   @apply !ml-3;
 }
 .event-fc-color.fc-bg-success {
-  @apply border-success-50 bg-success-50;
+  @apply border-green-100 bg-green-50;
 }
 .event-fc-color.fc-bg-danger {
-  @apply border-error-50 bg-error-50;
+  @apply border-red-100 bg-red-50;
 }
 .event-fc-color.fc-bg-primary {
-  @apply border-brand-50 bg-brand-50;
+  @apply border-blue-100 bg-blue-50;
 }
 .event-fc-color.fc-bg-warning {
-  @apply border-orange-50 bg-orange-50;
+  @apply border-orange-100 bg-orange-50;
 }
 .event-fc-color.fc-bg-success .fc-daygrid-event-dot {
-  @apply bg-success-500;
+  @apply bg-green-500;
 }
 .event-fc-color.fc-bg-danger .fc-daygrid-event-dot {
-  @apply bg-error-500;
+  @apply bg-red-500;
 }
 .event-fc-color.fc-bg-primary .fc-daygrid-event-dot {
-  @apply bg-brand-500;
+  @apply bg-primary;
 }
 .event-fc-color.fc-bg-warning .fc-daygrid-event-dot {
   @apply bg-orange-500;
@@ -545,7 +506,7 @@ nav::-webkit-scrollbar { display: none; }
 .carouselTwo .swiper-button-prev,
 .carouselFour .swiper-button-next,
 .carouselFour .swiper-button-prev {
-  @apply h-10 w-10 rounded-full border-[0.5px] border-white/10 bg-white/90 !text-gray-700 shadow-slider-navigation backdrop-blur-[10px];
+  @apply h-10 w-10 rounded-full border-[0.5px] border-white/10 bg-white/90 !text-gray-700 shadow-md backdrop-blur-[10px];
 }
 
 .carouselTwo .swiper-button-prev,
@@ -560,12 +521,12 @@ nav::-webkit-scrollbar { display: none; }
 
 .carouselThree .swiper-pagination,
 .carouselFour .swiper-pagination {
-  @apply !bottom-3 !left-1/2 inline-flex !w-auto -translate-x-1/2 items-center gap-1.5 rounded-[40px] border-[0.5px] border-white/10 bg-white/60 px-2 py-1.5 shadow-slider-navigation backdrop-blur-[10px] sm:!bottom-5;
+  @apply !bottom-3 !left-1/2 inline-flex !w-auto -translate-x-1/2 items-center gap-1.5 rounded-[40px] border-[0.5px] border-white/10 bg-white/60 px-2 py-1.5 shadow-md backdrop-blur-[10px] sm:!bottom-5;
 }
 
 .carouselThree .swiper-pagination-bullet,
 .carouselFour .swiper-pagination-bullet {
-  @apply !m-0 h-2.5 w-2.5 bg-white opacity-100 shadow-theme-xs duration-200 ease-in-out;
+  @apply !m-0 h-2.5 w-2.5 bg-white opacity-100 shadow-sm duration-200 ease-in-out;
 }
 
 .carouselThree .swiper-pagination-bullet-active,
@@ -577,13 +538,13 @@ nav::-webkit-scrollbar { display: none; }
   @apply !bg-gray-50 dark:!bg-gray-900;
 }
 .jvectormap-region.jvectormap-element {
-  @apply !fill-gray-300 hover:!fill-brand-500 dark:!fill-gray-700 dark:hover:!fill-brand-500;
+  @apply !fill-gray-300 hover:!fill-primary dark:!fill-gray-700 dark:hover:!fill-primary;
 }
 .jvectormap-marker.jvectormap-element {
   @apply !stroke-gray-200 dark:!stroke-gray-800;
 }
 .jvectormap-tip {
-  @apply !bg-brand-500 !border-none !px-2 !py-1;
+  @apply !bg-primary !border-none !px-2 !py-1;
 }
 .jvectormap-zoomin,
 .jvectormap-zoomout {
@@ -591,17 +552,17 @@ nav::-webkit-scrollbar { display: none; }
 }
 
 .form-check-input:checked ~ span {
-  @apply border-[6px] border-brand-500 bg-brand-500 dark:border-brand-500;
+  @apply border-[6px] border-primary bg-primary dark:border-primary;
 }
 
 .taskCheckbox:checked ~ .box span {
-  @apply opacity-100 bg-brand-500;
+  @apply opacity-100 bg-primary;
 }
 .taskCheckbox:checked ~ p {
   @apply text-gray-400 line-through;
 }
 .taskCheckbox:checked ~ .box {
-  @apply border-brand-500 bg-brand-500 dark:border-brand-500;
+  @apply border-primary bg-primary dark:border-primary;
 }
 
 .task {

@@ -45,28 +45,28 @@ export default function ProductionReportView({
     <div className="space-y-6 w-full max-w-full">
       {/* Section A: Production Status Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">Total Batches</span>
-          <span className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{summary.totalBatches}</span>
+        <div className="p-4 rounded-xl border border-border bg-card shadow-sm flex flex-col justify-center items-center">
+          <span className="text-sm font-medium text-muted-foreground text-center">Total Batches</span>
+          <span className="text-2xl font-bold text-foreground mt-1">{summary.totalBatches}</span>
         </div>
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">Passed QA</span>
+        <div className="p-4 rounded-xl border border-border bg-card shadow-sm flex flex-col justify-center items-center">
+          <span className="text-sm font-medium text-muted-foreground text-center">Passed QA</span>
           <span className="text-2xl font-bold text-emerald-500 mt-1">{summary.passedQaBatches}</span>
         </div>
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">Rejected</span>
+        <div className="p-4 rounded-xl border border-border bg-card shadow-sm flex flex-col justify-center items-center">
+          <span className="text-sm font-medium text-muted-foreground text-center">Rejected</span>
           <span className="text-2xl font-bold text-rose-500 mt-1">{summary.rejectedBatches}</span>
         </div>
       </div>
 
       {/* Section B: Kitchen Yield Efficiency Table */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm w-full">
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">Main Table: Kitchen Yield Efficiency & Batch Quality Audit</h3>
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm w-full">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-base font-bold text-foreground">Main Table: Kitchen Yield Efficiency & Batch Quality Audit</h3>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 text-[11px] uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-background/50 text-[11px] uppercase text-muted-foreground border-b border-border">
               <tr>
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center w-10">#</th>
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold">Recipe Name</th>
@@ -78,25 +78,25 @@ export default function ProductionReportView({
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold">Failure Reason</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-border">
               {yieldEfficiency.length > 0 ? (
                 yieldEfficiency.map((row: any, i: number) => (
-                  <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                  <tr key={i} className="hover:bg-muted/50 transition-colors">
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-muted-foreground">
                       {startIdx + i + 1}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 font-bold text-gray-900 dark:text-white">{row.recipeName}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300 font-medium">{row.totalBatchesCooked}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300 font-medium">{row.totalOutputQty}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-center font-bold text-emerald-600 dark:text-emerald-400">{row.yieldSuccessRate}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-rose-600 dark:text-rose-400 font-medium">{row.totalRejectedQty}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.ingredientWasteQty}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-gray-600 dark:text-gray-400 text-xs">{row.commonFailureReason}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground">{row.recipeName}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground font-medium">{row.totalBatchesCooked}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground font-medium">{row.totalOutputQty}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center font-bold text-emerald-600">{row.yieldSuccessRate}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-rose-600 font-medium">{row.totalRejectedQty}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.ingredientWasteQty}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground text-xs">{row.commonFailureReason}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
                     No production audits found.
                   </td>
                 </tr>

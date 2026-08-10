@@ -52,17 +52,17 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
   if (active && payload && payload.length) {
     const item = payload[0];
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-theme-md">
+      <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-md">
         <div className="flex items-center gap-2">
           <span
             className="w-2.5 h-2.5 rounded-full"
             style={{ background: item.payload.color }}
           />
-          <span className="text-theme-xs font-semibold text-gray-700 dark:text-gray-300">
+          <span className="text-xs font-semibold text-foreground">
             {item.name}
           </span>
         </div>
-        <p className="text-theme-sm font-bold text-gray-900 dark:text-white mt-0.5">
+        <p className="text-sm font-bold text-foreground mt-0.5">
           {item.value.toLocaleString()} SKUs
         </p>
       </div>
@@ -75,18 +75,18 @@ export default function InventoryDistributionChart() {
   const total = inventoryDistribution.reduce((s, d) => s + d.value, 0);
 
   return (
-    <div className="bg-white dark:bg-gray-dark rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-theme-xs">
+    <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-theme-xl font-bold text-gray-800 dark:text-white/90">
+          <h3 className="text-xl font-bold text-foreground/90">
             Inventory Distribution
           </h3>
-          <p className="text-theme-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {total.toLocaleString()} total SKUs · by category
           </p>
         </div>
-        <span className="px-2.5 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 text-theme-xs font-semibold">
+        <span className="px-2.5 py-1 rounded-full bg-muted text-foreground text-xs font-semibold">
           Live
         </span>
       </div>
@@ -114,7 +114,7 @@ export default function InventoryDistributionChart() {
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span className="text-theme-xs text-gray-600 dark:text-gray-400">
+              <span className="text-xs text-foreground">
                 {value}
               </span>
             )}

@@ -26,7 +26,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
       <Header />
 
       {/* Main Canvas */}
-      <main className="flex-1 w-full bg-background relative overflow-hidden animate-in fade-in duration-300">
+      <main className="flex-1 w-full bg-background relative">
         {children}
       </main>
     </div>

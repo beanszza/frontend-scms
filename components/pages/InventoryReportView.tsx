@@ -37,15 +37,15 @@ export default function InventoryReportView({
   return (
     <div className="space-y-6 w-full max-w-full">
       {/* Section A */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm w-full">
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm w-full">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-base font-bold text-foreground">
             Section A: Historical Inventory Audit Table
           </h3>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 text-[11px] uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-background/50 text-[11px] uppercase text-muted-foreground border-b border-border">
               <tr>
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center w-10">#</th>
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold">Period</th>
@@ -58,20 +58,20 @@ export default function InventoryReportView({
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center">Velocity %</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-border">
               {historical.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                <tr key={i} className="hover:bg-muted/50 transition-colors">
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-muted-foreground">
                     {startIdx + i + 1}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 font-bold text-gray-900 dark:text-white">{row.period}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.totalActiveItems}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.startingStockQty}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.endingStockQty}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{row.stockInQty}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-indigo-600 dark:text-indigo-400 font-semibold">{row.stockOutQty}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-rose-600 dark:text-rose-400">{row.wastageQty}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300 font-bold">{row.inventoryVelocity}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground">{row.period}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.totalActiveItems}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.startingStockQty}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.endingStockQty}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-emerald-600 font-semibold">{row.stockInQty}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-indigo-600 font-semibold">{row.stockOutQty}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-rose-600">{row.wastageQty}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground font-bold">{row.inventoryVelocity}</td>
                 </tr>
               ))}
             </tbody>
@@ -85,15 +85,15 @@ export default function InventoryReportView({
       </div>
 
       {/* Section B */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm w-full">
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm w-full">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-base font-bold text-foreground">
             Section B: Inventory Demand Forecast Card
           </h3>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 text-[11px] uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-background/50 text-[11px] uppercase text-muted-foreground border-b border-border">
               <tr>
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center w-10">#</th>
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold">Item Name</th>
@@ -105,19 +105,19 @@ export default function InventoryReportView({
                 <th className="whitespace-nowrap px-3 py-2.5 font-semibold text-center">Reorder Advice Qty</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-border">
               {forecast.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                <tr key={i} className="hover:bg-muted/50 transition-colors">
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-muted-foreground">
                     {startIdx + i + 1}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 font-bold text-gray-900 dark:text-white">{row.itemName}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300 font-medium">{row.currentStock}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-indigo-600 dark:text-indigo-400 font-medium">{row.avgDailyUsage}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.daysLeft}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{row.runoutDate}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground">{row.itemName}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground font-medium">{row.currentStock}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-indigo-600 font-medium">{row.avgDailyUsage}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.daysLeft}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">{row.runoutDate}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">{row.urgencyBadge}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{row.recommendedReorderQty}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-emerald-600 font-bold">{row.recommendedReorderQty}</td>
                 </tr>
               ))}
             </tbody>

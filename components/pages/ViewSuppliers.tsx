@@ -1,10 +1,20 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createPortal } from "react-dom";
 import { Search, Plus, Pencil, X, Trash2, MoreHorizontal, Eye, CheckCircle, XCircle, FileText } from "lucide-react";
 import Link from "next/link";
-import api from "../lib/api";
+import api from "@/lib/api";
 import Pagination from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
 
@@ -82,13 +92,13 @@ function Modal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-      <div className={`w-full ${size} max-h-[95vh] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] flex flex-col overflow-hidden`}>
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex-shrink-0">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-red-500"><X size={22} /></button>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border pb-3 mb-4 flex-shrink-0">
+          <h2 className="text-xl font-bold text-foreground">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-red-500"><X size={22} /></button>
         </div>
-        <div className="p-6 overflow-y-auto">{children}</div>
+        <div className="overflow-y-auto">{children}</div>
       </div>
     </div>,
     document.body
@@ -852,49 +862,51 @@ export default function ResourcesSuppliersPage() {
 
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] dark:bg-[#101828] p-4 sm:p-6 transition-colors">
+    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Resources & Suppliers</h1>
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Manage your foundation data - Supply, Suppliers, and Recipes</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Resources & Suppliers</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Manage your foundation data - Supply, Suppliers, and Recipes</p>
       </div>
 
-      <div className="mb-8 flex gap-6 overflow-x-auto border-b border-gray-200 dark:border-gray-700">
-        <button onClick={() => setActiveTab("supply")} className={`pb-4 text-sm font-semibold whitespace-nowrap ${activeTab === "supply" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 dark:text-gray-400"}`}>Supply List</button>
-        <button onClick={() => setActiveTab("supplier")} className={`pb-4 text-sm font-semibold whitespace-nowrap ${activeTab === "supplier" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 dark:text-gray-400"}`}>Supplier List</button>
-        <button onClick={() => setActiveTab("recipe")} className={`pb-4 text-sm font-semibold whitespace-nowrap ${activeTab === "recipe" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 dark:text-gray-400"}`}>Recipe / BOM</button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "supply" | "supplier" | "recipe")} className="mb-8">
+        <TabsList>
+          <TabsTrigger value="supply">Supply List</TabsTrigger>
+          <TabsTrigger value="supplier">Supplier List</TabsTrigger>
+          <TabsTrigger value="recipe">Recipe / BOM</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {activeTab === "supply" && (
         <div>
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Supply List</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Raw materials and tools inventory</p>
+              <h2 className="text-2xl font-bold text-foreground">Supply List</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Raw materials and tools inventory</p>
             </div>
             <div className="flex items-center gap-3">
               {isAuthorizedForReports && (
-                <Link href="/resources-suppliers/logs?type=Supply" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <Link href="/resources-suppliers/logs?type=Supply" className="flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
                   <FileText size={18} /> Transaction History
                 </Link>
               )}
-              <button onClick={openCreateSupply} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add New Supply</button>
+              <Button onClick={openCreateSupply} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><Plus size={18} /> Add New Supply</Button>
             </div>
           </div>
 
           {/* Summary Cards */}
           <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Total Items</p>
-              <h2 className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{baseSupplies.length}</h2>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">Total Items</p>
+              <h2 className="mt-2 text-3xl font-bold text-foreground">{baseSupplies.length}</h2>
             </div>
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Raw Materials</p>
-              <h2 className="mt-2 text-3xl font-bold text-blue-600">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">Raw Materials</p>
+              <h2 className="mt-2 text-3xl font-bold text-foreground">
                 {baseSupplies.filter(i => i.categoryName === "Raw Materials").length}
               </h2>
             </div>
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-5">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Tools & Supplies</p>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">Tools & Supplies</p>
               <h2 className="mt-2 text-3xl font-bold text-green-600">
                 {baseSupplies.filter(i => i.categoryName === "Tools and Supplies" || i.categoryName === "Tools & Supplies").length}
               </h2>
@@ -902,97 +914,88 @@ export default function ResourcesSuppliersPage() {
           </div>
 
           {/* Filters and Search */}
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
-                <button
-                  onClick={() => { setSupplyFilter("All"); setSupplyPage(1); }}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "All" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setSupplyFilter("Raw Materials"); setSupplyPage(1); }}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Raw Materials" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-                >
-                  Raw Materials
-                </button>
-                <button
-                  onClick={() => { setSupplyFilter("Tools and Supplies"); setSupplyPage(1); }}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplyFilter === "Tools and Supplies" || supplyFilter as any === "Tools & Supplies" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-                >
-                  Tools & Supplies
-                </button>
+          <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
+            <div className="flex items-center justify-between gap-sm px-md py-sm bg-muted/20">
+              <div className="flex items-center gap-sm flex-1">
+                <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Input
+                  type="text"
+                  placeholder="Search supplies..."
+                  value={supplySearchQuery}
+                  onChange={(e) => { setSupplySearchQuery(e.target.value); setSupplyPage(1); }}
+                  className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1"
+                />
               </div>
-
-              <select
-                value={supplyStatusFilter}
-                onChange={(e) => { setSupplyStatusFilter(e.target.value as any); setSupplyPage(1); }}
-                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] px-4 text-sm font-semibold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer h-[42px]"
-              >
-                <option value="All">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div className="relative w-full lg:max-w-md">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                placeholder="Search supplies..."
-                value={supplySearchQuery}
-                onChange={(e) => { setSupplySearchQuery(e.target.value); setSupplyPage(1); }}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
-              />
+              <div className="flex items-center gap-sm shrink-0">
+                <Select value={supplyFilter} onValueChange={(val) => { setSupplyFilter(val as any); setSupplyPage(1); }}>
+                  <SelectTrigger className="w-[150px] h-8 text-body-sm bg-transparent border-input">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Categories</SelectItem>
+                    <SelectItem value="Raw Materials">Raw Materials</SelectItem>
+                    <SelectItem value="Tools and Supplies">Tools & Supplies</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={supplyStatusFilter} onValueChange={(val) => { setSupplyStatusFilter(val as any); setSupplyPage(1); }}>
+                  <SelectTrigger className="w-[130px] h-8 text-body-sm bg-transparent border-input">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Status</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
             <table className="w-full min-w-[700px]">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
-                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+              <thead className="border-b border-border">
+                <tr className="text-left text-xs uppercase text-muted-foreground">
                   <th className="px-5 py-4">Item No.</th><th className="px-5 py-4">Name</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Min Stock</th><th className="px-5 py-4">Max Stock</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedSupplies.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                       No Results Found
                     </td>
                   </tr>
                 ) : (
                   paginatedSupplies.map((item, index) => (
-                    <tr key={item.itemId} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{index + 1 + (supplyPage - 1) * 10}</td>
-                      <td className="px-5 py-5 text-sm font-medium text-gray-900 dark:text-white">{item.itemName}</td>
-                      <td className="px-5 py-5"><span className="rounded-lg bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{item.categoryName}</span></td>
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.uomName}</td>
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.minStockLevel}</td>
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{item.maxStockLevel}</td>
+                    <tr key={item.itemId} className="border-b border-border">
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{index + 1 + (supplyPage - 1) * 10}</td>
+                      <td className="px-5 py-5 text-sm font-medium text-foreground">{item.itemName}</td>
+                      <td className="px-5 py-5"><span className="rounded-lg bg-blue-100 px-3 py-1 text-xs font-semibold text-foreground">{item.categoryName}</span></td>
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{item.uomName}</td>
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{item.minStockLevel}</td>
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{item.maxStockLevel}</td>
                       <td className="px-5 py-5">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.isActive !== false ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300" : "bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300"}`}>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.isActive !== false ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                           {item.isActive !== false ? "Active" : "Inactive"}
                         </span>
                       </td>
                       <td className="px-5 py-5 text-center relative">
-                        <button 
+                        <Button 
                           onClick={(e) => { e.stopPropagation(); setActiveDropdownSupplyId(activeDropdownSupplyId === item.itemId ? null : item.itemId); }} 
-                          className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                          className="p-1 text-muted-foreground hover:text-foreground"
                         >
                           <MoreHorizontal size={18} />
-                        </button>
+                        </Button>
                         {activeDropdownSupplyId === item.itemId && (
-                          <div className="absolute right-[40px] top-[20px] z-[9999] w-32 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5 focus:outline-none text-left">
-                            <button
+                          <div className="absolute right-[40px] top-[20px] z-[200] w-32 rounded-xl border border-border bg-card shadow-xl py-1.5 focus:outline-none text-left">
+                            <Button
                               onClick={() => {
                                 openEditSupply(item);
                                 setActiveDropdownSupplyId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                             >
                               Edit Supply
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </td>
@@ -1016,83 +1019,74 @@ export default function ResourcesSuppliersPage() {
         <div>
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Supplier Management</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Partner directories and statuses</p>
+              <h2 className="text-2xl font-bold text-foreground">Supplier Management</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Partner directories and statuses</p>
             </div>
             <div className="flex items-center gap-3">
               {isAuthorizedForReports && (
-                <Link href="/reports?tab=supplier" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <Link href="/reports?tab=supplier" className="flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
                   <FileText size={18} /> Reports
                 </Link>
               )}
-              <button onClick={openCreateSupplier} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> Add Supplier</button>
+              <Button onClick={openCreateSupplier} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><Plus size={18} /> Add Supplier</Button>
             </div>
           </div>
 
           {/* Filters and Search */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
-              <button
-                onClick={() => { setSupplierFilter("All"); setSupplierPage(1); }}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplierFilter === "All" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => { setSupplierFilter("Active"); setSupplierPage(1); }}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplierFilter === "Active" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => { setSupplierFilter("Inactive"); setSupplierPage(1); }}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${supplierFilter === "Inactive" ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-              >
-                Inactive
-              </button>
-            </div>
-
-            <div className="relative w-full lg:max-w-md">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                placeholder="Search suppliers..."
-                value={supplierSearchQuery}
-                onChange={(e) => { setSupplierSearchQuery(e.target.value); setSupplierPage(1); }}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
-              />
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search suppliers..."
+                  value={supplierSearchQuery}
+                  onChange={(e) => { setSupplierSearchQuery(e.target.value); setSupplierPage(1); }}
+                  className="w-full rounded-lg border border-border bg-transparent pl-9 pr-3 text-sm h-9"
+                />
+              </div>
+              <Select value={supplierFilter} onValueChange={(val) => { setSupplierFilter(val as any); setSupplierPage(1); }}>
+                <SelectTrigger className="w-[140px] h-9 rounded-lg text-sm shrink-0">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
             <table className="w-full min-w-[700px]">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
-                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+              <thead className="border-b border-border">
+                <tr className="text-left text-xs uppercase text-muted-foreground">
                   <th className="px-5 py-4">Supplier Name</th><th className="px-5 py-4">Contact Person</th><th className="px-5 py-4">Email</th><th className="px-5 py-4">Phone</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSuppliers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                       No Results Found
                     </td>
                   </tr>
                 ) : (
                   filteredSuppliers.map(supplier => (
-                    <tr key={supplier.supplierId} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="px-5 py-5 text-sm font-semibold text-gray-900 dark:text-white">{supplier.companyName}</td>
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{supplier.contactPerson}</td>
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{supplier.email}</td>
-                      <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{supplier.phone}</td>
+                    <tr key={supplier.supplierId} className="border-b border-border">
+                      <td className="px-5 py-5 text-sm font-semibold text-foreground">{supplier.companyName}</td>
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{supplier.contactPerson}</td>
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{supplier.email}</td>
+                      <td className="px-5 py-5 text-sm text-muted-foreground">{supplier.phone}</td>
                       <td className="px-5 py-5">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${supplier.isActive ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300" : "bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300"}`}>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${supplier.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                           {supplier.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
                       <td className="px-5 py-5 text-center relative">
                         <div className="relative inline-block text-center">
-                          <button
+                          <Button
                             onClick={(e) => {
                               e.stopPropagation();
                               if (activeDropdownSupplierId === supplier.supplierId) {
@@ -1107,15 +1101,15 @@ export default function ResourcesSuppliersPage() {
                                 setActiveDropdownSupplierId(supplier.supplierId);
                               }
                             }}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none"
                           >
                             <MoreHorizontal size={18} />
-                          </button>
+                          </Button>
 
                           {activeDropdownSupplierId === supplier.supplierId && dropdownPosition && createPortal(
                             <>
                               <div
-                                className="fixed inset-0 z-[9998] cursor-default"
+                                className="fixed inset-0 z-[199] cursor-default"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveDropdownSupplierId(null);
@@ -1123,28 +1117,28 @@ export default function ResourcesSuppliersPage() {
                               />
                               <div
                                 style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
-                                className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
+                                className="absolute w-44 rounded-xl border border-border bg-card shadow-xl z-[200] py-1.5 focus:outline-none text-left"
                               >
-                                <button
+                                <Button
                                   onClick={() => {
                                     openEditSupplier(supplier);
                                     setActiveDropdownSupplierId(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                                 >
-                                  <Pencil size={14} className="text-blue-600 dark:text-blue-400" />
+                                  <Pencil size={14} className="text-foreground" />
                                   Edit Supplier
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   onClick={() => {
                                     setViewSupplier(supplier);
                                     setActiveDropdownSupplierId(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                                 >
-                                  <Eye size={14} className="text-blue-600 dark:text-blue-400" />
+                                  <Eye size={14} className="text-foreground" />
                                   View Details
-                                </button>
+                                </Button>
                               </div>
                             </>,
                             document.body
@@ -1171,64 +1165,64 @@ export default function ResourcesSuppliersPage() {
         <div>
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recipe Management</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Production recipes and ingredients breakdown</p>
+              <h2 className="text-2xl font-bold text-foreground">Recipe Management</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Production recipes and ingredients breakdown</p>
             </div>
             <div className="flex items-center gap-3">
               {isAuthorizedForReports && (
-                <Link href="/resources-suppliers/logs?type=Recipe" className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-black dark:text-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <Link href="/resources-suppliers/logs?type=Recipe" className="flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
                   <FileText size={18} /> Transaction History
                 </Link>
               )}
-              <button onClick={openCreateRecipe} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"><Plus size={18} /> New Recipe</button>
+              <Button onClick={openCreateRecipe} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><Plus size={18} /> New Recipe</Button>
             </div>
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-6 shadow-sm">
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Recipes</p>
-              <h3 className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{recipeData.length}</h3>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm font-semibold text-muted-foreground">Total Recipes</p>
+              <h3 className="mt-2 text-3xl font-bold text-foreground">{recipeData.length}</h3>
             </div>
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-6 shadow-sm">
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Active Recipes</p>
-              <h3 className="mt-2 text-3xl font-bold text-blue-600">{recipeData.filter(r => r.isActive).length}</h3>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm font-semibold text-muted-foreground">Active Recipes</p>
+              <h3 className="mt-2 text-3xl font-bold text-foreground">{recipeData.filter(r => r.isActive).length}</h3>
             </div>
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] p-6 shadow-sm">
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Inactive Recipes</p>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm font-semibold text-muted-foreground">Inactive Recipes</p>
               <h3 className="mt-2 text-3xl font-bold text-red-500">{recipeData.filter(r => !r.isActive).length}</h3>
             </div>
           </div>
 
           {/* Filters and Search */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-2 p-1 bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 rounded-xl overflow-x-auto w-max">
-              {(["All", "Active", "Inactive"] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setRecipeFilter(tab)}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${recipeFilter === tab ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative w-full lg:max-w-md">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input
-                type="text"
-                placeholder="Search by Product Name or No...."
-                value={recipeSearchQuery}
-                onChange={(e) => setRecipeSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939] py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]"
-              />
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by Product Name or No...."
+                  value={recipeSearchQuery}
+                  onChange={(e) => setRecipeSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-transparent pl-9 pr-3 text-sm h-9"
+                />
+              </div>
+              <Select value={recipeFilter} onValueChange={(val) => setRecipeFilter(val as any)}>
+                <SelectTrigger className="w-[140px] h-9 rounded-lg text-sm shrink-0">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D2939]">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
             <table className="w-full min-w-[700px]">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
-                <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+              <thead className="border-b border-border">
+                <tr className="text-left text-xs uppercase text-muted-foreground">
                   <th className="px-5 py-4">Recipe No.</th>
                   <th className="px-5 py-4">Recipe Name</th>
                   <th className="px-5 py-4">Finished Product</th>
@@ -1241,7 +1235,7 @@ export default function ResourcesSuppliersPage() {
               <tbody>
                 {filteredRecipes.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                       No Results Found
                     </td>
                   </tr>
@@ -1249,37 +1243,37 @@ export default function ResourcesSuppliersPage() {
                   filteredRecipes.map((recipe, index) => {
                     const fp = finishedProductData.find(p => p.productId === recipe.productId);
                     return (
-                      <tr key={recipe.recipeId} className="border-b border-gray-100 dark:border-gray-800">
-                        <td className="px-5 py-5 text-sm font-semibold text-gray-900 dark:text-white">{index + 1}</td>
-                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.recipeName}</td>
-                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">
+                      <tr key={recipe.recipeId} className="border-b border-border">
+                        <td className="px-5 py-5 text-sm font-semibold text-foreground">{index + 1}</td>
+                        <td className="px-5 py-5 text-sm text-muted-foreground">{recipe.recipeName}</td>
+                        <td className="px-5 py-5 text-sm text-muted-foreground">
                           {fp ? `${fp.itemName}${fp.variant ? `, ${fp.variant}` : ""}` : `Product #${recipe.productId}`}
                         </td>
-                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.outputQuantity}</td>
-                        <td className="px-5 py-5 text-sm text-gray-700 dark:text-gray-300">{recipe.ingredients?.length || 0} items</td>
+                        <td className="px-5 py-5 text-sm text-muted-foreground">{recipe.outputQuantity}</td>
+                        <td className="px-5 py-5 text-sm text-muted-foreground">{recipe.ingredients?.length || 0} items</td>
                         <td className="px-5 py-5">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${recipe.isActive ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'}`}>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${recipe.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {recipe.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
                         <td className="px-5 py-5 text-center relative">
-                          <button 
+                          <Button 
                             onClick={(e) => { e.stopPropagation(); setActiveDropdownRecipeId(activeDropdownRecipeId === recipe.recipeId ? null : recipe.recipeId); }} 
-                            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            className="p-1 text-muted-foreground hover:text-foreground"
                           >
                             <MoreHorizontal size={18} />
-                          </button>
+                          </Button>
                           {activeDropdownRecipeId === recipe.recipeId && (
-                            <div className="absolute right-[40px] top-[20px] z-[9999] w-32 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5 focus:outline-none text-left">
-                              <button
+                            <div className="absolute right-[40px] top-[20px] z-[200] w-32 rounded-xl border border-border bg-card shadow-xl py-1.5 focus:outline-none text-left">
+                              <Button
                                 onClick={() => {
                                   openEditRecipe(recipe);
                                   setActiveDropdownRecipeId(null);
                                 }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                               >
                                 Edit Recipe
-                              </button>
+                              </Button>
                             </div>
                           )}
                         </td>
@@ -1297,27 +1291,27 @@ export default function ResourcesSuppliersPage() {
       <Modal open={openSupplyModal} title={editingSupplyId ? "Edit Supply" : "Add New Supply"} onClose={() => setOpenSupplyModal(false)} size="max-w-lg">
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Item Name</label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Item Name</label>
+            <Input
               type="text"
               value={itemName}
               onChange={handleItemNameChange}
               placeholder="e.g. White Sugar"
-              className={`w-full rounded-xl border ${itemNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${itemNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring`}
             />
             {itemNameError && <p className="mt-1 text-xs text-red-500">{itemNameError}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Category</label>
-              <select value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Category</label>
+              <select value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))} className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring">
                 <option value={1}>Raw Materials</option>
                 <option value={2}>Tools & Supplies</option>
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Unit of Measurement</label>
-              <select value={uomId} onChange={(e) => setUomId(Number(e.target.value))} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Unit of Measurement</label>
+              <select value={uomId} onChange={(e) => setUomId(Number(e.target.value))} className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring">
                 <option value={1}>kg</option>
                 <option value={2}>pcs</option>
                 <option value={3}>liters</option>
@@ -1331,38 +1325,38 @@ export default function ResourcesSuppliersPage() {
             </div>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Minimum Stock Level</label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Minimum Stock Level</label>
+            <Input
               type="number"
               min={0}
               value={minStock}
               onChange={handleMinStockChange}
               onKeyDown={handleNumberKeyDown}
               placeholder="e.g. 10"
-              className={`w-full rounded-xl border ${minStockError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${minStockError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring`}
             />
             {minStockError && <p className="mt-1 text-xs text-red-500">{minStockError}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Maximum Stock Level</label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Maximum Stock Level</label>
+            <Input
               type="number"
               min={0}
               value={maxStock}
               onChange={handleMaxStockChange}
               onKeyDown={handleNumberKeyDown}
               placeholder="e.g. 100"
-              className={`w-full rounded-xl border ${maxStockError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${maxStockError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring`}
             />
             {maxStockError && <p className="mt-1 text-xs text-red-500">{maxStockError}</p>}
           </div>
           {editingSupplyId !== null && (
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Status</label>
               <select
                 value={supplyActive ? "true" : "false"}
                 onChange={(e) => setSupplyActive(e.target.value === "true")}
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-border bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
@@ -1370,8 +1364,8 @@ export default function ResourcesSuppliersPage() {
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setOpenSupplyModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-            <button onClick={handleAddSupply} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">Save</button>
+            <Button onClick={() => setOpenSupplyModal(false)} className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">Cancel</Button>
+            <Button onClick={handleAddSupply} className="rounded-xl ">Save</Button>
           </div>
         </div>
       </Modal>
@@ -1379,79 +1373,79 @@ export default function ResourcesSuppliersPage() {
       <Modal open={openSupplierModal} title={editingSupplierId ? "Edit Supplier" : "Add New Supplier"} onClose={() => setOpenSupplierModal(false)} size="max-w-xl">
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Supplier Name <span className="text-red-500">*</span></label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Supplier Name <span className="text-muted-foreground">*</span></label>
+            <Input
               type="text"
               value={companyName}
               onChange={handleCompanyNameChange}
               placeholder="e.g. Acme Supplies Ltd."
-              className={`w-full rounded-xl border ${companyNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${companyNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring`}
             />
             {companyNameError && <p className="mt-1 text-xs text-red-500">{companyNameError}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Contact Person <span className="text-red-500">*</span></label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Contact Person <span className="text-muted-foreground">*</span></label>
+            <Input
               type="text"
               value={contactPerson}
               onChange={handleContactPersonChange}
               placeholder="e.g. John Doe"
-              className={`w-full rounded-xl border ${contactPersonError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${contactPersonError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring`}
             />
             {contactPersonError && <p className="mt-1 text-xs text-red-500">{contactPersonError}</p>}
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Email <span className="text-red-500">*</span></label>
-              <input
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Email <span className="text-muted-foreground">*</span></label>
+              <Input
                 type="email"
                 value={email}
                 onChange={handleEmailChange}
                 placeholder="e.g. contact@acme.com"
-                className={`w-full rounded-xl border ${emailError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`w-full rounded-xl border ${emailError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring`}
               />
               {emailError && <p className="mt-1 text-xs text-red-500">{emailError}</p>}
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Phone No. <span className="text-red-500">*</span></label>
-              <input
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Phone No. <span className="text-muted-foreground">*</span></label>
+              <Input
                 type="text"
                 value={phone}
                 onChange={handlePhoneChange}
                 placeholder="e.g. +639XXXXXXXXX"
-                className={`w-full rounded-xl border ${phoneError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`w-full rounded-xl border ${phoneError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring`}
               />
               {phoneError && <p className="mt-1 text-xs text-red-500">{phoneError}</p>}
             </div>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Address <span className="text-red-500">*</span></label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Address <span className="text-muted-foreground">*</span></label>
+            <Input
               type="text"
               value={address}
               onChange={handleAddressChange}
               placeholder="e.g. 123 Main St, Manila"
-              className={`w-full rounded-xl border ${addressError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${addressError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring`}
             />
             {addressError && <p className="mt-1 text-xs text-red-500">{addressError}</p>}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Website (Optional)</label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Website (Optional)</label>
+            <Input
               type="text"
               value={website}
               onChange={handleWebsiteChange}
               placeholder="e.g. www.acme.com"
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-border bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
           {editingSupplierId !== null && (
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status <span className="text-red-500">*</span></label>
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Status <span className="text-muted-foreground">*</span></label>
               <select
                 value={supplierActive ? "true" : "false"}
                 onChange={(e) => setSupplierActive(e.target.value === "true")}
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-border bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
@@ -1461,9 +1455,9 @@ export default function ResourcesSuppliersPage() {
           <div className="flex justify-end gap-3 pt-2">
 
             {editingSupplierId === null && (
-              <button onClick={() => setOpenSupplierModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+              <Button onClick={() => setOpenSupplierModal(false)} className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">Cancel</Button>
             )}
-            <button onClick={handleAddSupplier} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">Save Supplier</button>
+            <Button onClick={handleAddSupplier} className="rounded-xl ">Save Supplier</Button>
           </div>
         </div>
       </Modal>
@@ -1471,20 +1465,20 @@ export default function ResourcesSuppliersPage() {
       <Modal open={openRecipeModal} title={editingRecipeId ? "Edit Recipe" : "Create New Recipe"} onClose={() => setOpenRecipeModal(false)} size="max-w-3xl">
         <div className="space-y-6">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Recipe Name <span className="text-red-500">*</span></label>
-            <input
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Recipe Name <span className="text-muted-foreground">*</span></label>
+            <Input
               type="text"
               value={recipeName}
               onChange={handleRecipeNameChange}
               placeholder="e.g. Classic Burger Patty"
-              className={`w-full rounded-xl border ${recipeNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-xl border ${recipeNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring`}
             />
             {recipeNameError && <p className="mt-1 text-xs text-red-500">{recipeNameError}</p>}
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Finished Product</label>
-              <select value={productId} onChange={(e) => setProductId(Number(e.target.value))} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Finished Product</label>
+              <select value={productId} onChange={(e) => setProductId(Number(e.target.value))} className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring">
                 {finishedProductData.length === 0 ? (
                   <option value={0} disabled>No Finished Products Available</option>
                 ) : (
@@ -1497,59 +1491,59 @@ export default function ResourcesSuppliersPage() {
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Target Yield</label>
-              <input 
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Target Yield</label>
+              <Input 
                 type="number" 
                 min={0}
                 value={outputQuantity} 
                 onChange={handleOutputQuantityChange} 
                 onKeyDown={handleNumberKeyDown}
                 placeholder="e.g. 100" 
-                className={`w-full rounded-xl border ${recipeYieldError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`} 
+                className={`w-full rounded-xl border ${recipeYieldError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring`} 
               />
               {recipeYieldError && <p className="mt-1 text-xs text-red-500">{recipeYieldError}</p>}
             </div>
           </div>
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <div><h3 className="text-lg font-bold text-gray-900 dark:text-white">Ingredients List</h3></div>
+              <div><h3 className="text-lg font-bold text-foreground">Ingredients List</h3></div>
             </div>
             <div className="space-y-5">
               {ingredients.map((ingredient, index) => (
-                <div key={ingredient.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-gray-50/50 dark:bg-gray-800/20">
+                <div key={ingredient.id} className="rounded-2xl border border-border p-5 bg-muted/50/20">
                   <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10 text-sm font-bold text-blue-700 dark:text-blue-300">{index + 1}</div><p className="text-sm font-semibold text-gray-900 dark:text-white">Ingredient Item</p></div>
-                    {ingredients.length > 1 && (<button onClick={() => removeIngredient(ingredient.id)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={18} /></button>)}
+                    <div className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-foreground">{index + 1}</div><p className="text-sm font-semibold text-foreground">Ingredient Item</p></div>
+                    {ingredients.length > 1 && (<Button onClick={() => removeIngredient(ingredient.id)} className="text-muted-foreground hover:text-foreground transition-colors"><Trash2 size={18} /></Button>)}
                   </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
                     <div className="md:col-span-6">
-                      <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Item</label>
+                      <label className="mb-2 block text-sm font-semibold text-muted-foreground">Item</label>
                       <select value={ingredient.itemId} onChange={(e) => {
                         const newId = Number(e.target.value);
                         const supply = baseSupplies.find(s => s.itemId === newId);
                         setIngredients(ingredients.map(ing => ing.id === ingredient.id ? { ...ing, itemId: newId, uomId: supply ? supply.uomId : ing.uomId } : ing));
-                      }} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                      }} className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring">
                         {baseSupplies.map(supply => (
                           <option key={supply.itemId} value={supply.itemId}>{supply.itemName}</option>
                         ))}
                       </select>
                     </div>
                     <div className="md:col-span-3">
-                      <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Quantity</label>
-                      <input 
+                      <label className="mb-2 block text-sm font-semibold text-muted-foreground">Quantity</label>
+                      <Input 
                         type="number" 
                         min={0}
                         placeholder="e.g. 500" 
                         value={ingredient.quantity} 
                         onChange={(e) => handleIngredientQuantityChange(ingredient.id, e.target.value)} 
                         onKeyDown={handleNumberKeyDown}
-                        className={`w-full rounded-xl border ${ingredientsErrors[ingredient.id] ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700'} bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500`} 
+                        className={`w-full rounded-xl border ${ingredientsErrors[ingredient.id] ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring`} 
                       />
                       {ingredientsErrors[ingredient.id] && <p className="mt-1 text-xs text-red-500">{ingredientsErrors[ingredient.id]}</p>}
                     </div>
                     <div className="md:col-span-3">
-                      <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Unit</label>
-                      <select value={ingredient.uomId} disabled className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-3 text-sm text-gray-500 dark:text-gray-400 outline-none cursor-not-allowed">
+                      <label className="mb-2 block text-sm font-semibold text-muted-foreground">Unit</label>
+                      <select value={ingredient.uomId} disabled className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground outline-none cursor-not-allowed">
                         <option value={1}>kg</option>
                         <option value={2}>pcs</option>
                         <option value={3}>liters</option>
@@ -1565,19 +1559,19 @@ export default function ResourcesSuppliersPage() {
                 </div>
               ))}
             </div>
-            <button onClick={addIngredient} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-blue-500 transition-colors"><Plus size={18} /> Add Ingredient</button>
+            <Button onClick={addIngredient} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm font-semibold text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"><Plus size={18} /> Add Ingredient</Button>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Notes</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Additional preparation notes..." rows={4} className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+            <label className="mb-2 block text-sm font-semibold text-muted-foreground">Notes</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Additional preparation notes..." rows={4} className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring" />
           </div>
           {editingRecipeId !== null && (
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
+              <label className="mb-2 block text-sm font-semibold text-muted-foreground">Status</label>
               <select
                 value={recipeActive ? "true" : "false"}
                 onChange={(e) => setRecipeActive(e.target.value === "true")}
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#101828] text-gray-900 dark:text-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-border bg-card text-foreground px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
@@ -1587,11 +1581,11 @@ export default function ResourcesSuppliersPage() {
           <div className="flex justify-end gap-3 pt-2">
 
             {editingRecipeId === null && (
-              <button onClick={() => setOpenRecipeModal(false)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+              <Button onClick={() => setOpenRecipeModal(false)} className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">Cancel</Button>
             )}
-            <button onClick={handleAddRecipe} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
+            <Button onClick={handleAddRecipe} className="rounded-xl ">
               {editingRecipeId !== null ? "Save Recipe" : "Create Recipe"}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -1600,38 +1594,38 @@ export default function ResourcesSuppliersPage() {
         {viewSupplier && (
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${viewSupplier.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${viewSupplier.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {viewSupplier.isActive ? 'Active Supplier' : 'Inactive Supplier'}
               </span>
             </div>
             
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
-              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Supplier Name</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.companyName}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Contact Person</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.contactPerson}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Email</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.email}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Phone Number</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.phone}</p></div>
-              <div className="col-span-2"><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Address</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{viewSupplier.address || "N/A"}</p></div>
+              <div><p className="text-xs text-muted-foreground mb-0.5">Supplier Name</p><p className="text-sm font-semibold text-foreground">{viewSupplier.companyName}</p></div>
+              <div><p className="text-xs text-muted-foreground mb-0.5">Contact Person</p><p className="text-sm font-semibold text-foreground">{viewSupplier.contactPerson}</p></div>
+              <div><p className="text-xs text-muted-foreground mb-0.5">Email</p><p className="text-sm font-semibold text-foreground">{viewSupplier.email}</p></div>
+              <div><p className="text-xs text-muted-foreground mb-0.5">Phone Number</p><p className="text-sm font-semibold text-foreground">{viewSupplier.phone}</p></div>
+              <div className="col-span-2"><p className="text-xs text-muted-foreground mb-0.5">Address</p><p className="text-sm font-semibold text-foreground">{viewSupplier.address || "N/A"}</p></div>
               {viewSupplier.website && (
-                <div className="col-span-2"><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Website</p><a href={viewSupplier.website.startsWith('http') ? viewSupplier.website : `https://${viewSupplier.website}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">{viewSupplier.website}</a></div>
+                <div className="col-span-2"><p className="text-xs text-muted-foreground mb-0.5">Website</p><a href={viewSupplier.website.startsWith('http') ? viewSupplier.website : `https://${viewSupplier.website}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-foreground hover:underline">{viewSupplier.website}</a></div>
               )}
             </div>
 
-            <div className={`border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4 ${viewSupplier.isActive ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800'}`}>
+            <div className={`border border-border rounded-xl p-4 mb-4 ${viewSupplier.isActive ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
               <div className="flex items-center gap-3">
                 {viewSupplier.isActive ? (
                   <>
-                    <CheckCircle className="text-green-500 shrink-0" size={24} />
+                    <CheckCircle className="text-foreground shrink-0" size={24} />
                     <div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">Active and Verified</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">This supplier is currently active and eligible for new purchase orders.</p>
+                      <p className="text-sm font-bold text-foreground">Active and Verified</p>
+                      <p className="text-xs text-muted-foreground">This supplier is currently active and eligible for new purchase orders.</p>
                     </div>
                   </>
                 ) : (
                   <>
-                    <XCircle className="text-red-500 shrink-0" size={24} />
+                    <XCircle className="text-muted-foreground shrink-0" size={24} />
                     <div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">Inactive</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">This supplier is inactive and cannot be used for new purchase orders.</p>
+                      <p className="text-sm font-bold text-foreground">Inactive</p>
+                      <p className="text-xs text-muted-foreground">This supplier is inactive and cannot be used for new purchase orders.</p>
                     </div>
                   </>
                 )}
@@ -1639,9 +1633,9 @@ export default function ResourcesSuppliersPage() {
             </div>
             
             <div className="flex justify-end pt-2">
-              <button onClick={() => setViewSupplier(null)} className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <Button onClick={() => setViewSupplier(null)} className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1649,22 +1643,22 @@ export default function ResourcesSuppliersPage() {
 
       <Modal open={showDeleteConfirm} title="Confirm Delete" onClose={() => setShowDeleteConfirm(false)} size="max-w-md">
         <div className="space-y-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+          <p className="text-sm text-muted-foreground font-medium">
             Are you sure you want to permanently delete this {deleteTarget?.type}? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-3 pt-2">
-            <button 
+            <Button 
               onClick={() => setShowDeleteConfirm(false)} 
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
             >
               Cancel
-            </button>
-            <button 
+            </Button>
+            <Button 
               onClick={handleConfirmDelete} 
               className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
             >
               Delete Permanently
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

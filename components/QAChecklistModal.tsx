@@ -60,18 +60,18 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
   if (!open) return null;
 
   const selectClass =
-    "w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white";
+    "w-full rounded-xl border border-border bg-card py-2.5 px-3 text-sm text-foreground";
 
   const canSubmit = decision !== null && (decision === "approve" || rejectionReason.trim() !== "") && !submitting && !notesError && !rejectionError;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card border border-border shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">
             QA Checklist – Batch {batchId}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-muted-foreground hover:opacity-80 transition-opacity">
             <X size={20} />
           </button>
         </div>
@@ -85,7 +85,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
             { label: "Appearance", value: appearance, setter: setAppearance },
           ].map((field) => (
             <div key={field.label}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {field.label}
               </label>
               <select
@@ -100,7 +100,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
           ))}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Notes
             </label>
             <textarea
@@ -116,21 +116,21 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
                 }
               }}
               placeholder="QA notes..."
-              className={`w-full rounded-xl border ${notesError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
+              className={`w-full rounded-xl border ${notesError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card py-2.5 px-3 text-sm text-foreground`}
             />
             {notesError && <p className="mt-1 text-xs text-red-500">{notesError}</p>}
           </div>
 
           {/* ---------- Decision Section ---------- */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Final Decision
             </label>
             <div className="flex gap-3 mb-3">
               <button
                 onClick={() => setDecision("approve")}
                 className={`flex-1 py-2.5 rounded-xl border font-medium text-sm flex items-center justify-center gap-2
-                  ${decision === "approve" ? "bg-green-50 border-green-500 text-green-700 dark:bg-green-500/10 dark:text-green-300" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"}
+                  ${decision === "approve" ? "bg-primary border-primary text-primary-foreground" : "border-border text-foreground"}
                 `}
               >
                 <CheckCircle size={16} /> Approve
@@ -138,7 +138,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
               <button
                 onClick={() => setDecision("reject")}
                 className={`flex-1 py-2.5 rounded-xl border font-medium text-sm flex items-center justify-center gap-2
-                  ${decision === "reject" ? "bg-red-50 border-red-500 text-red-700 dark:bg-red-500/10 dark:text-red-300" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"}
+                  ${decision === "reject" ? "bg-muted border-border text-foreground font-semibold" : "border-border text-foreground"}
                 `}
               >
                 <XCircle size={16} /> Reject
@@ -147,8 +147,8 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
 
             {decision === "reject" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Rejection Reason <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Rejection Reason <span className="text-muted-foreground">*</span></label>
                 <textarea
                   rows={3}
                   value={rejectionReason}
@@ -162,7 +162,7 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
                     }
                   }}
                   placeholder="Explain why this batch is rejected..."
-                  className={`w-full rounded-xl border ${rejectionError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
+                  className={`w-full rounded-xl border ${rejectionError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card py-2.5 px-3 text-sm text-foreground`}
                 />
                 {rejectionError && <p className="mt-1 text-xs text-red-500">{rejectionError}</p>}
               </div>
@@ -171,14 +171,14 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity">Cancel</button>
           </div>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm rounded-xl bg-primary text-primary-foreground hover:opacity-80 transition-opacity disabled:opacity-50 flex items-center gap-2"
           >
             {submitting && <Loader2 size={16} className="animate-spin" />}
             Submit QA & Decision

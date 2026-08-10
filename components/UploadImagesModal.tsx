@@ -129,16 +129,16 @@ export default function UploadImagesModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card border border-border shadow-xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">
             Batch {batchId} – Update & Upload
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted-foreground hover:opacity-80 transition-opacity"
           >
             <X size={20} />
           </button>
@@ -147,14 +147,14 @@ export default function UploadImagesModal({
         {/* Stage Update Section */}
         {showStageSection && (
           <div className="px-6 pt-5 pb-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Production Stage
             </label>
             <div className="flex gap-3">
               <select
                 value={selectedStage}
                 onChange={(e) => setSelectedStage(e.target.value)}
-                className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white"
+                className="flex-1 rounded-xl border border-border bg-card py-2.5 px-3 text-sm text-foreground"
               >
                 <option value="">Select next stage</option>
                 {stages.map((s) => (
@@ -169,15 +169,15 @@ export default function UploadImagesModal({
 
         {/* Image Upload Section */}
         <div className="p-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Upload Production Images
           </label>
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-8 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 cursor-pointer hover:bg-muted/50"
           >
-            <Upload size={28} className="text-gray-400 mb-2" />
-            <p className="text-sm text-gray-500">
+            <Upload size={28} className="text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">
               Click to add JPG, PNG, or JPEG files
             </p>
           </div>
@@ -195,7 +195,7 @@ export default function UploadImagesModal({
               {previews.map((src, idx) => (
                 <div
                   key={idx}
-                  className="relative group rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700"
+                  className="relative group rounded-lg overflow-hidden border border-border"
                 >
                   <img
                     src={src}
@@ -204,9 +204,9 @@ export default function UploadImagesModal({
                   />
                   <button
                     onClick={() => removeFile(idx)}
-                    className="absolute top-1 right-1 p-1 bg-white dark:bg-gray-800 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 p-1 bg-card rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <Trash2 size={14} className="text-red-500" />
+                    <Trash2 size={14} className="text-muted-foreground" />
                   </button>
                 </div>
               ))}
@@ -215,14 +215,14 @@ export default function UploadImagesModal({
         </div>
 
         {/* Footer – single Submit button */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+             <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity">Cancel</button>
           </div>
-          <button
+           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm rounded-xl bg-primary text-primary-foreground hover:opacity-80 transition-opacity disabled:opacity-50 flex items-center gap-2"
           >
             {updatingStage || uploading ? (
               <Loader2 size={16} className="animate-spin" />

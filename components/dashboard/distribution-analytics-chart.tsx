@@ -31,22 +31,22 @@ function CustomTooltip({
 }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-[#1D2939] border border-gray-100 dark:border-gray-800 rounded-xl px-3.5 py-3 shadow-lg min-w-[200px] transition-all">
-        <p className="text-theme-xs font-bold text-gray-700 dark:text-gray-200 mb-2.5 flex items-center gap-1.5">
-          <span className="w-1.5 h-4 rounded-sm bg-blue-600 dark:bg-blue-500 inline-block animate-pulse" />
+      <div className="bg-card border border-border rounded-xl px-3.5 py-3 shadow-lg min-w-[200px] transition-all">
+        <p className="text-xs font-bold text-foreground mb-2.5 flex items-center gap-1.5">
+          <span className="w-1.5 h-4 rounded-sm bg-blue-600 inline-block animate-pulse" />
           {label}
         </p>
         <div className="space-y-1.5">
           {payload.map((p, i) => (
             <div key={i} className="flex items-center justify-between gap-6">
-              <span className="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span
-                  className="w-2.5 h-2.5 rounded-full border border-white dark:border-slate-800 shadow-sm"
+                  className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
                   style={{ background: p.color }}
                 />
                 {p.name}
               </span>
-              <span className="text-theme-xs font-bold text-gray-900 dark:text-white">
+              <span className="text-xs font-bold text-foreground">
                 {p.value.toLocaleString()}
               </span>
             </div>
@@ -82,65 +82,65 @@ export default function DistributionAnalyticsChart() {
   const topBranch = sorted[0];
 
   return (
-    <div className="bg-white dark:bg-gray-dark rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-theme-xs transition-all duration-300 hover:shadow-theme-md">
+    <div className="bg-card rounded-2xl border border-border p-5 shadow-sm transition-all duration-300 hover:shadow-md">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-theme-xl font-bold text-gray-800 dark:text-white/90 tracking-tight">
+          <h3 className="text-xl font-bold text-foreground/90 tracking-tight">
             Distribution Analytics
           </h3>
-          <p className="text-theme-xs text-gray-400 dark:text-gray-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Batches received &amp; transfer count · ranked by volume
           </p>
         </div>
-        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-theme-xs font-semibold border border-blue-100/50 dark:border-blue-500/20 shadow-sm">
+        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-foreground text-xs font-semibold border border-border/50 shadow-sm">
           <MapPin className="w-3.5 h-3.5" />
           All Branches
         </span>
       </div>
 
       {/* Top receiver callout */}
-      <div className="relative overflow-hidden mb-6 mt-4 p-5 rounded-2xl border border-amber-200/60 dark:border-amber-500/20 bg-gradient-to-r from-amber-50/85 to-orange-50/40 dark:from-amber-950/15 dark:to-orange-950/5 shadow-sm">
+      <div className="relative overflow-hidden mb-6 mt-4 p-5 rounded-2xl border border-amber-200/60 bg-gradient-to-r from-amber-50/85 to-orange-50/40 shadow-sm">
         {/* Decorative glows */}
-        <div className="absolute -right-12 -top-12 w-32 h-32 rounded-full bg-amber-400/10 dark:bg-amber-400/5 blur-2xl pointer-events-none" />
-        <div className="absolute -left-12 -bottom-12 w-32 h-32 rounded-full bg-orange-400/10 dark:bg-orange-400/5 blur-2xl pointer-events-none" />
+        <div className="absolute -right-12 -top-12 w-32 h-32 rounded-full bg-amber-400/10 blur-2xl pointer-events-none" />
+        <div className="absolute -left-12 -bottom-12 w-32 h-32 rounded-full bg-orange-400/10 blur-2xl pointer-events-none" />
         
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div>
-              <span className="inline-block text-[10px] font-extrabold tracking-wider uppercase text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 rounded">
+              <span className="inline-block text-[10px] font-extrabold tracking-wider uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
                 Top Receiver
               </span>
-              <h4 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mt-1.5">
+              <h4 className="text-base sm:text-lg font-bold text-foreground mt-1.5">
                 {topBranch.branch}
               </h4>
             </div>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex-1 sm:flex-none flex items-center gap-3 bg-white/80 dark:bg-slate-900/40 border border-gray-200/50 dark:border-slate-800/80 p-2.5 rounded-xl min-w-[110px] shadow-sm">
-              <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <div className="flex-1 sm:flex-none flex items-center gap-3 bg-card/80/40 border border-border/50/80 p-2.5 rounded-xl min-w-[110px] shadow-sm">
+              <div className="p-1.5 rounded-lg bg-muted text-foreground">
                 <Package className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                   Batches
                 </p>
-                <p className="text-sm font-extrabold text-gray-900 dark:text-white">
+                <p className="text-sm font-extrabold text-foreground">
                   {topBranch.batchesReceived}
                 </p>
               </div>
             </div>
 
-            <div className="flex-1 sm:flex-none flex items-center gap-3 bg-white/80 dark:bg-slate-900/40 border border-gray-200/50 dark:border-slate-800/80 p-2.5 rounded-xl min-w-[110px] shadow-sm">
-              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="flex-1 sm:flex-none flex items-center gap-3 bg-card/80/40 border border-border/50/80 p-2.5 rounded-xl min-w-[110px] shadow-sm">
+              <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
                 <ArrowRightLeft className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                   Transfers
                 </p>
-                <p className="text-sm font-extrabold text-gray-900 dark:text-white">
+                <p className="text-sm font-extrabold text-foreground">
                   {topBranch.transfers}
                 </p>
               </div>
@@ -201,7 +201,7 @@ export default function DistributionAnalyticsChart() {
               iconSize={8}
               wrapperStyle={{ paddingTop: "12px" }}
               formatter={(value) => (
-                <span className="text-theme-xs font-medium text-gray-600 dark:text-gray-400 pl-1">
+                <span className="text-xs font-medium text-foreground pl-1">
                   {value}
                 </span>
               )}

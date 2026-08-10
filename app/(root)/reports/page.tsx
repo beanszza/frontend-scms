@@ -1,4 +1,4 @@
-import ViewReports from "@/pages/ViewReports";
+import ViewReports from "@/components/pages/ViewReports";
 
 export default async function ReportsPage({
   searchParams,

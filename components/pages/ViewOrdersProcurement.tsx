@@ -1,13 +1,22 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { History, Search, Filter, Plus, Calendar, Edit3, Eye, CheckCircle, PackageOpen, FileText, ChevronDown, Check, X, ShieldCheck, MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, BarChart3, ArrowLeft } from "lucide-react";
-import api from "../lib/api";
-import Pagination from "../components/Pagination";
-import ConfirmModal from "../components/ConfirmModal";
-import { getImageUrl } from "../lib/getImageUrl";
+import { History, Search, Filter, Plus, Calendar, Edit3, Eye, CheckCircle, PackageOpen, FileText, ChevronDown, Check, X, ShieldCheck, MoreHorizontal, ClipboardCheck, Pencil, Truck, XCircle, BarChart3, ArrowLeft, Upload, Loader2 } from "lucide-react";
+import api from "@/lib/api";
+import Pagination from "@/components/Pagination";
+import ConfirmModal from "@/components/ConfirmModal";
+import { getImageUrl } from "@/lib/getImageUrl";
 import { useAuth } from "@/context/AuthContext";
 
 type OrderStatus = "Pending" | "Arrived" | "Completed" | "Cancelled" | "Rejected";
@@ -192,11 +201,11 @@ interface NewOrderModalContentProps {
 
 function StatusBadge({ status }: { status: OrderStatus }) {
   const styles: Record<OrderStatus, string> = {
-    Pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400",
-    Arrived: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    Completed: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-    Cancelled: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
-    Rejected: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
+    Pending: "bg-yellow-100 text-yellow-700",
+    Arrived: "bg-blue-100 text-foreground",
+    Completed: "bg-green-100 text-green-700",
+    Cancelled: "bg-red-100 text-red-700",
+    Rejected: "bg-rose-100 text-rose-700",
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${styles[status]}`}>
@@ -207,9 +216,9 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 
 function InspectionStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    Passed: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-    Failed: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
-    Pending: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+    Passed: "bg-green-100 text-green-700",
+    Failed: "bg-red-100 text-red-700",
+    Pending: "bg-muted text-foreground",
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${styles[status] || styles.Pending}`}>
@@ -229,8 +238,8 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 overflow-y-auto bg-black/50" onClick={onClose}>
-      <div className="relative w-full max-w-lg my-8 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-[calc(100vh-4rem)]" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[200] flex items-start justify-center p-4 overflow-y-auto bg-black/50" onClick={onClose}>
+      <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col my-8" onClick={e => e.stopPropagation()}>
         <div className="overflow-y-auto p-6 custom-scrollbar">
           {children}
         </div>
@@ -566,14 +575,14 @@ function NewOrderModalContent({
   };
   return (
     <Modal onClose={onClose}>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{isEdit ? "Edit Order" : "Create New Order"}</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Purchase Raw Materials, Tools, or Supplies</p>
+      <h2 className="text-xl font-bold text-foreground mb-1">{isEdit ? "Edit Order" : "Create New Order"}</h2>
+      <p className="text-sm text-muted-foreground mb-6">Purchase Raw Materials, Tools, or Supplies</p>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Supplier <span className="text-muted-foreground">*</span></label>
           <select
             disabled={isSaving}
-            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${supplierError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${supplierError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50`}
             value={supplierId}
             onChange={e => {
               const val = e.target.value;
@@ -590,10 +599,10 @@ function NewOrderModalContent({
           {supplierError && <p className="mt-1 text-xs text-red-500">{supplierError}</p>}
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Item <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Item <span className="text-muted-foreground">*</span></label>
           <select
             disabled={isSaving}
-            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${itemError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+            className={`w-full px-3 py-2.5 text-sm rounded-lg border ${itemError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50`}
             value={itemId}
             onChange={e => {
               const val = e.target.value;
@@ -611,11 +620,11 @@ function NewOrderModalContent({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Quantity <span className="text-red-500">*</span></label>
-            <input
+            <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Quantity <span className="text-muted-foreground">*</span></label>
+            <Input
               disabled={isSaving}
               type="number"
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${quantityError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50`}
               placeholder="e.g., 100"
               value={quantity}
               onKeyDown={handleNumberKeyDown}
@@ -644,11 +653,11 @@ function NewOrderModalContent({
             {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Expected Arrival (ETA) <span className="text-red-500">*</span></label>
-            <input
+            <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Expected Arrival (ETA) <span className="text-muted-foreground">*</span></label>
+            <Input
               disabled={isSaving}
               type="date"
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${etaError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border ${etaError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50`}
               value={eta}
               onChange={e => {
                 const val = e.target.value;
@@ -668,19 +677,19 @@ function NewOrderModalContent({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Type <span className="text-red-500">*</span></label>
-          <select disabled={isSaving} className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
+          <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Payment Type <span className="text-muted-foreground">*</span></label>
+          <select disabled={isSaving} className="w-full px-3 py-2.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50" value={payment} onChange={e => setPayment(e.target.value as PaymentType)}>
             <option value="Payable">Payable</option>
             <option value="Paid">Paid</option>
           </select>
         </div>
         {(!isEdit || !proofImageUrl) && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+            <label className="block text-sm font-semibold text-muted-foreground mb-1.5">
               Receipt / Proof of Transaction {!isEdit && " *"}
             </label>
-            <div className={`border-2 border-dashed ${receiptError ? 'border-red-500 bg-red-50/10 dark:bg-red-950/10' : 'border-gray-300 dark:border-gray-600'} rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden`}>
-              <input
+            <div className={`border-2 border-dashed ${receiptError ? 'border-red-500 bg-red-50/10' : 'border-border'} rounded-xl p-6 text-center hover:bg-muted transition-colors relative overflow-hidden`}>
+              <Input
                 type="file"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 accept=".jpg,.jpeg,.png,.pdf"
@@ -700,11 +709,11 @@ function NewOrderModalContent({
                 }}
               />
               <div className="flex flex-col items-center pointer-events-none">
-                <svg className={`w-8 h-8 ${receiptError ? 'text-red-400' : 'text-gray-400'} mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                <span className={`text-sm font-medium ${receiptError ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                <Upload className={`w-8 h-8 ${receiptError ? 'text-red-400' : 'text-muted-foreground'} mb-2`} />
+                <span className={`text-sm font-medium ${receiptError ? 'text-red-500' : 'text-foreground'}`}>
                   {receiptFile ? receiptFile.name : "Upload Order Receipt or Purchase Order"}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG, PDF (max 5MB)</span>
+                <span className="text-xs text-muted-foreground mt-1">JPG, PNG, PDF (max 5MB)</span>
               </div>
             </div>
             {receiptError && <p className="mt-1.5 text-xs text-red-500">{receiptError}</p>}
@@ -712,45 +721,45 @@ function NewOrderModalContent({
         )}
         {proofImageUrl && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Receipt / Proof of Transaction</label>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Receipt / Proof of Transaction</label>
+            <div className="p-3 bg-muted rounded-xl border border-border">
               {proofImageUrl.toLowerCase().endsWith('.pdf') ? (
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <ClipboardCheck size={18} />
                     <a href={getImageUrl(proofImageUrl)} target="_blank" rel="noreferrer" className="hover:underline">
                       View Uploaded PDF Receipt
                     </a>
                   </div>
                   {isEdit && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setProofImageUrl && setProofImageUrl("")}
-                      className="px-2.5 py-1 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg transition-colors"
+                      className="px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-muted border border-border rounded-lg transition-colors"
                     >
                       Remove
-                    </button>
+                    </Button>
                   )}
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Current uploaded receipt:</p>
+                    <p className="text-xs font-semibold text-muted-foreground">Current uploaded receipt:</p>
                     {isEdit && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setProofImageUrl && setProofImageUrl("")}
-                        className="px-2.5 py-1 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg transition-colors"
+                        className="px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-muted border border-border rounded-lg transition-colors"
                       >
                         Remove
-                      </button>
+                      </Button>
                     )}
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={getImageUrl(proofImageUrl)}
                     alt="Receipt Proof"
-                    className="max-h-36 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white"
+                    className="max-h-36 rounded-lg object-contain border border-border bg-card"
                   />
                 </div>
               )}
@@ -759,24 +768,21 @@ function NewOrderModalContent({
         )}
       </div>
       <div className="flex justify-between items-center mt-6">
-        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+        <div className="text-xs text-foreground font-medium animate-pulse">
           {isSaving && uploadStatus}
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose} disabled={isSaving} className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">Cancel</button>
-          <button
+          <Button onClick={onClose} disabled={isSaving} className="px-5 py-2.5 text-sm font-semibold text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50">Cancel</Button>
+          <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {isSaving && (
-              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <Loader2 className="animate-spin h-4 w-4 text-white" />
             )}
             {isSaving ? "Saving..." : (isEdit ? "Save Changes" : "Create Order")}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -788,64 +794,64 @@ function OrderDetailsModal({ order, onClose }: { order: Order; onClose: () => vo
     <Modal onClose={onClose}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Order Details - {order.id}</h2>
+          <h2 className="text-xl font-bold text-foreground">Order Details - {order.id}</h2>
           <div className="mt-2"><StatusBadge status={order.status} /></div>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold leading-none">✕</button>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl font-bold leading-none">✕</button>
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
-        <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Item</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.item}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Supplier</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.supplier}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Quantity Ordered</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.quantity}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Order Date</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.orderDate}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Expected Arrival</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.eta}</p></div>
-        <div><p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Payment Type</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.payment}</p></div>
+        <div><p className="text-xs text-muted-foreground mb-0.5">Item</p><p className="text-sm font-semibold text-foreground">{order.item}</p></div>
+        <div><p className="text-xs text-muted-foreground mb-0.5">Supplier</p><p className="text-sm font-semibold text-foreground">{order.supplier}</p></div>
+        <div><p className="text-xs text-muted-foreground mb-0.5">Quantity Ordered</p><p className="text-sm font-semibold text-foreground">{order.quantity}</p></div>
+        <div><p className="text-xs text-muted-foreground mb-0.5">Order Date</p><p className="text-sm font-semibold text-foreground">{order.orderDate}</p></div>
+        <div><p className="text-xs text-muted-foreground mb-0.5">Expected Arrival</p><p className="text-sm font-semibold text-foreground">{order.eta}</p></div>
+        <div><p className="text-xs text-muted-foreground mb-0.5">Payment Type</p><p className="text-sm font-semibold text-foreground">{order.payment}</p></div>
       </div>
       {order.status === "Completed" && (
         <>
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-600 dark:bg-green-400"></span>
-              <span className="text-sm font-bold text-green-700 dark:text-green-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-green-600"></span>
+              <span className="text-sm font-bold text-green-700">
                 Order Completed - QA Approved
               </span>
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">Arrived</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.arrivalDate}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">QA Inspected</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.qaInspected}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">QA Status</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.qaStatus}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">Inspected By</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{order.inspectedBy}</p></div>
+              <div><p className="text-xs text-muted-foreground">Arrived</p><p className="text-sm font-semibold text-foreground">{order.arrivalDate}</p></div>
+              <div><p className="text-xs text-muted-foreground">QA Inspected</p><p className="text-sm font-semibold text-foreground">{order.qaInspected}</p></div>
+              <div><p className="text-xs text-muted-foreground">QA Status</p><p className="text-sm font-semibold text-foreground">{order.qaStatus}</p></div>
+              <div><p className="text-xs text-muted-foreground">Inspected By</p><p className="text-sm font-semibold text-foreground">{order.inspectedBy}</p></div>
             </div>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4">
-            <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Quantity Verification</p>
+          <div className="border border-border rounded-xl p-4 mb-4">
+            <p className="text-sm font-bold text-foreground mb-3">Quantity Verification</p>
             <div className="grid grid-cols-3 gap-4">
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">Ordered</p><p className="text-xl font-bold text-gray-900 dark:text-white">{order.quantity}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">Received</p><p className="text-xl font-bold text-gray-900 dark:text-white">{order.received}</p></div>
-              <div><p className="text-xs text-gray-500 dark:text-gray-400">QA Approved</p><p className="text-xl font-bold text-green-600 dark:text-green-400">{order.qaApproved}</p></div>
+              <div><p className="text-xs text-muted-foreground">Ordered</p><p className="text-xl font-bold text-foreground">{order.quantity}</p></div>
+              <div><p className="text-xs text-muted-foreground">Received</p><p className="text-xl font-bold text-foreground">{order.received}</p></div>
+              <div><p className="text-xs text-muted-foreground">QA Approved</p><p className="text-xl font-bold text-green-600">{order.qaApproved}</p></div>
             </div>
           </div>
           {order.qaNotes && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">QA Inspection Notes:</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{order.qaNotes}</p>
+            <div className="bg-muted rounded-xl p-4 mb-4">
+              <p className="text-xs text-muted-foreground mb-1">QA Inspection Notes:</p>
+              <p className="text-sm text-muted-foreground">{order.qaNotes}</p>
             </div>
           )}
           {order.proofImageUrl && (
-            <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4">
-              <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Inspection Photo / Proof</p>
+            <div className="border border-border rounded-xl p-4 mb-4">
+              <p className="text-sm font-bold text-foreground mb-3">Inspection Photo / Proof</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "")}/api/scms${order.proofImageUrl}`}
                 alt="QA Proof"
-                className="max-h-48 rounded-lg object-contain border border-gray-200 dark:border-gray-700 bg-white"
+                className="max-h-48 rounded-lg object-contain border border-border bg-card"
               />
             </div>
           )}
         </>
       )}
       <div className="flex justify-end mt-6">
-        <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Close</button>
+        <Button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">Close</Button>
       </div>
     </Modal>
   );
@@ -937,21 +943,21 @@ function QAInspectionPage({
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+    <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-6 bg-card rounded-2xl shadow-sm border border-border">
       {/* Header with back navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-4 gap-4">
         <div>
-          <button
+          <Button
             onClick={onClose}
-            className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-2"
+            className="flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2"
           >
             ← Back to Orders
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quality Assurance Inspection</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Order {order.id} &bull; Supplier: {order.supplier}</p>
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Quality Assurance Inspection</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Order {order.id} &bull; Supplier: {order.supplier}</p>
         </div>
         <div>
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-xs font-bold">
+          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
             QA Status: Pending Inspection
           </span>
         </div>
@@ -962,33 +968,33 @@ function QAInspectionPage({
         {/* Left column - Order Summary & Checklist (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Order Details Card */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Order Details Summary</h3>
+          <div className="p-4 bg-muted/50 border border-border rounded-xl">
+            <h3 className="text-sm font-bold text-foreground mb-3">Order Details Summary</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Item</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{order.item}</p>
+                <p className="text-xs text-muted-foreground">Item</p>
+                <p className="text-sm font-bold text-foreground mt-0.5">{order.item}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Supplier</p>
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{order.supplier}</p>
+                <p className="text-xs text-muted-foreground">Supplier</p>
+                <p className="text-sm font-semibold text-foreground mt-0.5">{order.supplier}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Ordered Quantity</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{order.quantity}</p>
+                <p className="text-xs text-muted-foreground">Ordered Quantity</p>
+                <p className="text-sm font-bold text-foreground mt-0.5">{order.quantity}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">ETA</p>
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{order.eta}</p>
+                <p className="text-xs text-muted-foreground">ETA</p>
+                <p className="text-sm font-semibold text-foreground mt-0.5">{order.eta}</p>
               </div>
             </div>
           </div>
 
           {/* QA Checklist Card */}
-          <div className="p-5 border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 space-y-4">
+          <div className="p-5 border border-border rounded-xl bg-card space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Inspection Checklist</h3>
-              <button
+              <h3 className="text-sm font-bold text-foreground">Inspection Checklist</h3>
+              <Button
                 type="button"
                 onClick={() => {
                   const allChecked = !isAllChecked;
@@ -1001,10 +1007,10 @@ function QAInspectionPage({
                   setCommentError("");
                   setPhotoError("");
                 }}
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-xs font-bold text-foreground hover:underline"
               >
                 {isAllChecked ? "Uncheck All" : "Check All"}
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-3">
@@ -1041,24 +1047,24 @@ function QAInspectionPage({
                     }}
                     className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 select-none ${
                       isChecked
-                        ? "border-green-500 bg-green-50/5 dark:bg-green-950/5"
-                        : "border-gray-250 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-350 dark:hover:border-gray-700"
+                        ? "border-green-500 bg-green-50/5"
+                        : "border-border bg-card hover:border-border"
                     }`}
                   >
                     <div
                       className={`w-5 h-5 rounded-md flex items-center justify-center border-2 mt-0.5 transition-colors ${
                         isChecked
                           ? "bg-green-500 border-green-500 text-white"
-                          : "border-gray-300 dark:border-gray-600 bg-transparent"
+                          : "border-border bg-transparent"
                       }`}
                     >
                       {isChecked && <Check size={14} strokeWidth={3} />}
                     </div>
                     <div className="flex-1">
-                      <p className={`text-sm font-bold transition-colors ${isChecked ? "text-green-800 dark:text-green-400" : "text-gray-900 dark:text-white"}`}>
+                      <p className={`text-sm font-bold transition-colors ${isChecked ? "text-green-800" : "text-foreground"}`}>
                         {item.label}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                         {item.desc}
                       </p>
                     </div>
@@ -1071,18 +1077,18 @@ function QAInspectionPage({
 
         {/* Right column - Decision and rejection inputs (5 cols) */}
         <div className="lg:col-span-5">
-          <div className="p-5 border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 space-y-4 h-full flex flex-col justify-between">
+          <div className="p-5 border border-border rounded-xl bg-card space-y-4 h-full flex flex-col justify-between">
             <div className="space-y-4 flex-1">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Inspection Result</h3>
+              <h3 className="text-sm font-bold text-foreground">Inspection Result</h3>
 
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Status:</span>
+                <span className="text-xs font-semibold text-muted-foreground">Status:</span>
                 {result === "good" ? (
-                  <span className="px-2.5 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-lg text-xs font-bold">
+                  <span className="px-2.5 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-bold">
                     ✓ Passed
                   </span>
                 ) : (
-                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-lg text-xs font-bold">
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">
                     ⚠ Failed (Rejected)
                   </span>
                 )}
@@ -1090,13 +1096,13 @@ function QAInspectionPage({
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Inspected By <span className="text-red-500">*</span></label>
-                  <input
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">
+                    Inspected By <span className="text-muted-foreground">*</span></label>
+                  <Input
                     type="text"
                     className={`w-full px-3 py-2.5 text-sm rounded-lg border ${
-                      inspectedByError ? "border-red-500 focus:ring-red-500" : "border-gray-300 dark:border-gray-600"
-                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      inspectedByError ? "border-red-500 focus:ring-red-500" : "border-border"
+                    } bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
                     placeholder="Enter name of inspector"
                     value={inspectedBy}
                     onChange={e => {
@@ -1114,13 +1120,13 @@ function QAInspectionPage({
                   {inspectedByError && <p className="mt-1 text-xs text-red-500 font-medium">⚠ {inspectedByError}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">
                     Inspection Notes / Comments
                   </label>
                   <textarea
                     className={`w-full px-3 py-2.5 text-sm rounded-lg border ${
-                      commentError ? "border-red-500 focus:ring-red-500" : "border-gray-300 dark:border-gray-600"
-                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none`}
+                      commentError ? "border-red-500 focus:ring-red-500" : "border-border"
+                    } bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none`}
                     rows={4}
                     placeholder="Optional notes about the inspection"
                     value={comment}
@@ -1132,14 +1138,14 @@ function QAInspectionPage({
                   {commentError && <p className="mt-1 text-xs text-red-500 font-medium">⚠ {commentError}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Inspection Photo / Proof <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">
+                    Inspection Photo / Proof <span className="text-muted-foreground">*</span></label>
                   <div
                     className={`border-2 border-dashed ${
-                      photoError ? "border-red-500 bg-red-50/5 dark:bg-red-950/5" : "border-gray-300 dark:border-gray-650"
-                    } rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative overflow-hidden`}
+                      photoError ? "border-red-500 bg-red-50/5" : "border-border"
+                    } rounded-xl p-6 text-center hover:bg-muted transition-colors relative overflow-hidden`}
                   >
-                    <input
+                    <Input
                       type="file"
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       accept="image/*"
@@ -1150,13 +1156,11 @@ function QAInspectionPage({
                       }}
                     />
                     <div className="flex flex-col items-center pointer-events-none">
-                      <svg className={`w-8 h-8 ${photoError ? "text-red-400" : "text-gray-400"} mb-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                      </svg>
-                      <span className={`text-sm font-semibold ${photoError ? "text-red-550" : "text-gray-700 dark:text-gray-300"}`}>
+                      <Upload className={`w-8 h-8  mb-2`} />
+                      <span className={`text-sm font-semibold ${photoError ? "text-red-550" : "text-muted-foreground"}`}>
                         {pictureFile ? pictureFile.name : "Upload photo of items / delivery"}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG (max 5MB)</span>
+                      <span className="text-xs text-muted-foreground mt-1">JPG, PNG (max 5MB)</span>
                     </div>
                   </div>
                   {photoError && <p className="mt-1 text-xs text-red-500 font-medium">⚠ {photoError}</p>}
@@ -1164,27 +1168,24 @@ function QAInspectionPage({
               </div>
             </div>
 
-            <div className="flex gap-3 pt-6 border-t border-gray-100 dark:border-gray-800 mt-6">
-              <button
+            <div className="flex gap-3 pt-6 border-t border-border mt-6">
+              <Button
                 onClick={onClose}
                 disabled={isSaving}
-                className="flex-1 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex-1 px-5 py-2.5 text-sm font-semibold text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleQAComplete}
                 disabled={isSaving}
-                className="flex-2 min-w-[160px] px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-2 min-w-[160px] px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 {isSaving && (
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <Loader2 className="animate-spin h-4 w-4 text-white" />
                 )}
                 {isSaving ? "Saving..." : "Submit QA Inspection"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1196,64 +1197,58 @@ function QAInspectionPage({
           <div className="text-center p-4">
             {result === "good" ? (
               <>
-                <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/30 flex items-center justify-center mx-auto mb-4 text-green-600">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4 text-foreground">
                   <CheckCircle size={30} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Confirm QA Approval</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                <h2 className="text-lg font-bold text-foreground mb-2">Confirm QA Approval</h2>
+                <p className="text-sm text-muted-foreground mb-6">
                   Are you sure you want to approve order <b>{order.id}</b> as Passed? This will mark the order as Completed.
                 </p>
                 <div className="flex justify-end gap-3">
-                  <button
+                  <Button
                     onClick={() => setShowConfirm(false)}
-                    className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="px-4 py-2 text-sm font-semibold text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={performQAInspectionSubmit}
                     disabled={isSaving}
                     className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5"
                   >
                     {isSaving && (
-                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
+                      <Loader2 className="animate-spin h-3.5 w-3.5 text-white" />
                     )}
                     Yes, Approve Order
-                  </button>
+                  </Button>
                 </div>
               </>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4 text-red-600">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4 text-red-600">
                   <XCircle size={30} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Confirm Order Rejection</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                <h2 className="text-lg font-bold text-foreground mb-2">Confirm Order Rejection</h2>
+                <p className="text-sm text-muted-foreground mb-6">
                   Are you sure you want to reject order <b>{order.id}</b>? This status update will notify the procurement team.
                 </p>
                 <div className="flex justify-end gap-3">
-                  <button
+                  <Button
                     onClick={() => setShowConfirm(false)}
-                    className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="px-4 py-2 text-sm font-semibold text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={performQAInspectionSubmit}
                     disabled={isSaving}
                     className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5"
                   >
                     {isSaving && (
-                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
+                      <Loader2 className="animate-spin h-3.5 w-3.5 text-white" />
                     )}
                     Yes, Reject Order
-                  </button>
+                  </Button>
                 </div>
               </>
             )}
@@ -1330,52 +1325,52 @@ function ProcurementReportsPage({ onClose }: { onClose: () => void }) {
   return (
     <div className="p-4 space-y-4 max-w-full">
       <div>
-        <button
+        <Button
           onClick={onClose}
-          className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-2"
+          className="flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2"
         >
           <ArrowLeft size={16} /> Back to Orders & Procurement
-        </button>
-        <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Procurement Report</h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Monitor supplier order fulfillment</p>
+        </Button>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Procurement Report</h1>
+        <p className="text-xs text-muted-foreground mt-1">Monitor supplier order fulfillment</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">PURCHASE ORDER ID</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">SUPPLIER</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ISSUE DATE</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDERED QUANTITY</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">FULFILLMENT RATE</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">LEAD TIME</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">INSPECTION STATUS</th>
+              <tr className="border-b border-border bg-background/50">
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE ORDER ID</th>
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ISSUE DATE</th>
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ORDERED QUANTITY</th>
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">FULFILLMENT RATE</th>
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">LEAD TIME</th>
+                <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">INSPECTION STATUS</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-gray-500">Loading report data...</td>
+                  <td colSpan={7} className="text-center py-10 text-muted-foreground">Loading report data...</td>
                 </tr>
               ) : reportRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                     No Data Found
                   </td>
                 </tr>
               ) : (
                 reportRows.map((row) => (
-                  <tr key={row.poId} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-gray-900 dark:text-white whitespace-nowrap">{row.purchaseOrderId}</td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.supplier}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{row.issueDate}</td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.orderedQuantity}</td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                  <tr key={row.poId} className="border-b border-border hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3 font-bold text-foreground whitespace-nowrap">{row.purchaseOrderId}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.supplier}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.issueDate}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.orderedQuantity}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {row.fulfillmentRate !== null ? `${row.fulfillmentRate}%` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {row.leadTimeDays !== null ? `${row.leadTimeDays} day${row.leadTimeDays === 1 ? "" : "s"}` : "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -1555,104 +1550,109 @@ export default function ViewOrdersProcurement() {
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-full">
+    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">Orders & Procurement</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage purchase orders for Raw Materials and Tools</p>
+          <h1 className="text-headline-md font-bold tracking-tight text-foreground">Orders & Procurement</h1>
+          <p className="text-xs text-muted-foreground mt-1">Manage purchase orders for Raw Materials and Tools</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
           {isAuthorizedForReports && (
             <Link
               href="/reports?tab=procurement"
-              className="h-11 px-5 text-sm font-semibold text-black dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center gap-2"
+              className="h-11 px-5 text-sm font-semibold text-foreground bg-card border border-border rounded-xl hover:bg-muted transition-colors whitespace-nowrap flex items-center gap-2"
             >
               <FileText size={16} />
               Reports
             </Link>
           )}
-          <button
+          <Button
             onClick={() => setShowNew(true)}
-            className="h-11 px-5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors whitespace-nowrap"
+            className="h-11 px-5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors whitespace-nowrap"
           >
             New Order
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Total Orders", value: stats.total, color: "text-gray-900 dark:text-white" },
-          { label: "Pending", value: stats.pending, color: "text-yellow-600 dark:text-yellow-400" },
-          { label: "Arrived (QA Pending)", value: stats.arrived, color: "text-blue-600 dark:text-blue-400" },
-          { label: "Completed", value: stats.completed, color: "text-green-600 dark:text-green-400" },
+          { label: "Total Orders", value: stats.total, color: "text-foreground" },
+          { label: "Pending", value: stats.pending, color: "text-yellow-600" },
+          { label: "Arrived (QA Pending)", value: stats.arrived, color: "text-foreground" },
+          { label: "Completed", value: stats.completed, color: "text-green-600" },
         ].map(stat => (
-          <div key={stat.label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>
+          <div key={stat.label} className="bg-card border border-border rounded-xl p-3">
+            <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {(["All", "Pending", "Arrived", "Completed", "Cancelled", "Rejected"] as const).map(f => (
-              <button key={f} onClick={() => { setFilter(f); setPage(1); }} className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${filter === f ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"}`}>
-                {f}
-              </button>
-            ))}
-          </div>
-          <div className="relative w-full lg:max-w-md">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            <input 
+      <div className="bg-card border border-border rounded-md overflow-hidden">
+        <div className="flex items-center justify-between gap-sm px-md py-sm border-b border-border bg-muted/20">
+          <div className="flex items-center gap-sm flex-1">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Input 
               type="text"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-[9px] pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-[42px]" 
+              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1" 
               placeholder="Search by Order No., Item, or Supplier..." 
               value={search} 
               onChange={e => { setSearch(e.target.value); setPage(1); }} 
             />
+          </div>
+          <div className="flex items-center gap-sm shrink-0">
+            <Select value={filter} onValueChange={(val) => { setFilter(val as any); setPage(1); }}>
+              <SelectTrigger className="w-[150px] h-8 text-body-sm bg-transparent border-input">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {(["All", "Pending", "Arrived", "Completed", "Cancelled", "Rejected"] as const).map(f => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDER NO.</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ITEM</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">SUPPLIER</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">QUANTITY</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ORDER DATE</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ETA</th>
-                <th className="px-2 py-2 text-left font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">STATUS</th>
-                <th className="px-2 py-2 text-center font-bold text-gray-500 dark:text-gray-400 tracking-wider whitespace-nowrap">ACTIONS</th>
+              <tr className="border-b border-border bg-background/50">
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ORDER NO.</th>
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ITEM</th>
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">QUANTITY</th>
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ORDER DATE</th>
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ETA</th>
+                <th className="px-2 py-2 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
+                <th className="px-2 py-2 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                     No Results Found
                   </td>
                 </tr>
               ) : (
                 filtered.map((order, idx) => (
-                <tr key={order.id} className={`${idx < filtered.length - 1 ? "border-b border-gray-100 dark:border-gray-700" : ""} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}>
-                  <td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white whitespace-nowrap">{order.id}</td>
-                  <td className="px-2 py-2.5 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">{order.item}</td>
-                  <td className="px-2 py-2.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{order.supplier}</td>
-                  <td className="px-2 py-2.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{order.quantity}</td>
-                  <td className="px-2 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">{order.orderDate}</td>
+                <tr key={order.id} className={`${idx < filtered.length - 1 ? "border-b border-border" : ""} hover:bg-muted/50 transition-colors`}>
+                  <td className="px-2 py-2.5 font-bold text-foreground whitespace-nowrap">{order.id}</td>
+                  <td className="px-2 py-2.5 font-medium text-foreground whitespace-nowrap">{order.item}</td>
+                  <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{order.supplier}</td>
+                  <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{order.quantity}</td>
+                  <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{order.orderDate}</td>
                   <td className="px-2 py-2.5 whitespace-nowrap">
-                    <span className={order.status === "Completed" || order.status === "Arrived" ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-600 dark:text-gray-400"}>
+                    <span className={order.status === "Completed" || order.status === "Arrived" ? "text-green-600 font-medium" : "text-muted-foreground"}>
                       {(order.status === "Completed" || order.status === "Arrived") && "✓ "}{order.eta}
                     </span>
                   </td>
                   <td className="px-2 py-2.5"><StatusBadge status={order.status} /></td>
                   <td className="px-2 py-2.5 text-center relative">
                     <div className="relative inline-block text-center">
-                      <button
+                      <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           if (activeDropdownPoId === order.poId) {
@@ -1667,15 +1667,15 @@ export default function ViewOrdersProcurement() {
                             setActiveDropdownPoId(order.poId);
                           }
                         }}
-                        className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none"
                       >
                         <MoreHorizontal size={18} />
-                      </button>
+                      </Button>
 
                       {activeDropdownPoId === order.poId && dropdownPosition && createPortal(
                         <>
                           <div
-                            className="fixed inset-0 z-[9998] cursor-default"
+                            className="fixed inset-0 z-[199] cursor-default"
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveDropdownPoId(null);
@@ -1683,33 +1683,33 @@ export default function ViewOrdersProcurement() {
                           />
                           <div
                             style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
-                            className="absolute w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[9999] py-1.5 focus:outline-none text-left"
+                            className="absolute w-44 rounded-xl border border-border bg-card shadow-xl z-[200] py-1.5 focus:outline-none text-left"
                           >
                             {order.status === "Arrived" && (
-                              <button
+                              <Button
                                 onClick={() => {
                                   setQaOrder(order);
                                   setActiveDropdownPoId(null);
                                 }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                               >
-                                <ClipboardCheck size={14} className="text-purple-600 dark:text-purple-400" />
+                                <ClipboardCheck size={14} className="text-muted-foreground" />
                                 QA Inspection
-                              </button>
+                              </Button>
                             )}
                             {order.status === "Pending" && (
                               <>
-                                <button
+                                <Button
                                   onClick={() => {
                                     setEditOrder(order);
                                     setActiveDropdownPoId(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                                 >
-                                  <Pencil size={14} className="text-blue-600 dark:text-blue-400" />
+                                  <Pencil size={14} className="text-foreground" />
                                   Edit Order
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   onClick={() => {
                                     setConfirmAction({
                                       type: "arrived",
@@ -1719,12 +1719,12 @@ export default function ViewOrdersProcurement() {
                                     });
                                     setActiveDropdownPoId(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                                 >
-                                  <Truck size={14} className="text-green-600 dark:text-green-400" />
+                                  <Truck size={14} className="text-muted-foreground" />
                                   Mark Arrived
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   onClick={() => {
                                     setConfirmAction({
                                       type: "cancel",
@@ -1734,24 +1734,24 @@ export default function ViewOrdersProcurement() {
                                     });
                                     setActiveDropdownPoId(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-muted transition-colors"
                                 >
                                   <XCircle size={14} />
                                   Cancel Order
-                                </button>
+                                </Button>
                               </>
                             )}
                             {(order.status === "Completed" || order.status === "Cancelled" || order.status === "Rejected") && (
-                              <button
+                              <Button
                                 onClick={() => {
                                   setViewOrder(order);
                                   setActiveDropdownPoId(null);
                                 }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                               >
-                                <Eye size={14} className="text-blue-600 dark:text-blue-400" />
+                                <Eye size={14} className="text-foreground" />
                                 View Details
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </>,

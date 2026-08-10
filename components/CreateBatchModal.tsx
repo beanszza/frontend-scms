@@ -281,20 +281,20 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-white dark:bg-[#1D2939] border border-gray-200 dark:border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+        className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card border border-border shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             Create Production Batch
-            {isLoadingData && <Loader2 size={16} className="animate-spin text-gray-400" />}
+            {isLoadingData && <Loader2 size={16} className="animate-spin text-muted-foreground" />}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-muted-foreground hover:opacity-80 transition-opacity">
             <X size={20} />
           </button>
         </div>
@@ -304,7 +304,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Finished Product */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Finished Product
               </label>
               <select
@@ -320,8 +320,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 className={`w-full rounded-xl border ${
                   finishedProductError
                     ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-gray-200 dark:border-gray-700"
-                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
+                    : "border-border"
+                } bg-card py-2.5 px-3 text-sm text-foreground`}
               >
                 <option value="">Select product</option>
                 {products.map((prod) => (
@@ -337,7 +337,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
             {/* Variant */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Recipe/BOM
               </label>
               <select
@@ -352,8 +352,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 className={`w-full rounded-xl border ${
                   variantError
                     ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-gray-200 dark:border-gray-700"
-                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                    : "border-border"
+                } bg-card py-2.5 px-3 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <option value="">Select recipe/BOM</option>
                 {availableVariants.map((v) => (
@@ -367,7 +367,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
             {/* Editable Target Yield */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Target Yield
               </label>
               <input
@@ -383,8 +383,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 className={`w-full rounded-xl border ${
                   targetYieldError
                     ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-gray-200 dark:border-gray-700"
-                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                    : "border-border"
+                } bg-card py-2.5 px-3 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed`}
               />
               {targetYieldError && (
                 <p className="mt-1 text-xs text-red-500">{targetYieldError}</p>
@@ -393,7 +393,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
             {/* Schedule Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Schedule Date
               </label>
               <input
@@ -408,8 +408,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 className={`w-full rounded-xl border ${
                   scheduleDateError
                     ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    : "border-gray-200 dark:border-gray-700"
-                } bg-white dark:bg-[#101828] py-2.5 px-3 text-sm text-gray-900 dark:text-white`}
+                    : "border-border"
+                } bg-card py-2.5 px-3 text-sm text-foreground`}
               />
               {scheduleDateError && (
                 <p className="mt-1 text-xs text-red-500">{scheduleDateError}</p>
@@ -419,21 +419,21 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
           {/* Ingredient Allocation */}
           {isComputing && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 size={16} className="animate-spin" /> Computing ingredients…
             </div>
           )}
           {!isComputing && ingredients.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-foreground">
                   <strong>Ingredients / Bill of Materials</strong>
                 </p>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
+              <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr className="text-left text-xs uppercase text-gray-500">
+                  <thead className="bg-muted">
+                    <tr className="text-left text-xs uppercase text-muted-foreground">
                       <th className="px-4 py-2">Ingredient Item</th>
                       <th className="px-4 py-2">Item Quantity</th>
                       <th className="px-4 py-2">Current Stock &amp; Unit</th>
@@ -451,12 +451,12 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                       return (
                         <tr
                           key={ing.ingredientId}
-                          className="border-t border-gray-100 dark:border-gray-800"
+                          className="border-t border-border"
                         >
-                          <td className="px-4 py-2 text-gray-900 dark:text-white">
+                          <td className="px-4 py-2 text-foreground">
                             {ing.ingredientName}
                           </td>
-                          <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">
+                          <td className="px-4 py-2 font-medium text-foreground">
                             {required} {ing.uom}
                           </td>
                           <td className="px-4 py-2">
@@ -482,13 +482,13 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               </div>
 
               {recipeTargetYield !== null && (
-                <p className="ml-1 mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <p className="ml-1 mt-3 text-xs text-muted-foreground">
                   Recipe target yield: {recipeTargetYield} {yieldUnit}
                 </p>
               )}
 
               {hasStockIssue && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
                   <AlertTriangle size={14} /> Insufficient stock for one or more ingredients. Please
                   restock before creating this batch.
                 </p>
@@ -498,17 +498,17 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-foreground bg-muted hover:opacity-80 transition-opacity"
           >
             Cancel
           </button>
           <button
             onClick={handleAddBatch}
             disabled={!isFormValid}
-            className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm rounded-xl bg-primary text-primary-foreground hover:opacity-80 transition-opacity disabled:opacity-50 flex items-center gap-2"
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
             Add Batch
