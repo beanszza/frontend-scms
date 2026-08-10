@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Outfit } from 'next/font/google';
-import { Geist, Geist_Mono } from "next/font/google";
+import { Hanken_Grotesk, Geist_Mono } from "next/font/google";
 import "@/app/globals.css";
 import LayoutProvider from "@/providers/LayoutProvider";
 
-const outfit = Outfit({
+const hankenGrotesk = Hanken_Grotesk({
+  variable: "--font-hanken-grotesk",
+  subsets: ["latin"],
+});
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -19,10 +23,8 @@ const RootLayout = ({
   children: React.ReactNode;
 }>) => {
   return (
-    <html
-      lang="en"
-    >
-      <body className={`${outfit.className} dark:bg-gray-900`}>
+    <html lang="en" className={`${hankenGrotesk.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-screen bg-background text-foreground font-sans">
           <LayoutProvider>{children}</LayoutProvider>
       </body>
     </html>

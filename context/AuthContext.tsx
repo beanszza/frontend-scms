@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import api from "../lib/api";
+import { RedirectToLogin } from "@/components/shared/RedirectToLogin";
 
 type User = {
   id: string;
@@ -23,18 +24,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      let u = await validate();
-      if (u) { setUser(u); setIsLoading(false); return; }
-
-      const refreshed = await refresh();
-      if (refreshed) u = await validate();
-
-      setUser(u);
+    validate().then((validUser) => {
+      setUser(validUser);
       setIsLoading(false);
-    };
-
-    init();
+    });
   }, []);
 
   const validate = async (): Promise<User | null> => {
@@ -58,6 +51,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
     }
   };
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return <RedirectToLogin />;
+  }
 
   return (
     <AuthContext.Provider value={{ user, isLoading, logout }}>
