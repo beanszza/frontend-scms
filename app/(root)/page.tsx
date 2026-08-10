@@ -1,12 +1,35 @@
-const Page = () => {
-  return (
-    <div className="dark:text-gray-400">
-      <h1>Admin Dashboard</h1>
-      <p>Welcome to the asfas sfdsf admin sdfasd asddashboard. Here you can manage your application.</p>
-      <p>gawin niyong l safsadf ocalhost:3000/login yung url para macheck yung login form</p>
-      <p className="mt-10">**sign in lang nandito sa employee diba?**</p>
-    </div>
-  );
-}
+"use client";
 
-export default Page;
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import AnalyticsDashboardPage from "@/dashboard/page";
+
+export default function DashboardPage() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      const username = user.username?.toLowerCase();
+      const email = user.email?.toLowerCase();
+      const roles = user.roles || [];
+      const isHeadCook = username === "headcook" || email === "headcook@r3b2p.com" || roles.includes("Head Cook");
+
+      if (isHeadCook) {
+        router.replace("/production-quality");
+      }
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+
+  const username = user?.username?.toLowerCase();
+  const email = user?.email?.toLowerCase();
+  const roles = user?.roles || [];
+  const isHeadCook = username === "headcook" || email === "headcook@r3b2p.com" || roles.includes("Head Cook");
+
+  if (isHeadCook) return null;
+
+  return <AnalyticsDashboardPage />;
+}

@@ -162,7 +162,7 @@ export default function SupplyTable() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
 
                 <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
-                  ITEM ID
+                  ITEM NO.
                 </th>
 
                 <th className="text-left px-6 py-4 text-xs font-bold text-gray-500">
@@ -188,13 +188,13 @@ export default function SupplyTable() {
             </thead>
 
             <tbody>
-              {supplies.map((item) => (
+              {supplies.map((item, idx) => (
                 <tr
                   key={item.id}
                   className="border-b border-gray-100 dark:border-gray-800"
                 >
                   <td className="px-6 py-5 text-sm text-gray-700 dark:text-gray-300">
-                    {item.id}
+                    {idx + 1}
                   </td>
 
                   <td className="px-6 py-5 text-sm font-medium text-gray-900 dark:text-white">

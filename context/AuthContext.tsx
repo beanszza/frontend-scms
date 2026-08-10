@@ -1,14 +1,36 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import api from "../lib/api";
 import { RedirectToLogin } from "@/components/shared/RedirectToLogin";
+import axios from "axios";
+
+const apiAuth = axios.create({
+  baseURL: "http://localhost:3000",
+  withCredentials: true,
+});
+
+type ModuleAccess = {
+  moduleName: string;
+  canRead: boolean;
+  canWrite: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+};
+
+type AppAccess = {
+  appName: string;
+  modules: ModuleAccess[];
+};
 
 type User = {
   id: string;
   username: string;
-  role: string;
-  apps: string[];
+  firstName: string;
+  lastName: string;
+  email: string;
+  mustChangePassword: boolean;
+  roles: string[];
+  apps: AppAccess[];
 };
 
 type AuthContextType = {
@@ -24,29 +46,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    validate().then((validUser) => {
-      setUser(validUser);
+    const init = async () => {
+      let u = await validate();
+      if (u) { setUser(u); setIsLoading(false); return; }
+
+      const refreshed = await refresh();
+      if (refreshed) u = await validate();
+
+      if (!u) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setUser(u);
       setIsLoading(false);
-    });
+    };
+    init();
   }, []);
 
   const validate = async (): Promise<User | null> => {
     try {
-      const res = await api.get("/api/auth/validate?tokenType=sso");
-      return res.data;
+      const res = await apiAuth.get("/api/erp-auth/validate");
+      return res.data.user;
     } catch { return null; }
   };
 
   const refresh = async (): Promise<boolean> => {
     try {
-      await api.post("/api/auth/refresh?tokenType=sso");
+      await apiAuth.post("/api/erp-auth/refresh");
       return true;
     } catch { return false; }
   };
 
   const logout = async (): Promise<void> => {
     try {
-      await api.post("/api/auth/logout?tokenType=sso");
+      await apiAuth.post("/api/erp-auth/logout");
     } finally {
       setUser(null);
     }
