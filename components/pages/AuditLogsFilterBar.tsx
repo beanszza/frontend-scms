@@ -43,36 +43,39 @@ export default function AuditLogsFilterBar({
             <Filter size={14} className="text-foreground" /> Filter History:
           </span>
           <div className="flex p-1 bg-muted rounded-xl border border-border text-xs font-semibold">
-            <Button
+            <button
+              type="button"
               onClick={() => setFilterMode("all")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 filterMode === "all"
-                  ? "bg-card text-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-foreground text-background shadow-sm font-bold"
+                  : "text-foreground hover:text-foreground hover:bg-card/60"
               }`}
             >
               All History
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
               onClick={() => setFilterMode("specific")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 filterMode === "specific"
-                  ? "bg-card text-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-foreground text-background shadow-sm font-bold"
+                  : "text-foreground hover:text-foreground hover:bg-card/60"
               }`}
             >
               Specific Date
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
               onClick={() => setFilterMode("range")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 filterMode === "range"
-                  ? "bg-card text-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-foreground text-background shadow-sm font-bold"
+                  : "text-foreground hover:text-foreground hover:bg-card/60"
               }`}
             >
               Date Range
-            </Button>
+            </button>
           </div>
         </div>
 

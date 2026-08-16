@@ -1,0 +1,134 @@
+"use client";
+
+import React from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Plus, FileText } from "lucide-react";
+import Link from "next/link";
+import Pagination from "@/components/Pagination";
+import { Recipe } from "./types";
+import RecipeSummaryCards from "./RecipeSummaryCards";
+import RecipeTable from "./RecipeTable";
+
+interface RecipeTabProps {
+  recipes: Recipe[];
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  statusFilter: string;
+  onStatusFilterChange: (status: string) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  isAuthorizedForReports: boolean;
+  onAddNew: () => void;
+  onEdit: (recipe: Recipe) => void;
+}
+
+export default function RecipeTab({
+  recipes,
+  searchQuery,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  currentPage,
+  onPageChange,
+  isAuthorizedForReports,
+  onAddNew,
+  onEdit,
+}: RecipeTabProps) {
+  const filteredRecipes = recipes.filter((recipe) => {
+    const matchesSearch =
+      recipe.recipeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      recipe.finishedProduct?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      recipe.recipeId.toString().includes(searchQuery);
+    const matchesStatus =
+      statusFilter === "All" ||
+      (statusFilter === "Active" && recipe.isActive) ||
+      (statusFilter === "Inactive" && !recipe.isActive);
+    return matchesSearch && matchesStatus;
+  });
+
+  const pageSize = 10;
+  const totalCount = filteredRecipes.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const paginatedRecipes = filteredRecipes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Recipe Management</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Production recipes and ingredients breakdown</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isAuthorizedForReports && (
+            <Link
+              href="/resources-suppliers/logs?type=Recipe"
+              className="flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <FileText size={16} /> Transaction History
+            </Link>
+          )}
+          <Button
+            onClick={onAddNew}
+            className="flex items-center justify-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm"
+          >
+            <Plus size={16} /> New Recipe
+          </Button>
+        </div>
+      </div>
+
+      <RecipeSummaryCards recipes={recipes} />
+
+      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
+        <div className="flex items-center justify-between gap-sm px-md py-sm bg-muted/20">
+          <div className="flex items-center gap-sm flex-1">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Input
+              type="text"
+              placeholder="Search by Recipe or Product Name..."
+              value={searchQuery}
+              onChange={(e) => {
+                onSearchChange(e.target.value);
+                onPageChange(1);
+              }}
+              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="flex items-center gap-sm shrink-0">
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                onStatusFilterChange(val);
+                onPageChange(1);
+              }}
+            >
+              <SelectTrigger className="w-[140px] h-8 text-body-sm bg-transparent border-input">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Status</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <RecipeTable
+        recipes={paginatedRecipes}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onEdit={onEdit}
+      />
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={onPageChange}
+      />
+    </div>
+  );
+}

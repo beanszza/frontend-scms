@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/api";
-
 import AuditLogsFilterBar from "@/components/pages/AuditLogsFilterBar";
 import AuditLogsTable, { LogEntry } from "@/components/pages/AuditLogsTable";
 import { useAuth } from "@/context/AuthContext";
@@ -13,23 +12,12 @@ import { useAuth } from "@/context/AuthContext";
 const fetchLogs = async (type: string | null): Promise<LogEntry[]> => {
   const moduleType = type?.toLowerCase() || "supply";
   try {
-    let resData = null;
-    try {
-      const response = await api.get(`/api/scms/api/AuditLogs?type=${moduleType}`);
-      resData = response.data;
-    } catch (e) {
-      const fallbackRes = await fetch(`http://localhost:5006/api/AuditLogs?type=${moduleType}`);
-      if (fallbackRes.ok) {
-        resData = await fallbackRes.json();
-      }
-    }
-    if (Array.isArray(resData)) {
-      return resData;
-    } else if (resData?.data && Array.isArray(resData.data)) {
-      return resData.data;
-    }
-  } catch (error) {
-    console.error("Failed to fetch logs:", error);
+    const response = await api.get(`/api/scms/api/AuditLogs?type=${moduleType}`);
+    const resData = response.data;
+    if (Array.isArray(resData)) return resData;
+    if (resData?.data && Array.isArray(resData.data)) return resData.data;
+  } catch (e) {
+    console.error("Failed to fetch logs:", e);
   }
   return [];
 };
@@ -38,15 +26,14 @@ export default function ViewTransactionalLogs() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const typeParam = searchParams?.get("type") || "Supply";
-
   const { user, isLoading } = useAuth() || {};
 
   useEffect(() => {
     if (!isLoading) {
-      const isAuthorized = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
-      if (!isAuthorized) {
-        router.push("/");
-      }
+      const isAuth =
+        user?.username === "scmsuser" || user?.username === "ERP-ADMIN" ||
+        user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
+      if (!isAuth) router.push("/");
     }
   }, [user, isLoading, router]);
 
@@ -54,20 +41,16 @@ export default function ViewTransactionalLogs() {
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
 
-  // Date & Search Filter States
   const [filterMode, setFilterMode] = useState<"all" | "specific" | "range">("all");
   const [specificDate, setSpecificDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const formattedType = typeParam.charAt(0).toUpperCase() + typeParam.slice(1).toLowerCase();
     setTitle(`${formattedType} Transactional Audit Logs`);
-
     setLoading(true);
     fetchLogs(typeParam).then((data) => {
       setLogs(data);
@@ -75,79 +58,50 @@ export default function ViewTransactionalLogs() {
     });
   }, [typeParam]);
 
-  // Reset page to 1 whenever filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterMode, specificDate, startDate, endDate]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterMode, specificDate, startDate, endDate]);
 
   const handleResetFilters = () => {
-    setFilterMode("all");
-    setSpecificDate("");
-    setStartDate("");
-    setEndDate("");
-    setSearchQuery("");
-    setCurrentPage(1);
+    setFilterMode("all"); setSpecificDate(""); setStartDate(""); setEndDate(""); setSearchQuery(""); setCurrentPage(1);
   };
 
-  // Filter logs based on date range, specific date, and search term
   const filteredLogs = logs.filter((log) => {
-    // 1. Search Query Filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchesActivity = log.activity.toLowerCase().includes(q);
-      const matchesEntity = log.entityName.toLowerCase().includes(q);
-      const matchesUser = log.user.toLowerCase().includes(q);
-      if (!matchesActivity && !matchesEntity && !matchesUser) return false;
+      if (!log.activity.toLowerCase().includes(q) && !log.entityName.toLowerCase().includes(q) && !log.user.toLowerCase().includes(q)) return false;
     }
-
-    // Parse log timestamp
-    const logDateStr = log.timestamp.split(" ")[0]; // Get MM/DD/YYYY
+    const logDateStr = log.timestamp.split(" ")[0];
     const [month, day, year] = logDateStr.split("/").map(Number);
     const logDate = new Date(year, month - 1, day);
 
-    // 2. Specific Date Filter
     if (filterMode === "specific" && specificDate) {
       const [specYear, specMonth, specDay] = specificDate.split("-").map(Number);
       const targetDate = new Date(specYear, specMonth - 1, specDay);
-      if (
-        logDate.getFullYear() !== targetDate.getFullYear() ||
-        logDate.getMonth() !== targetDate.getMonth() ||
-        logDate.getDate() !== targetDate.getDate()
-      ) {
-        return false;
-      }
+      if (logDate.getFullYear() !== targetDate.getFullYear() || logDate.getMonth() !== targetDate.getMonth() || logDate.getDate() !== targetDate.getDate()) return false;
     }
-
-    // 3. Date Range Filter
     if (filterMode === "range") {
       if (startDate) {
-        const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
-        const start = new Date(startYear, startMonth - 1, startDay);
-        if (logDate < start) return false;
+        const [sy, sm, sd] = startDate.split("-").map(Number);
+        if (logDate < new Date(sy, sm - 1, sd)) return false;
       }
       if (endDate) {
-        const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
-        const end = new Date(endYear, endMonth - 1, endDay);
-        if (logDate > end) return false;
+        const [ey, em, ed] = endDate.split("-").map(Number);
+        if (logDate > new Date(ey, em - 1, ed)) return false;
       }
     }
-
     return true;
   });
 
   const handleExportCSV = () => {
     if (!filteredLogs || filteredLogs.length === 0) return;
-    const csvRows: string[] = [
-      ["Log ID", "Timestamp", "Activity", "Entity", "User", "Details"].join(",")
-    ];
+    const csvRows: string[] = [["Log ID", "Timestamp", "Activity", "Entity", "User", "Details"].join(",")];
     filteredLogs.forEach((log) => {
       csvRows.push([
-        `"${log.id || ''}"`,
-        `"${log.timestamp || ''}"`,
-        `"${log.activity || ''}"`,
-        `"${log.entityName || ''}"`,
-        `"${log.user || ''}"`,
-        `"${((log as any).details || '').replace(/"/g, '""')}"`
+        `"${log.id || ""}"`,
+        `"${log.timestamp || ""}"`,
+        `"${log.activity || ""}"`,
+        `"${log.entityName || ""}"`,
+        `"${log.user || ""}"`,
+        `"${((log as any).details || "").replace(/"/g, '""')}"`,
       ].join(","));
     });
 
@@ -164,52 +118,29 @@ export default function ViewTransactionalLogs() {
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-background p-2 sm:p-4 transition-colors font-sans text-foreground">
       <div className="w-full max-w-full space-y-5">
-        {/* Header Navigation */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <Button
-              onClick={() => router.back()}
-              className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={16} /> Back
+            <Button variant="outline" onClick={() => router.back()} className="mb-3 px-4 py-2 text-sm font-semibold rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors shadow-sm">
+              Back
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              {title}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Audit trail for Supply Add/Edit/Status, Recipe/BOM modifications, and Inventory movements (+/-)
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Audit trail for Supply Add/Edit/Status, Recipe/BOM modifications, and Inventory movements</p>
           </div>
         </div>
 
-        {/* Filter Bar Component */}
         <AuditLogsFilterBar
-          filterMode={filterMode}
-          setFilterMode={setFilterMode}
-          specificDate={specificDate}
-          setSpecificDate={setSpecificDate}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onResetFilters={handleResetFilters}
-          onExportCSV={handleExportCSV}
+          filterMode={filterMode} setFilterMode={setFilterMode} specificDate={specificDate} setSpecificDate={setSpecificDate}
+          startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate}
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery} onResetFilters={handleResetFilters} onExportCSV={handleExportCSV}
         />
 
-        {/* Audit Logs Content Table */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="animate-spin text-foreground" size={32} />
             <span className="ml-3 text-muted-foreground font-medium">Fetching transaction audit logs...</span>
           </div>
         ) : (
-          <AuditLogsTable
-            logs={filteredLogs}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-          />
+          <AuditLogsTable logs={filteredLogs} currentPage={currentPage} setCurrentPage={setCurrentPage} />
         )}
       </div>
     </div>

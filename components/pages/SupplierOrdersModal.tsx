@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { X, ShoppingCart } from "lucide-react";
 
@@ -13,12 +14,15 @@ export default function SupplierOrdersModal({
   selectedSupplierModal,
   onClose,
 }: SupplierOrdersModalProps) {
-  if (!selectedSupplierModal) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col">
-        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-background/50">
+  if (!selectedSupplierModal || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl text-foreground" onClick={e => e.stopPropagation()}>
+        <div className="border-b border-border pb-3 mb-4 flex justify-between items-center">
           <div>
             <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
               <ShoppingCart size={20} className="text-foreground" />
@@ -30,9 +34,9 @@ export default function SupplierOrdersModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            className="text-foreground/60 hover:text-foreground transition-colors"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
@@ -118,13 +122,15 @@ export default function SupplierOrdersModal({
 
         <div className="px-6 py-3 border-t border-border bg-background/50 flex justify-end">
           <Button
+            variant="outline"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-muted text-foreground font-semibold text-sm hover:bg-muted/80 transition-colors"
+            className="px-4 py-2 rounded-xl border border-border bg-card text-foreground font-semibold text-sm hover:bg-foreground hover:text-background transition-colors"
           >
             Close
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

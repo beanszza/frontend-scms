@@ -1,11 +1,10 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-
-// Modular Sub-Components from @/pages
 import ReportFilterBar from "@/components/pages/ReportFilterBar";
 import InventoryReportView from "@/components/pages/InventoryReportView";
 import ProcurementReportView from "@/components/pages/ProcurementReportView";
@@ -13,6 +12,7 @@ import ProductionReportView from "@/components/pages/ProductionReportView";
 import SupplierReportView from "@/components/pages/SupplierReportView";
 import SupplierOrdersModal from "@/components/pages/SupplierOrdersModal";
 import DistributionReportView from "@/components/pages/DistributionReportView";
+import { exportReportCSV } from "@/components/reports/exportReportCSV";
 
 export default function ViewReports({ initialTab }: { initialTab: string }) {
   const router = useRouter();
@@ -20,10 +20,10 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
 
   useEffect(() => {
     if (!isLoading) {
-      const isAuthorized = user?.username === "scmsuser" || user?.username === "ERP-ADMIN" || user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
-      if (!isAuthorized) {
-        router.push("/");
-      }
+      const isAuth =
+        user?.username === "scmsuser" || user?.username === "ERP-ADMIN" ||
+        user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
+      if (!isAuth) router.push("/");
     }
   }, [user, isLoading, router]);
 
@@ -31,18 +31,13 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  // Consistent Filter States
   const [filterMode, setFilterMode] = useState<"all" | "specific" | "range">("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [specificDate, setSpecificDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState("all");
-
-  // Pagination State (10 items per page)
   const [currentPage, setCurrentPage] = useState<number>(1);
-
-  // Modal State for Supplier Order Transactions
   const [selectedSupplierModal, setSelectedSupplierModal] = useState<any>(null);
 
   const fetchData = async () => {
@@ -50,243 +45,91 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
     setError("");
     try {
       let url = `http://localhost:5006/api/Reports/${initialTab}?`;
-
-      if (filterMode === "specific" && specificDate) {
-        url += `startDate=${specificDate}&endDate=${specificDate}&`;
-      } else if (filterMode === "range") {
+      if (filterMode === "specific" && specificDate) url += `startDate=${specificDate}&endDate=${specificDate}&`;
+      else if (filterMode === "range") {
         if (startDate) url += `startDate=${startDate}&`;
         if (endDate) url += `endDate=${endDate}&`;
       }
-
       const response = await fetch(url);
       const json = await response.json();
-      if (json.success) {
-        setData(json.data);
-      } else {
-        setError(json.message || "Failed to fetch data from server");
-      }
-    } catch (err) {
+      if (json.success) setData(json.data);
+      else setError(json.message || "Failed to fetch data from server");
+    } catch {
       setError("Network error occurred while fetching reports.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [initialTab, filterMode]);
-
-  // Reset pagination page to 1 whenever filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterMode, specificDate, startDate, endDate, selectedSupplierFilter, initialTab]);
+  useEffect(() => { fetchData(); }, [initialTab, filterMode]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterMode, specificDate, startDate, endDate, selectedSupplierFilter, initialTab]);
 
   const handleResetFilters = () => {
-    setFilterMode("all");
-    setStartDate("");
-    setEndDate("");
-    setSpecificDate("");
-    setSearchQuery("");
-    setSelectedSupplierFilter("all");
-    setCurrentPage(1);
-    fetchData();
+    setFilterMode("all"); setStartDate(""); setEndDate(""); setSpecificDate("");
+    setSearchQuery(""); setSelectedSupplierFilter("all"); setCurrentPage(1); fetchData();
   };
 
-  const handleExportCSV = () => {
-    if (!data) return;
-    const csvRows: string[] = [];
-
-    if (initialTab === "inventory") {
-      const rows = data.inventoryLevels || data.items || [];
-      csvRows.push(["Item ID", "Item Name", "Category", "Current Stock", "Min Reorder Point", "Status"].join(","));
-      rows.forEach((r: any) => {
-        csvRows.push([
-          `"${r.itemId || r.id || ''}"`,
-          `"${r.itemName || r.name || ''}"`,
-          `"${r.category || ''}"`,
-          `"${r.currentStock || r.stockQuantity || 0}"`,
-          `"${r.minReorderPoint || r.reorderLevel || 0}"`,
-          `"${r.status || 'Active'}"`
-        ].join(","));
-      });
-    } else if (initialTab === "procurement") {
-      const rows = data.orders || data.purchaseOrders || [];
-      csvRows.push(["PO ID", "Supplier", "Issue Date", "ETA", "Status", "Total Amount"].join(","));
-      rows.forEach((r: any) => {
-        csvRows.push([
-          `"${r.poId || r.id || ''}"`,
-          `"${r.supplierName || r.companyName || ''}"`,
-          `"${r.orderDate || ''}"`,
-          `"${r.expectedArrivalDate || r.eta || ''}"`,
-          `"${r.status || ''}"`,
-          `"${r.totalAmount || 0}"`
-        ].join(","));
-      });
-    } else if (initialTab === "production") {
-      const rows = data.batches || data.productionBatches || [];
-      csvRows.push(["Batch ID", "Product", "Multiplier", "Estimated Qty", "Actual Qty", "Production Date", "Stage", "Status"].join(","));
-      rows.forEach((r: any) => {
-        csvRows.push([
-          `"${r.batchId || r.id || ''}"`,
-          `"${r.productName || ''}"`,
-          `"${r.batchMultiplier || 1}"`,
-          `"${r.estimatedQuantity || 0}"`,
-          `"${r.actualQuantity || 0}"`,
-          `"${r.productionDate || ''}"`,
-          `"${r.stage || ''}"`,
-          `"${r.status || ''}"`
-        ].join(","));
-      });
-    } else if (initialTab === "supplier") {
-      const rows = data.vendorScorecard || data.suppliers || [];
-      csvRows.push(["Supplier ID", "Supplier Name", "Total Orders", "On-Time Rate", "Fulfillment Rate", "Quality Pass Rate"].join(","));
-      rows.forEach((r: any) => {
-        csvRows.push([
-          `"${r.supplierId || r.id || ''}"`,
-          `"${r.supplierName || r.companyName || ''}"`,
-          `"${r.totalOrders || 0}"`,
-          `"${r.onTimeRate || '100%'}"`,
-          `"${r.fulfillmentRate || '100%'}"`,
-          `"${r.qualityPassRate || '100%'}"`
-        ].join(","));
-      });
-    } else if (initialTab === "distribution") {
-      const rows = data.stockTransfers || data.transfers || [];
-      csvRows.push(["Transfer ID", "Product", "Quantity", "Source", "Destination", "Status", "Transfer Date"].join(","));
-      rows.forEach((r: any) => {
-        csvRows.push([
-          `"${r.transferId || r.id || ''}"`,
-          `"${r.productName || r.itemName || ''}"`,
-          `"${r.transferQuantity || r.quantity || 0}"`,
-          `"${r.sourceLocationName || 'Warehouse A'}"`,
-          `"${r.destLocationName || 'Store Branch'}"`,
-          `"${r.status || ''}"`,
-          `"${r.transferDate || ''}"`
-        ].join(","));
-      });
-    } else {
-      csvRows.push(["Report", initialTab].join(","));
+  const getBackPath = () => {
+    switch (initialTab) {
+      case "inventory": return "/inventory";
+      case "procurement": return "/orders-procurement";
+      case "production": return "/production-quality";
+      case "supplier": return "/resources-suppliers";
+      case "distribution": return "/distribution";
+      default: return "/";
     }
-
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${initialTab}_report_${new Date().toISOString().split("T")[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
-
-  const allSuppliers = data?.vendorScorecard || [];
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-background p-2 sm:p-4 transition-colors font-sans text-foreground">
       <div className="w-full max-w-full space-y-5">
-        {/* Page Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <Button
-              onClick={() => router.back()}
-              className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={16} /> Back
+            <Button variant="outline" onClick={() => router.push(getBackPath())} className="mb-2 h-9 px-3 text-xs font-semibold rounded-lg border-border bg-card hover:bg-muted text-foreground transition-colors shadow-sm">
+              Back to System
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground capitalize tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground capitalize">
               {initialTab} Performance Report
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Detailed operational analytics and historical audit data
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Comprehensive analytics, fulfillment rates, and historical logs
             </p>
           </div>
         </div>
 
-        {/* Filter Bar Component */}
         <ReportFilterBar
-          filterMode={filterMode}
-          setFilterMode={setFilterMode}
-          specificDate={specificDate}
-          setSpecificDate={setSpecificDate}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          initialTab={initialTab}
-          allSuppliers={allSuppliers}
-          selectedSupplierFilter={selectedSupplierFilter}
-          setSelectedSupplierFilter={setSelectedSupplierFilter}
-          onApplyFilters={fetchData}
-          onResetFilters={handleResetFilters}
-          onExportCSV={handleExportCSV}
+          initialTab={initialTab} filterMode={filterMode} setFilterMode={setFilterMode}
+          startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate}
+          specificDate={specificDate} setSpecificDate={setSpecificDate} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+          selectedSupplierFilter={selectedSupplierFilter} setSelectedSupplierFilter={setSelectedSupplierFilter}
+          allSuppliers={data?.vendorScorecard || []} onApplyFilters={fetchData} onResetFilters={handleResetFilters}
+          onExportCSV={() => exportReportCSV(initialTab, data)}
         />
 
-        {/* Main Content Report View */}
-        <div className="w-full">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="animate-spin text-foreground" size={32} />
-              <span className="ml-3 text-muted-foreground font-medium">Loading report data...</span>
-            </div>
-          ) : error ? (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-medium">
-              {error}
-            </div>
-          ) : (
-            <>
-              {initialTab === "inventory" && (
-                <InventoryReportView
-                  data={data}
-                  searchQuery={searchQuery}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-              )}
-              {initialTab === "procurement" && (
-                <ProcurementReportView
-                  data={data}
-                  searchQuery={searchQuery}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-              )}
-              {initialTab === "production" && (
-                <ProductionReportView
-                  data={data}
-                  searchQuery={searchQuery}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-              )}
-              {initialTab === "supplier" && (
-                <SupplierReportView
-                  data={data}
-                  searchQuery={searchQuery}
-                  selectedSupplierFilter={selectedSupplierFilter}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                  onOpenOrdersModal={(supplier) => setSelectedSupplierModal(supplier)}
-                />
-              )}
-              {initialTab === "distribution" && (
-                <DistributionReportView
-                  data={data}
-                  searchQuery={searchQuery}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-              )}
-            </>
-          )}
-        </div>
-      </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 bg-card rounded-2xl border border-border">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">Loading report metrics...</p>
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
+            <p className="text-sm font-semibold text-red-600">{error}</p>
+            <Button onClick={fetchData} className="mt-3 text-xs bg-foreground text-background">Retry</Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {initialTab === "inventory" && <InventoryReportView data={data} searchQuery={searchQuery} currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+            {initialTab === "procurement" && <ProcurementReportView data={data} searchQuery={searchQuery} currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+            {initialTab === "production" && <ProductionReportView data={data} searchQuery={searchQuery} currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+            {initialTab === "supplier" && <SupplierReportView data={data} searchQuery={searchQuery} selectedSupplierFilter={selectedSupplierFilter} currentPage={currentPage} setCurrentPage={setCurrentPage} onOpenOrdersModal={(s: any) => setSelectedSupplierModal(s)} />}
+            {initialTab === "distribution" && <DistributionReportView data={data} searchQuery={searchQuery} currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+          </div>
+        )}
 
-      {/* Supplier Order Transactions Modal */}
-      <SupplierOrdersModal
-        selectedSupplierModal={selectedSupplierModal}
-        onClose={() => setSelectedSupplierModal(null)}
-      />
+        {selectedSupplierModal && (
+          <SupplierOrdersModal selectedSupplierModal={selectedSupplierModal} onClose={() => setSelectedSupplierModal(null)} />
+        )}
+      </div>
     </div>
   );
 }

@@ -52,6 +52,7 @@ export default function LocationManagement({ locations, onView, onEdit }: { loca
                   </td>
                   <td className="px-4 py-3 text-center relative">
                     <button 
+                      type="button"
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         if (activeDropdownId === l.id) {
@@ -66,9 +67,9 @@ export default function LocationManagement({ locations, onView, onEdit }: { loca
                           setActiveDropdownId(l.id); 
                         }
                       }}
-                      className="p-1 text-muted-foreground hover:text-foreground"
+                      className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
                     >
-                      <MoreHorizontal size={18} />
+                      <MoreHorizontal size={18} className="text-foreground" />
                     </button>
                     {activeDropdownId === l.id && dropdownPosition && createPortal(
                       <>
@@ -81,11 +82,11 @@ export default function LocationManagement({ locations, onView, onEdit }: { loca
                         />
                         <div className="absolute z-[200] w-36 bg-card rounded-xl shadow-xl py-1.5 border border-border text-left"
                              style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}>
-                          <button onClick={() => { onView(l); setActiveDropdownId(null); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted">
-                            <Eye size={14} className="text-foreground" /> View Details
+                          <button type="button" onClick={() => { onView(l); setActiveDropdownId(null); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left">
+                            <Eye size={14} className="text-foreground shrink-0" /> View Details
                           </button>
-                          <button onClick={() => { onEdit(l); setActiveDropdownId(null); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted">
-                            <Edit2 size={14} className="text-foreground" /> Edit
+                          <button type="button" onClick={() => { onEdit(l); setActiveDropdownId(null); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left">
+                            <Edit2 size={14} className="text-foreground shrink-0" /> Edit
                           </button>
                         </div>
                       </>,

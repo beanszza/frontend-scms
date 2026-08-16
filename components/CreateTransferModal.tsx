@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import api from "@/lib/api";
 
 type LocationItem = {
@@ -43,6 +45,9 @@ export default function CreateTransferModal({
   mode = "create",
   initialData,
 }: CreateTransferModalProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const [product, setProduct] = useState("");
   const [productError, setProductError] = useState("");
   const [to, setTo] = useState("");
@@ -192,25 +197,27 @@ export default function CreateTransferModal({
     (loc) => !sourceLocationId || loc.id !== sourceLocationId.toString()
   );
 
+  if (!mounted) return null;
+
   if (mode === "view" && initialData) {
-    return (
+    return createPortal(
       <div
         className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
         onClick={onClose}
       >
         <div
-          className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground"
+          className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center justify-between border-b border-border pb-3 mb-4 flex-shrink-0">
             <h2 className="text-xl font-bold text-foreground">
               Transfer Details - {initialData.id}
             </h2>
             <button
               onClick={onClose}
-              className="text-muted-foreground hover:opacity-80 transition-opacity text-xl font-semibold leading-none"
+              className="text-foreground/60 hover:text-foreground transition-colors"
             >
-              ✕
+              <X size={22} />
             </button>
           </div>
 
@@ -283,22 +290,23 @@ export default function CreateTransferModal({
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
       onClick={onClose}
     >
       <div
-        className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground"
+        className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
+        <div className="flex items-center justify-between border-b border-border pb-3 mb-4 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-foreground">
+            <h2 className="text-xl font-bold text-foreground">
               {mode === "create"
                 ? "Create Stock Transfer"
                 : mode === "edit"
@@ -313,9 +321,9 @@ export default function CreateTransferModal({
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:opacity-80 transition-opacity text-xl font-bold"
+            className="text-foreground/60 hover:text-foreground transition-colors"
           >
-            ✕
+            <X size={22} />
           </button>
         </div>
 
@@ -489,7 +497,7 @@ export default function CreateTransferModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity"
+                className="px-4 py-2 text-xs font-semibold text-foreground border border-border bg-card hover:bg-foreground hover:text-background rounded-lg transition-colors"
               >
                 Close
               </button>
@@ -498,7 +506,7 @@ export default function CreateTransferModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity"
+                  className="px-4 py-2 text-xs font-semibold text-foreground border border-border bg-card hover:bg-foreground hover:text-background rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -513,7 +521,7 @@ export default function CreateTransferModal({
                     !!dateError ||
                     (availableStock !== null && availableStock <= 0)
                   }
-                  className="px-4 py-2 text-xs font-semibold text-white bg-primary rounded-lg hover:opacity-80 transition-opacity shadow-sm shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-xs font-semibold text-background bg-foreground rounded-lg hover:bg-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {mode === "edit" ? "Save Changes" : "Create Transfer"}
                 </button>
@@ -522,6 +530,7 @@ export default function CreateTransferModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

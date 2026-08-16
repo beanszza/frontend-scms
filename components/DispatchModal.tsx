@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { Upload, Trash2 } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Upload, Trash2, X } from "lucide-react";
 
 type Transfer = {
   id: string;
@@ -27,6 +28,8 @@ interface DispatchModalProps {
 }
 
 export default function DispatchModal({ transfer, onClose, onConfirm }: DispatchModalProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [dispatchDate, setDispatchDate] = useState("");
   const [dispatchDateError, setDispatchDateError] = useState("");
   const [driverName, setDriverName] = useState("");
@@ -118,16 +121,20 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="relative w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl bg-card shadow-2xl border border-border flex flex-col text-foreground" onClick={e => e.stopPropagation()}>
+      <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl text-foreground" onClick={e => e.stopPropagation()}>
         
-        <div className="flex items-start justify-between border-b border-border pb-3 mb-4">
+        <div className="flex items-center justify-between border-b border-border pb-3 mb-4 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Dispatch Transfer</h2>
+            <h2 className="text-xl font-bold text-foreground">Dispatch Transfer</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Assign vehicle and driver details to initiate stock transit</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:opacity-80 transition-opacity text-xl font-bold">✕</button>
+          <button onClick={onClose} className="text-foreground/60 hover:text-foreground transition-colors">
+            <X size={22} />
+          </button>
         </div>
 
         {/* Info card layout block */}
@@ -234,11 +241,12 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t border-border">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-foreground border border-border rounded-lg hover:opacity-80 transition-opacity">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-xs font-semibold text-white bg-primary hover:opacity-80 transition-opacity shadow-sm shadow-blue-500/30">Start Transit</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-foreground border border-border bg-card hover:bg-foreground hover:text-background rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="px-5 py-2 text-xs font-semibold text-background bg-foreground hover:bg-foreground/85 rounded-lg transition-colors">Start Transit</button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

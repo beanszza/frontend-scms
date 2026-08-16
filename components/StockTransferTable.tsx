@@ -71,6 +71,7 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                 <td className="px-4 py-3 text-center relative">
                   <div className="relative inline-block text-center">
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (activeDropdownId === t.id) {
@@ -85,9 +86,9 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                           setActiveDropdownId(t.id);
                         }
                       }}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none"
+                      className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
                     >
-                      <MoreHorizontal size={18} />
+                      <MoreHorizontal size={18} className="text-foreground" />
                     </button>
 
                     {activeDropdownId === t.id && dropdownPosition && createPortal(
@@ -104,60 +105,65 @@ export default function StockTransferTable({ transfers, onDispatchClick, onCompl
                           className="absolute w-44 rounded-xl border border-border bg-card shadow-xl z-[200] py-1.5 focus:outline-none text-left"
                         >
                           <button
+                            type="button"
                             onClick={() => {
                               onViewClick?.(t);
                               setActiveDropdownId(null);
                             }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
                           >
-                            <Eye size={14} className="text-muted-foreground" />
+                            <Eye size={14} className="text-foreground shrink-0" />
                             View
                           </button>
                           {t.status === "Pending" && (
                             <button
+                              type="button"
                               onClick={() => {
                                 onEditClick?.(t);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
                             >
-                              <Pencil size={14} className="text-foreground" />
+                              <Pencil size={14} className="text-foreground shrink-0" />
                               Edit
                             </button>
                           )}
                           {t.status === "Pending" && (
                             <button
+                              type="button"
                               onClick={() => {
                                 onDispatchClick(t);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
                             >
-                              <Truck size={14} className="text-foreground" />
+                              <Truck size={14} className="text-foreground shrink-0" />
                               Dispatch
                             </button>
                           )}
                           {t.status === "In Transit" && (
                             <button
+                              type="button"
                               onClick={() => {
                                 onCompleteClick(t.id);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
                             >
-                              <CheckCircle size={14} className="text-muted-foreground" />
+                              <CheckCircle size={14} className="text-foreground shrink-0" />
                               Complete
                             </button>
                           )}
                           {t.status === "Pending" && (
                             <button
+                              type="button"
                               onClick={() => {
                                 onCancelClick?.(t);
                                 setActiveDropdownId(null);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-muted transition-colors"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
                             >
-                              <XCircle size={14} />
+                              <XCircle size={14} className="text-foreground shrink-0" />
                               Cancel
                             </button>
                           )}
