@@ -47,7 +47,9 @@ export default function OrdersProcurementPage() {
         const raw = res.data.data.items || res.data.data || [];
         setOrders(
           raw.map((o: any) => ({
-            id: `PO-${String(o.poId || o.purchaseOrderId).padStart(4, "0")}`,
+            // Prefer the real document number (PO-2026-0042) now that the backend issues one. The
+            // key-derived label remains as a fallback for any row created before numbering existed.
+            id: o.poNumber || `PO-${String(o.poId || o.purchaseOrderId).padStart(4, "0")}`,
             poId: o.poId || o.purchaseOrderId,
             item: o.itemName || o.item || "",
             itemId: o.itemId,

@@ -113,7 +113,8 @@ export default function CreateOrderModal({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">Quantity <span className="text-muted-foreground">*</span></label>
-            <Input type="number" min={1} value={quantity} onChange={(e) => { setQuantity(e.target.value); setQuantityError(""); }} placeholder="e.g. 100" className="rounded-xl border border-border bg-card text-foreground text-sm" />
+            {/* step matches the backend's numeric(18,3): without it the browser rejects "12.5". */}
+            <Input type="number" min={0.001} step={0.001} value={quantity} onChange={(e) => { setQuantity(e.target.value); setQuantityError(""); }} placeholder="e.g. 100" className="rounded-xl border border-border bg-card text-foreground text-sm" />
             {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
           </div>
           <div>

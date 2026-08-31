@@ -120,6 +120,7 @@ export default function SupplyModal({ open, editingItem, onClose, onSave }: Supp
             <Input
               type="number"
               min={0}
+              step={0.001}
               value={minStock}
               onChange={(e) => { setMinStock(e.target.value); setMinStockError(""); }}
               placeholder="e.g. 10"
@@ -132,6 +133,7 @@ export default function SupplyModal({ open, editingItem, onClose, onSave }: Supp
             <Input
               type="number"
               min={0}
+              step={0.001}
               value={maxStock}
               onChange={(e) => { setMaxStock(e.target.value); setMaxStockError(""); }}
               placeholder="e.g. 100"

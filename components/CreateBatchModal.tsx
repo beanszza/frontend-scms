@@ -185,10 +185,17 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     }
   }, [userTargetYield, recipeTargetYield, yieldUnit]);
 
+  // Batch multiplier is decimal on the backend as of the decimal(18,3) migration, so the exact
+  // ratio can be sent. It used to be rounded up with Math.ceil, which silently overproduced:
+  // asking for 30 jars from a 20-jar recipe cooked 40 and consumed ingredients for 40.
+  const batchMultiplierFor = (targetYield: number | string, recipeYield: number | null) => {
+    if (!recipeYield || targetYield === "" || Number(targetYield) <= 0) return 1;
+    // Rounded to 3 decimals to match the backend column scale.
+    return Math.round((Number(targetYield) / recipeYield) * 1000) / 1000;
+  };
+
   const hasStockIssue = useMemo(() => {
-    const multiplier = recipeTargetYield && userTargetYield !== "" && Number(userTargetYield) > 0 
-      ? Math.ceil(Number(userTargetYield) / recipeTargetYield) 
-      : 1;
+    const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
     return ingredients.some((ing) => ing.availableStock < ing.requiredQty * multiplier);
   }, [ingredients, userTargetYield, recipeTargetYield]);
 
@@ -207,7 +214,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     if (!isFormValid) return;
     setIsSubmitting(true);
     try {
-      const multiplier = Math.ceil(Number(userTargetYield) / (recipeTargetYield || 1));
+      const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
       
       await api.post("/api/scms/api/ProductionBatches", {
         recipeId: Number(selectedVariantId),
@@ -442,9 +449,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </thead>
                   <tbody>
                     {ingredients.map((ing) => {
-                      const multiplier = recipeTargetYield && userTargetYield !== "" && Number(userTargetYield) > 0 
-                        ? Math.ceil(Number(userTargetYield) / recipeTargetYield) 
-                        : 1;
+                      const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
                       const required = ing.requiredQty * multiplier;
                       const deficit = required - ing.availableStock;
                       const sufficient = deficit <= 0;

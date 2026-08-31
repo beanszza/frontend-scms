@@ -67,10 +67,12 @@ export default function RecipeIngredientItem({
         </div>
         <div className="sm:col-span-3">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Quantity</label>
+          {/* Ingredients are weighed, so fractions must be enterable: "0.75" kg of sugar. */}
           <Input
             type="number"
             min={0}
-            placeholder="e.g. 500"
+            step={0.001}
+            placeholder="e.g. 0.75"
             value={ingredient.quantity}
             onChange={(e) => onQuantityChange(ingredient.id, e.target.value)}
             className={`w-full rounded-lg border ${error ? "border-red-500" : "border-border"} bg-card px-3 py-2 text-xs text-foreground`}

@@ -429,7 +429,8 @@ export default function CreateTransferModal({
               </label>
               <input
                 type="number"
-                min="1"
+                min="0.001"
+                step="0.001"
                 max={availableStock ?? undefined}
                 placeholder="e.g., 50"
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${
