@@ -8,7 +8,7 @@ import { Search, Plus, FileText } from "lucide-react";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { Recipe } from "./types";
-import RecipeSummaryCards from "./RecipeSummaryCards";
+
 import RecipeTable from "./RecipeTable";
 
 interface RecipeTabProps {

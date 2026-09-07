@@ -23,7 +23,6 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
         <thead className="border-b border-border bg-muted/30">
           <tr className="text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
             <th className="px-5 py-4">Supplier No.</th>
-            <th className="px-5 py-4">ID</th>
             <th className="px-5 py-4">Supplier Name</th>
             <th className="px-5 py-4">Contact Person</th>
             <th className="px-5 py-4">Email</th>
@@ -35,7 +34,7 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
         <tbody className="divide-y divide-border">
           {suppliers.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
+              <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                 No Results Found
               </td>
             </tr>
@@ -45,34 +44,28 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
                 <td className="px-5 py-4 text-sm text-muted-foreground whitespace-nowrap">
                   {index + 1 + (currentPage - 1) * pageSize}
                 </td>
-                <td className="px-5 py-4 text-sm font-semibold text-foreground whitespace-nowrap">
-                  {supplier.supplierCode ? (
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <button
-                          onClick={() => onView(supplier)}
-                          className="cursor-pointer font-medium hover:underline focus:outline-none whitespace-nowrap"
-                        >
-                          {supplier.supplierCode}
-                        </button>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
-                        <div className="flex justify-between space-x-4">
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-semibold">{supplier.companyName}</h4>
-                            <p className="text-sm text-muted-foreground">Contact: {supplier.contactPerson}</p>
-                            <div className="flex items-center pt-2">
-                              <StatusBadge status={supplier.isActive ? "Active" : "Inactive"} />
-                            </div>
-                          </div>
+                <td className="px-5 py-4 text-sm font-semibold text-foreground">
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <span className="cursor-default whitespace-nowrap">
+                        {supplier.companyName}
+                      </span>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-72">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-foreground">{supplier.companyName}</p>
+                        {supplier.supplierCode && (
+                          <p className="text-xs font-mono text-muted-foreground">Supplier ID: {supplier.supplierCode}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Contact: {supplier.contactPerson}</p>
+                        <p className="text-xs text-muted-foreground">Email: {supplier.email}</p>
+                        <div className="pt-1">
+                          <StatusBadge status={supplier.isActive ? "Active" : "Inactive"} />
                         </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 </td>
-                <td className="px-5 py-4 text-sm font-semibold text-foreground">{supplier.companyName}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{supplier.contactPerson}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{supplier.email}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground whitespace-nowrap">{supplier.phone}</td>
@@ -94,22 +87,22 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
                       <button
                         type="button"
                         onClick={() => {
-                          onEdit(supplier);
-                          setActiveDropdownId(null);
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                      >
-                        <Pencil size={14} className="shrink-0" /> Edit Supplier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
                           onView(supplier);
                           setActiveDropdownId(null);
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                       >
                         <Eye size={14} className="shrink-0" /> View Details
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onEdit(supplier);
+                          setActiveDropdownId(null);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Pencil size={14} className="shrink-0" /> Edit Supplier
                       </button>
                     </div>
                   )}

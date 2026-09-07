@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import ModalWrapper from "./ModalWrapper";
 import { Supplier } from "./types";
 import api from "@/lib/api";
-import { ShieldCheck, AlertCircle, FileCheck, Package, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { ShieldCheck, AlertCircle, FileCheck, Package, Clock, CheckCircle2, XCircle, ShoppingCart } from "lucide-react";
 
 interface SupplierDoc {
   documentId: number;
@@ -42,6 +42,15 @@ interface CatalogItem {
   isPreferred: boolean;
 }
 
+interface RecentOrder {
+  poId: number;
+  poNumber: string;
+  orderDate: string;
+  status: string;
+  totalAmount: number;
+  itemCount: number;
+}
+
 interface SupplierDetailsModalProps {
   supplier: Supplier | null;
   onClose: () => void;
@@ -59,24 +68,29 @@ export default function SupplierDetailsModal({
 }: SupplierDetailsModalProps) {
   const [compliance, setCompliance] = useState<ComplianceSummary | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!supplier) {
       setCompliance(null);
       setCatalog([]);
+      setRecentOrders([]);
       return;
     }
 
     const loadDetails = async () => {
       setLoading(true);
       try {
-        const [compRes, catRes] = await Promise.allSettled([
+        const [compRes, catRes, poRes] = await Promise.allSettled([
           api.get(`/api/scms/api/SupplierDocuments/compliance-summary/${supplier.supplierId}`).catch(() =>
             api.get(`/api/SupplierDocuments/compliance-summary/${supplier.supplierId}`)
           ),
           api.get(`/api/scms/api/SupplierItems/by-supplier/${supplier.supplierId}`).catch(() =>
             api.get(`/api/SupplierItems/by-supplier/${supplier.supplierId}`)
+          ),
+          api.get(`/api/scms/api/PurchaseOrders?pageSize=50`).catch(() =>
+            api.get(`/api/PurchaseOrders?pageSize=50`)
           ),
         ]);
 
@@ -86,8 +100,23 @@ export default function SupplierDetailsModal({
         if (catRes.status === "fulfilled" && catRes.value?.data?.success) {
           setCatalog(catRes.value.data.data || []);
         }
+        if (poRes.status === "fulfilled" && poRes.value?.data?.success) {
+          const allPOs = poRes.value.data.data?.items || poRes.value.data.data || [];
+          const filtered = allPOs
+            .filter((po: any) => po.supplierId === supplier.supplierId)
+            .slice(0, 5)
+            .map((po: any) => ({
+              poId: po.poId,
+              poNumber: po.poNumber,
+              orderDate: po.orderDate,
+              status: po.status,
+              totalAmount: po.totalAmount,
+              itemCount: (po.items || []).length,
+            }));
+          setRecentOrders(filtered);
+        }
       } catch (err) {
-        console.error("Failed to load supplier compliance/catalog", err);
+        console.error("Failed to load supplier details", err);
       } finally {
         setLoading(false);
       }
@@ -97,6 +126,14 @@ export default function SupplierDetailsModal({
   }, [supplier]);
 
   if (!supplier) return null;
+
+  const statusColor = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "delivered" || s === "completed" || s === "received") return "text-emerald-600 bg-emerald-500/10 border-emerald-500/20";
+    if (s === "pending" || s === "draft") return "text-amber-600 bg-amber-500/10 border-amber-500/20";
+    if (s === "cancelled" || s === "rejected") return "text-rose-600 bg-rose-500/10 border-rose-500/20";
+    return "text-muted-foreground bg-muted border-border";
+  };
 
   return (
     <ModalWrapper
@@ -139,6 +176,11 @@ export default function SupplierDetailsModal({
               </span>
             )}
           </div>
+          {supplier.supplierCode && (
+            <span className="text-xs font-mono text-muted-foreground bg-muted/40 border border-border px-3 py-1 rounded-full">
+              Supplier ID: {supplier.supplierCode}
+            </span>
+          )}
         </div>
 
         {/* Contact Information */}
@@ -167,7 +209,7 @@ export default function SupplierDetailsModal({
             <div className="flex items-center gap-2">
               <FileCheck size={16} className="text-primary" />
               <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Regulatory Permits & Quality Assurance Documents
+                Regulatory Permits &amp; Quality Assurance Documents
               </h3>
             </div>
             {compliance && (
@@ -246,12 +288,12 @@ export default function SupplierDetailsModal({
           )}
         </div>
 
-        {/* Catalog Items Supplied */}
+        {/* Supplied Items (no prices) */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2 border-b border-border pb-2">
             <Package size={16} className="text-primary" />
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Catalog Items Supplied & Contracted Prices
+              Linked Supplies
             </h3>
           </div>
 
@@ -259,7 +301,7 @@ export default function SupplierDetailsModal({
             <div className="py-6 text-center text-xs text-muted-foreground">Loading catalog...</div>
           ) : catalog.length === 0 ? (
             <div className="py-6 text-center text-xs text-muted-foreground">
-              No catalog items linked to this supplier.
+              No items linked to this supplier.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -268,7 +310,6 @@ export default function SupplierDetailsModal({
                   <tr className="border-b border-border text-muted-foreground text-[11px]">
                     <th className="px-2.5 py-2 text-left">ITEM NAME</th>
                     <th className="px-2.5 py-2 text-left">VENDOR SKU</th>
-                    <th className="px-2.5 py-2 text-left">UNIT PRICE</th>
                     <th className="px-2.5 py-2 text-left">PACK SIZE</th>
                     <th className="px-2.5 py-2 text-left">LEAD TIME</th>
                     <th className="px-2.5 py-2 text-left">STATUS</th>
@@ -279,9 +320,6 @@ export default function SupplierDetailsModal({
                     <tr key={ci.itemId} className="hover:bg-muted/20">
                       <td className="px-2.5 py-2.5 font-semibold text-foreground">{ci.itemName}</td>
                       <td className="px-2.5 py-2.5 font-mono text-muted-foreground">{ci.supplierSku || "-"}</td>
-                      <td className="px-2.5 py-2.5 font-bold text-foreground">
-                        ₱{ci.unitPrice.toFixed(2)} / {ci.purchaseUomName}
-                      </td>
                       <td className="px-2.5 py-2.5 text-muted-foreground">
                         {ci.packSize > 1 ? `${ci.packSize} units/pack` : "Standard"}
                       </td>
@@ -294,6 +332,57 @@ export default function SupplierDetailsModal({
                             ★ Preferred
                           </span>
                         )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Orders */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 border-b border-border pb-2">
+            <ShoppingCart size={16} className="text-primary" />
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Recent Orders
+            </h3>
+          </div>
+
+          {loading ? (
+            <div className="py-6 text-center text-xs text-muted-foreground">Loading orders...</div>
+          ) : recentOrders.length === 0 ? (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              No purchase orders found for this supplier.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground text-[11px]">
+                    <th className="px-2.5 py-2 text-left">PO NUMBER</th>
+                    <th className="px-2.5 py-2 text-left">DATE</th>
+                    <th className="px-2.5 py-2 text-left">STATUS</th>
+                    <th className="px-2.5 py-2 text-right">QUANTITY</th>
+                    <th className="px-2.5 py-2 text-right">TOTAL AMOUNT</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {recentOrders.map((order) => (
+                    <tr key={order.poId} className="hover:bg-muted/20">
+                      <td className="px-2.5 py-2.5 font-mono font-semibold text-foreground">{order.poNumber}</td>
+                      <td className="px-2.5 py-2.5 text-muted-foreground">{formatDate(order.orderDate)}</td>
+                      <td className="px-2.5 py-2.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold border ${statusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-2.5 text-right text-muted-foreground">
+                        {order.itemCount} item{order.itemCount !== 1 ? "s" : ""}
+                      </td>
+                      <td className="px-2.5 py-2.5 text-right font-bold text-foreground">
+                        ₱{Number(order.totalAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))}

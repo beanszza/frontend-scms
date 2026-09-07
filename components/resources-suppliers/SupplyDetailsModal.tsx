@@ -154,7 +154,7 @@ export default function SupplyDetailsModal({
           </h4>
           <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 text-xs">
-              <span className="text-muted-foreground font-medium">Unique Item ID</span>
+              <span className="text-muted-foreground font-medium">Supply ID</span>
               <span className="font-mono font-semibold text-foreground">{item.itemCode || "-"}</span>
             </div>
             <div className="flex items-center justify-between px-4 py-2.5 text-xs">
@@ -208,11 +208,6 @@ export default function SupplyDetailsModal({
                       )}
                     </div>
                     <div className="text-right space-y-0.5">
-                      {s.unitPrice != null && (
-                        <p className="font-semibold text-foreground">
-                          {s.currency} {s.unitPrice.toFixed(2)}
-                        </p>
-                      )}
                       {s.leadTimeDays != null && (
                         <p className="text-[10px] text-muted-foreground">
                           {s.leadTimeDays} days lead time

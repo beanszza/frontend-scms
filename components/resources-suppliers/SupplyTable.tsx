@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MoreHorizontal, Pencil } from "lucide-react";
+import { MoreHorizontal, Pencil, Eye } from "lucide-react";
 import { SupplyItem } from "./types";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -23,7 +23,6 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
         <thead className="border-b border-border bg-muted/30">
           <tr className="text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
             <th className="px-5 py-4">Item No.</th>
-            <th className="px-5 py-4">ID</th>
             <th className="px-5 py-4">Name</th>
             <th className="px-5 py-4">Category</th>
             <th className="px-5 py-4">Unit</th>
@@ -36,7 +35,7 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
         <tbody className="divide-y divide-border">
           {items.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
+              <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                 No Results Found
               </td>
             </tr>
@@ -46,35 +45,28 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
                 <td className="px-5 py-4 text-sm text-muted-foreground whitespace-nowrap">
                   {index + 1 + (currentPage - 1) * pageSize}
                 </td>
-                <td className="px-5 py-4 text-sm font-semibold text-foreground whitespace-nowrap">
-                  {item.itemCode ? (
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <button
-                          onClick={() => onView ? onView(item) : onEdit(item)}
-                          className="cursor-pointer font-medium text-foreground hover:underline focus:outline-none whitespace-nowrap"
-                        >
-                          {item.itemCode}
-                        </button>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
-                        <div className="flex justify-between space-x-4">
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-semibold">{item.itemName}</h4>
-                            <p className="text-sm text-muted-foreground">Category: {item.categoryName}</p>
-                            <p className="text-sm text-muted-foreground">UOM: {item.uomName}</p>
-                            <div className="flex items-center pt-2">
-                              <StatusBadge status={item.isActive !== false ? "Active" : "Inactive"} />
-                            </div>
-                          </div>
+                <td className="px-5 py-4 text-sm font-medium text-foreground">
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <span className="cursor-default whitespace-nowrap">
+                        {item.itemName}
+                      </span>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-72">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-foreground">{item.itemName}</p>
+                        {item.itemCode && (
+                          <p className="text-xs font-mono text-muted-foreground">Supply ID: {item.itemCode}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Category: {item.categoryName}</p>
+                        <p className="text-xs text-muted-foreground">UOM: {item.uomName}</p>
+                        <div className="pt-1">
+                          <StatusBadge status={item.isActive !== false ? "Active" : "Inactive"} />
                         </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 </td>
-                <td className="px-5 py-4 text-sm font-medium text-foreground">{item.itemName}</td>
                 <td className="px-5 py-4">
                   <span className="rounded-md bg-muted text-foreground border border-border px-2.5 py-0.5 text-xs font-semibold">
                     {item.categoryName}
@@ -95,7 +87,19 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
                     <MoreHorizontal size={18} />
                   </button>
                   {activeDropdownId === item.itemId && (
-                    <div className="absolute right-10 top-2 z-[100] w-32 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left">
+                    <div className="absolute right-10 top-2 z-[100] w-36 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left">
+                      {onView && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onView(item);
+                            setActiveDropdownId(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Eye size={14} className="shrink-0" /> View Details
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {

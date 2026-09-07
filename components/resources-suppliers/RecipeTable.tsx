@@ -22,7 +22,6 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
         <thead className="border-b border-border bg-muted/30">
           <tr className="text-left text-xs uppercase text-muted-foreground">
             <th className="px-5 py-4">Recipe No.</th>
-            <th className="px-5 py-4">ID</th>
             <th className="px-5 py-4">Recipe Name</th>
             <th className="px-5 py-4">Finished Product</th>
             <th className="px-5 py-4">Target Yield</th>
@@ -33,7 +32,7 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
         <tbody className="divide-y divide-border">
           {recipes.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
+              <td colSpan={6} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                 No Results Found
               </td>
             </tr>
@@ -44,34 +43,32 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
                   {index + 1 + (currentPage - 1) * pageSize}
                 </td>
                 <td className="px-5 py-4 text-sm font-semibold text-foreground">
-                  {recipe.recipeCode ? (
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <button
-                          onClick={() => onEdit(recipe)}
-                          className="cursor-pointer font-medium hover:underline focus:outline-none"
-                        >
-                          {recipe.recipeCode}
-                        </button>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
-                        <div className="flex justify-between space-x-4">
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-semibold">{recipe.recipeName}</h4>
-                            <p className="text-sm text-muted-foreground">Output: {recipe.outputQuantity}</p>
-                            <p className="text-sm text-muted-foreground">Notes: {recipe.notes}</p>
-                            <div className="flex items-center pt-2">
-                              <StatusBadge status={recipe.isActive ? "Active" : "Inactive"} />
-                            </div>
-                          </div>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <span className="cursor-default whitespace-nowrap">
+                        {recipe.recipeName}
+                      </span>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-72">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-foreground">{recipe.recipeName}</p>
+                        {recipe.recipeCode && (
+                          <p className="text-xs font-mono text-muted-foreground">Recipe ID: {recipe.recipeCode}</p>
+                        )}
+                        {recipe.finishedProduct && (
+                          <p className="text-xs text-muted-foreground">Product: {recipe.finishedProduct}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Target Yield: {recipe.outputQuantity}</p>
+                        {recipe.notes && (
+                          <p className="text-xs text-muted-foreground">Notes: {recipe.notes}</p>
+                        )}
+                        <div className="pt-1">
+                          <StatusBadge status={recipe.isActive ? "Active" : "Inactive"} />
                         </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 </td>
-                <td className="px-5 py-4 text-sm font-semibold text-foreground">{recipe.recipeName}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.finishedProduct || "N/A"}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.outputQuantity}</td>
                 <td className="px-5 py-4">
