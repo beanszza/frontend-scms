@@ -41,10 +41,13 @@ import ConfirmModal from "@/components/ConfirmModal";
 import PaginationFooter from "./PaginationFooter";
 import { getImageUrl } from "@/lib/getImageUrl";
 import { useAuth } from "@/context/AuthContext";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 // ---------- Types ----------
 type ProductionBatchResponse = {
   batchId: number;
+  batchNumber?: string;
   recipeId: number;
   recipeName: string;
   productId: number;
@@ -116,23 +119,7 @@ function useDarkMode() {
 // Stage data is stored on the backend as imageUrl/notes
 
 // ---------- Status Badge ----------
-function StatusBadge({ status }: { status: string }) {
-  const displayStatus = status === "Inventory Added" ? "Completed" : status;
-  const normalized = displayStatus.toLowerCase();
-  let badgeStyle = "bg-muted text-foreground border border-border";
-  if (normalized === "completed" || normalized === "passed qa") {
-    badgeStyle = "bg-foreground text-background border border-foreground font-bold";
-  } else if (normalized === "in progress") {
-    badgeStyle = "bg-muted/70 text-foreground border border-muted-foreground/30 font-semibold";
-  } else if (normalized === "rejected" || normalized === "cancelled") {
-    badgeStyle = "bg-muted/30 text-muted-foreground border border-border opacity-75";
-  }
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap border ${badgeStyle}`}>
-      {displayStatus}
-    </span>
-  );
-}
+// Using shared StatusBadge component
 
 // ---------- Configuration Product Modal ----------
 const ConfigProductModal = ({
@@ -369,12 +356,13 @@ export default function ProductionPage() {
 
       let filtered = batchesRes.data || [];
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         filtered = filtered.filter((b: ProductionBatchResponse) =>
           b.productName.toLowerCase().includes(q) ||
           b.recipeName.toLowerCase().includes(q) ||
           b.stage.toLowerCase().includes(q) ||
           b.status.toLowerCase().includes(q) ||
+          (b.batchNumber && b.batchNumber.toLowerCase().includes(q)) ||
           b.batchId.toString().includes(q)
         );
       }
@@ -669,17 +657,11 @@ export default function ProductionPage() {
   ];
 
   return (
-    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
-
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Production & Quality</h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Manage production batches, track stages, and perform QA reviews.
-          </p>
-        </div>
-      </div>
+    <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
+      <PageHeader
+        title="Production & Quality"
+        description="Manage production batches, track stages, and perform QA reviews."
+      />
 
       {/* Main Tabs */}
       <Tabs
@@ -746,9 +728,9 @@ export default function ProductionPage() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setSearchError(/^[A-Za-z0-9\s]*$/.test(e.target.value) ? "" : "Special characters are not allowed.");
+                    setSearchError(/^[A-Za-z0-9\s-]*$/.test(e.target.value) ? "" : "Special characters are not allowed.");
                   }}
-                  placeholder="Search by product name..."
+                  placeholder="Search by Batch ID, product, or recipe..."
                   className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1"
                 />
               </div>

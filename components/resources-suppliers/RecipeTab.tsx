@@ -37,10 +37,13 @@ export default function RecipeTab({
   onEdit,
 }: RecipeTabProps) {
   const filteredRecipes = recipes.filter((recipe) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      recipe.recipeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.finishedProduct?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.recipeId.toString().includes(searchQuery);
+      !q ||
+      recipe.recipeName.toLowerCase().includes(q) ||
+      (recipe.recipeCode ? recipe.recipeCode.toLowerCase().includes(q) : false) ||
+      (recipe.finishedProduct ? recipe.finishedProduct.toLowerCase().includes(q) : false) ||
+      recipe.recipeId.toString().includes(q);
     const matchesStatus =
       statusFilter === "All" ||
       (statusFilter === "Active" && recipe.isActive) ||
@@ -78,15 +81,13 @@ export default function RecipeTab({
         </div>
       </div>
 
-      <RecipeSummaryCards recipes={recipes} />
-
       <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
         <div className="flex items-center justify-between gap-sm px-md py-sm bg-muted/20">
           <div className="flex items-center gap-sm flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by Recipe or Product Name..."
+              placeholder="Search by ID, recipe, or product name..."
               value={searchQuery}
               onChange={(e) => {
                 onSearchChange(e.target.value);

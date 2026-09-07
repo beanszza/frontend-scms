@@ -16,6 +16,7 @@ import ProcurementTable from "@/components/orders-procurement/ProcurementTable";
 import CreateOrderModal from "@/components/orders-procurement/CreateOrderModal";
 import OrderDetailsModal from "@/components/orders-procurement/OrderDetailsModal";
 import ProcurementQAInspectionModal from "@/components/orders-procurement/ProcurementQAInspectionModal";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function OrdersProcurementPage() {
   const auth = useAuth();
@@ -115,23 +116,25 @@ export default function OrdersProcurementPage() {
   };
 
   return (
-    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Orders & Procurement</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage purchase orders, suppliers, and incoming shipments</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAuth && (
-            <Link href="/reports?tab=procurement" className="flex items-center gap-2 rounded-xl bg-card border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-              <FileText size={16} /> Reports
-            </Link>
-          )}
-          <Button onClick={() => setShowNew(true)} className="flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm">
-            <Plus size={16} /> New Order
-          </Button>
-        </div>
-      </div>
+    <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
+      <PageHeader
+        title="Orders & Procurement"
+        description="Manage purchase orders, suppliers, and incoming shipments"
+        actions={
+          <>
+            {isAuth && (
+              <Button size="sm" variant="outline" asChild className="gap-1.5">
+                <Link href="/reports?tab=procurement">
+                  <FileText className="w-4 h-4" /> Reports
+                </Link>
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setShowNew(true)} className="gap-1.5">
+              <Plus className="w-4 h-4" /> New Order
+            </Button>
+          </>
+        }
+      />
 
       <ProcurementSummaryCards orders={orders} />
 
@@ -141,7 +144,7 @@ export default function OrdersProcurementPage() {
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by Order No., Item, or Supplier..."
+              placeholder="Search by Order ID (e.g. PO-...), Item, or Supplier..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"

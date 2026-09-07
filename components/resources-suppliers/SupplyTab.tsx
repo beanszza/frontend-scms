@@ -8,7 +8,6 @@ import { Search, Plus, FileText } from "lucide-react";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { SupplyItem } from "./types";
-import SupplySummaryCards from "./SupplySummaryCards";
 import SupplyTable from "./SupplyTable";
 
 interface SupplyTabProps {
@@ -24,6 +23,7 @@ interface SupplyTabProps {
   isAuthorizedForReports: boolean;
   onAddNew: () => void;
   onEdit: (item: SupplyItem) => void;
+  onView?: (item: SupplyItem) => void;
 }
 
 export default function SupplyTab({
@@ -39,9 +39,15 @@ export default function SupplyTab({
   isAuthorizedForReports,
   onAddNew,
   onEdit,
+  onView,
 }: SupplyTabProps) {
   const filteredSupplies = supplies.filter((item) => {
-    const matchesSearch = item.itemName.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      item.itemName.toLowerCase().includes(q) ||
+      (item.itemCode ? item.itemCode.toLowerCase().includes(q) : false) ||
+      item.itemId.toString().includes(q);
     const matchesCategory = categoryFilter === "All" || item.categoryName === categoryFilter;
     const matchesStatus =
       statusFilter === "All" ||
@@ -80,15 +86,13 @@ export default function SupplyTab({
         </div>
       </div>
 
-      <SupplySummaryCards supplies={supplies} />
-
       <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
         <div className="flex items-center justify-between gap-sm px-md py-sm bg-muted/20">
           <div className="flex items-center gap-sm flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search supplies..."
+              placeholder="Search by name or ID (e.g. SPL-0001)..."
               value={searchQuery}
               onChange={(e) => {
                 onSearchChange(e.target.value);
@@ -139,6 +143,7 @@ export default function SupplyTab({
         currentPage={currentPage}
         pageSize={pageSize}
         onEdit={onEdit}
+        onView={onView}
       />
 
       <Pagination

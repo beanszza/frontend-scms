@@ -38,11 +38,15 @@ export default function SupplierTab({
   onView,
 }: SupplierTabProps) {
   const filteredSuppliers = suppliers.filter((supplier) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      supplier.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.phone.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      (supplier.supplierCode ? supplier.supplierCode.toLowerCase().includes(q) : false) ||
+      supplier.supplierId.toString().includes(q) ||
+      supplier.companyName.toLowerCase().includes(q) ||
+      supplier.contactPerson.toLowerCase().includes(q) ||
+      supplier.email.toLowerCase().includes(q) ||
+      supplier.phone.toLowerCase().includes(q);
     const matchesStatus =
       statusFilter === "All" ||
       (statusFilter === "Active" && supplier.isActive) ||
@@ -86,7 +90,7 @@ export default function SupplierTab({
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search suppliers..."
+              placeholder="Search by ID, company, contact, or email..."
               value={searchQuery}
               onChange={(e) => {
                 onSearchChange(e.target.value);
@@ -118,6 +122,8 @@ export default function SupplierTab({
 
       <SupplierTable
         suppliers={paginatedSuppliers}
+        currentPage={currentPage}
+        pageSize={pageSize}
         onEdit={onEdit}
         onView={onView}
       />

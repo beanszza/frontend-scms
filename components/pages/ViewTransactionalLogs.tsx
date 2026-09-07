@@ -66,8 +66,13 @@ export default function ViewTransactionalLogs() {
 
   const filteredLogs = logs.filter((log) => {
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      if (!log.activity.toLowerCase().includes(q) && !log.entityName.toLowerCase().includes(q) && !log.user.toLowerCase().includes(q)) return false;
+      const q = searchQuery.toLowerCase().trim();
+      const matches =
+        (log.id && log.id.toLowerCase().includes(q)) ||
+        log.activity.toLowerCase().includes(q) ||
+        log.entityName.toLowerCase().includes(q) ||
+        log.user.toLowerCase().includes(q);
+      if (!matches) return false;
     }
     const logDateStr = log.timestamp.split(" ")[0];
     const [month, day, year] = logDateStr.split("/").map(Number);

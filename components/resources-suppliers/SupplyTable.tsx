@@ -3,23 +3,27 @@
 import React, { useState } from "react";
 import { MoreHorizontal, Pencil } from "lucide-react";
 import { SupplyItem } from "./types";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface SupplyTableProps {
   items: SupplyItem[];
   currentPage: number;
   pageSize: number;
   onEdit: (item: SupplyItem) => void;
+  onView?: (item: SupplyItem) => void;
 }
 
-export default function SupplyTable({ items, currentPage, pageSize, onEdit }: SupplyTableProps) {
+export default function SupplyTable({ items, currentPage, pageSize, onEdit, onView }: SupplyTableProps) {
   const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-      <table className="w-full min-w-[700px]">
+      <table className="w-full min-w-[900px]">
         <thead className="border-b border-border bg-muted/30">
-          <tr className="text-left text-xs uppercase text-muted-foreground">
+          <tr className="text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
             <th className="px-5 py-4">Item No.</th>
+            <th className="px-5 py-4">ID</th>
             <th className="px-5 py-4">Name</th>
             <th className="px-5 py-4">Category</th>
             <th className="px-5 py-4">Unit</th>
@@ -32,15 +36,43 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit }: Su
         <tbody className="divide-y divide-border">
           {items.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
+              <td colSpan={9} className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">
                 No Results Found
               </td>
             </tr>
           ) : (
             items.map((item, index) => (
               <tr key={item.itemId} className="hover:bg-muted/30 transition-colors">
-                <td className="px-5 py-4 text-sm text-muted-foreground">
+                <td className="px-5 py-4 text-sm text-muted-foreground whitespace-nowrap">
                   {index + 1 + (currentPage - 1) * pageSize}
+                </td>
+                <td className="px-5 py-4 text-sm font-semibold text-foreground whitespace-nowrap">
+                  {item.itemCode ? (
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <button
+                          onClick={() => onView ? onView(item) : onEdit(item)}
+                          className="cursor-pointer font-medium text-foreground hover:underline focus:outline-none whitespace-nowrap"
+                        >
+                          {item.itemCode}
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80">
+                        <div className="flex justify-between space-x-4">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-semibold">{item.itemName}</h4>
+                            <p className="text-sm text-muted-foreground">Category: {item.categoryName}</p>
+                            <p className="text-sm text-muted-foreground">UOM: {item.uomName}</p>
+                            <div className="flex items-center pt-2">
+                              <StatusBadge status={item.isActive !== false ? "Active" : "Inactive"} />
+                            </div>
+                          </div>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </td>
                 <td className="px-5 py-4 text-sm font-medium text-foreground">{item.itemName}</td>
                 <td className="px-5 py-4">
@@ -52,15 +84,7 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit }: Su
                 <td className="px-5 py-4 text-sm text-muted-foreground">{item.minStockLevel}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{item.maxStockLevel}</td>
                 <td className="px-5 py-4">
-                  <span
-                    className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                      item.isActive !== false
-                        ? "bg-foreground text-background border border-foreground font-semibold"
-                        : "bg-muted/40 text-muted-foreground border border-border"
-                    }`}
-                  >
-                    {item.isActive !== false ? "Active" : "Inactive"}
-                  </span>
+                  <StatusBadge status={item.isActive !== false ? "Active" : "Inactive"} />
                 </td>
                 <td className="px-5 py-4 text-center relative">
                   <button

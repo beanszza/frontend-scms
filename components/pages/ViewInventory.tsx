@@ -10,6 +10,8 @@ import { useAuth } from "@/context/AuthContext";
 import { InventoryItem } from "@/components/inventory/types";
 import InventorySummaryCards from "@/components/inventory/InventorySummaryCards";
 import InventoryTable from "@/components/inventory/InventoryTable";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
 
 export default function ViewInventory() {
   const auth = useAuth();
@@ -77,20 +79,20 @@ export default function ViewInventory() {
   }, []);
 
   return (
-    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Monitor real-time warehouse stocks, raw materials, and finished goods</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAuth && (
-            <Link href="/reports?tab=inventory" className="flex items-center gap-2 rounded-xl bg-card border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-              <FileText size={16} /> Reports
-            </Link>
-          )}
-        </div>
-      </div>
+    <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
+      <PageHeader
+        title="Inventory Management"
+        description="Monitor real-time warehouse stocks, raw materials, and finished goods"
+        actions={
+          isAuth && (
+            <Button size="sm" variant="outline" asChild className="gap-1.5">
+              <Link href="/reports?tab=inventory">
+                <FileText className="w-4 h-4" /> Reports
+              </Link>
+            </Button>
+          )
+        }
+      />
 
       <InventorySummaryCards counts={categoryCounts} />
 

@@ -85,7 +85,7 @@ export default function AuditLogsFilterBar({
             <Search className="absolute left-3 top-2.5 text-muted-foreground" size={16} />
             <Input
               type="text"
-              placeholder="Search activity, items, users..."
+              placeholder="Search by ID, activity, items, users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"

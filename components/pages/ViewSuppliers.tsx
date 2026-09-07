@@ -9,9 +9,11 @@ import SupplyTab from "@/components/resources-suppliers/SupplyTab";
 import SupplierTab from "@/components/resources-suppliers/SupplierTab";
 import RecipeTab from "@/components/resources-suppliers/RecipeTab";
 import SupplyModal from "@/components/resources-suppliers/SupplyModal";
+import SupplyDetailsModal from "@/components/resources-suppliers/SupplyDetailsModal";
 import SupplierModal from "@/components/resources-suppliers/SupplierModal";
 import SupplierDetailsModal from "@/components/resources-suppliers/SupplierDetailsModal";
 import RecipeModal from "@/components/resources-suppliers/RecipeModal";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function ResourcesSuppliersPage() {
   const auth = useAuth();
@@ -43,6 +45,7 @@ export default function ResourcesSuppliersPage() {
   // Modals & Selected Items
   const [openSupplyModal, setOpenSupplyModal] = useState(false);
   const [editingSupply, setEditingSupply] = useState<SupplyItem | null>(null);
+  const [viewSupply, setViewSupply] = useState<SupplyItem | null>(null);
   const [openSupplierModal, setOpenSupplierModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [viewSupplier, setViewSupplier] = useState<Supplier | null>(null);
@@ -58,7 +61,13 @@ export default function ResourcesSuppliersPage() {
         api.get("/api/scms/api/FinishedProducts"),
       ]);
       const [itemsRes, suppliersRes, recipesRes, fpRes] = results.map((r) => (r.status === "fulfilled" ? r.value : null));
-      if (itemsRes?.data?.success) setSupplyData(itemsRes.data.data.items || itemsRes.data.data || []);
+      if (itemsRes?.data?.success) {
+        const rawItems = itemsRes.data.data.items || itemsRes.data.data || [];
+        const suppliesOnly = rawItems.filter(
+          (i: any) => i.categoryName !== "Finished Good" && i.categoryName !== "Finished Goods"
+        );
+        setSupplyData([...suppliesOnly].sort((a: any, b: any) => a.itemId - b.itemId));
+      }
       if (suppliersRes?.data?.success) setSupplierData(suppliersRes.data.data.items || suppliersRes.data.data || []);
       if (recipesRes?.data?.success) setRecipeData((recipesRes.data.data.items || recipesRes.data.data || []).sort((a: any, b: any) => a.recipeId - b.recipeId));
       if (fpRes?.data?.success) {
@@ -82,7 +91,10 @@ export default function ResourcesSuppliersPage() {
       if (editingSupply) await api.put(`/api/scms/api/Items/${editingSupply.itemId}`, payload);
       else await api.post("/api/scms/api/Items", payload);
       setOpenSupplyModal(false); setEditingSupply(null); fetchData();
-    } catch { alert("Failed to save supply item."); }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to save supply item.";
+      alert(msg);
+    }
   };
 
   const handleSaveSupplier = async (data: any) => {
@@ -106,11 +118,11 @@ export default function ResourcesSuppliersPage() {
   };
 
   return (
-    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Resources & Suppliers</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Manage your foundation data - Supply, Suppliers, and Recipes</p>
-      </div>
+    <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
+      <PageHeader
+        title="Resources & Suppliers"
+        description="Manage your foundation data - Supply, Suppliers, and Recipes"
+      />
 
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="mb-8">
         <TabsList>
@@ -128,6 +140,7 @@ export default function ResourcesSuppliersPage() {
           currentPage={supplyPage} onPageChange={setSupplyPage} isAuthorizedForReports={!!isAuth}
           onAddNew={() => { setEditingSupply(null); setOpenSupplyModal(true); }}
           onEdit={(item) => { setEditingSupply(item); setOpenSupplyModal(true); }}
+          onView={(item) => setViewSupply(item)}
         />
       )}
 
@@ -152,8 +165,23 @@ export default function ResourcesSuppliersPage() {
         />
       )}
 
-      <SupplyModal open={openSupplyModal} editingItem={editingSupply} onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }} onSave={handleSaveSupply} />
-      <SupplierModal open={openSupplierModal} editingSupplier={editingSupplier} onClose={() => { setOpenSupplierModal(false); setEditingSupplier(null); }} onSave={handleSaveSupplier} />
+      <SupplyModal
+        open={openSupplyModal}
+        editingItem={editingSupply}
+        existingSupplies={supplyData}
+        onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }}
+        onSave={handleSaveSupply}
+      />
+      <SupplyDetailsModal
+        item={viewSupply}
+        onClose={() => setViewSupply(null)}
+        onEdit={(item) => {
+          setViewSupply(null);
+          setEditingSupply(item);
+          setOpenSupplyModal(true);
+        }}
+      />
+      <SupplierModal open={openSupplierModal} editingSupplier={editingSupplier} baseSupplies={supplyData} onClose={() => { setOpenSupplierModal(false); setEditingSupplier(null); }} onSave={handleSaveSupplier} />
       <SupplierDetailsModal supplier={viewSupplier} onClose={() => setViewSupplier(null)} />
       <RecipeModal open={openRecipeModal} editingRecipe={editingRecipe} finishedProducts={finishedProductData} baseSupplies={supplyData} onClose={() => { setOpenRecipeModal(false); setEditingRecipe(null); }} onSave={handleSaveRecipe} />
     </div>

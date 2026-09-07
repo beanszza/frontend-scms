@@ -17,6 +17,7 @@ import LocationTable from "@/components/distribution/LocationTable";
 import CreateTransferModal from "@/components/distribution/CreateTransferModal";
 import LocationModal from "@/components/distribution/LocationModal";
 import LocationDetailsModal from "@/components/distribution/LocationDetailsModal";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function DistributionPage() {
   const auth = useAuth();
@@ -97,29 +98,31 @@ export default function DistributionPage() {
   };
 
   return (
-    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Distribution & Locations</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage stock transfers, logistics, and facility locations</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAuth && (
-            <Link href="/reports?tab=distribution" className="flex items-center gap-2 rounded-xl bg-card border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-              <FileText size={16} /> Reports
-            </Link>
-          )}
-          {activeTab === "Stock Transfer" ? (
-            <Button onClick={() => setShowCreateTransfer(true)} className="flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm">
-              <Plus size={16} /> + New Transfer
-            </Button>
-          ) : (
-            <Button onClick={() => { setEditingLocation(null); setShowLocationModal(true); }} className="flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm">
-              <Plus size={16} /> + Add Location
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
+      <PageHeader
+        title="Distribution & Locations"
+        description="Manage stock transfers, logistics, and facility locations"
+        actions={
+          <>
+            {isAuth && (
+              <Button size="sm" variant="outline" asChild className="gap-1.5">
+                <Link href="/reports?tab=distribution">
+                  <FileText className="w-4 h-4" /> Reports
+                </Link>
+              </Button>
+            )}
+            {activeTab === "Stock Transfer" ? (
+              <Button size="sm" onClick={() => setShowCreateTransfer(true)} className="gap-1.5">
+                <Plus className="w-4 h-4" /> New Transfer
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => { setEditingLocation(null); setShowLocationModal(true); }} className="gap-1.5">
+                <Plus className="w-4 h-4" /> Add Location
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <DistributionSummaryCards stats={stats} />
 
@@ -138,7 +141,7 @@ export default function DistributionPage() {
                 <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                 <Input
                   type="text"
-                  placeholder="Search transfers..."
+                  placeholder="Search by Transfer ID (e.g. TR-...), Item, or Location..."
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"

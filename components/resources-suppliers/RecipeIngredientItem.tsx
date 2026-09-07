@@ -66,17 +66,27 @@ export default function RecipeIngredientItem({
           </select>
         </div>
         <div className="sm:col-span-3">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Quantity</label>
-          {/* Ingredients are weighed, so fractions must be enterable: "0.75" kg of sugar. */}
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Quantity <span className="text-destructive">*</span></label>
           <Input
             type="number"
-            min={0}
-            step={0.001}
+            min={0.001}
+            step="any"
             placeholder="e.g. 0.75"
             value={ingredient.quantity}
-            onChange={(e) => onQuantityChange(ingredient.id, e.target.value)}
-            className={`w-full rounded-lg border ${error ? "border-red-500" : "border-border"} bg-card px-3 py-2 text-xs text-foreground`}
+            onKeyDown={(e) => {
+              if (["-", "+", "e", "E"].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val.length <= 50) {
+                onQuantityChange(ingredient.id, val);
+              }
+            }}
+            className={`w-full rounded-lg border ${error ? "border-red-500 focus-visible:ring-red-500" : "border-border"} bg-card px-3 py-2 text-xs text-foreground`}
           />
+          {error && <p className="mt-1 text-[11px] font-medium text-red-500">{error}</p>}
         </div>
         <div className="sm:col-span-3">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Unit</label>

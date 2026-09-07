@@ -2,12 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { RedirectToLogin } from "@/components/shared/RedirectToLogin";
-import axios from "axios";
-
-const apiAuth = axios.create({
-  baseURL: "http://localhost:3000",
-  withCredentials: true,
-});
+import { Loader2 } from "lucide-react";
 
 type ModuleAccess = {
   moduleName: string;
@@ -41,51 +36,51 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const SCMS_SESSION_KEY = "scms_session_active";
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      setUser({
-        id: "mock-id",
-        username: "scmsuser",
-        firstName: "Mock",
-        lastName: "User",
-        email: "scmsuser@r3b2p.com",
-        mustChangePassword: false,
-        roles: ["Admin"],
-        apps: [],
-      });
+    const init = () => {
+      const hasSession = sessionStorage.getItem(SCMS_SESSION_KEY);
+      const comingFromAuth = sessionStorage.getItem("scms_from_auth");
+
+      if (hasSession || comingFromAuth) {
+        // User either has an active session OR just came back from br-auth login
+        sessionStorage.setItem(SCMS_SESSION_KEY, "1");
+        sessionStorage.removeItem("scms_from_auth");
+        setUser({
+          id: "scms-user",
+          username: "scmsuser",
+          firstName: "SCMS",
+          lastName: "User",
+          email: "scmsuser@r3b2p.com",
+          mustChangePassword: false,
+          roles: ["Admin"],
+          apps: [],
+        });
+      } else {
+        setUser(null);
+      }
       setIsLoading(false);
     };
     init();
   }, []);
 
-  const validate = async (): Promise<User | null> => {
-    try {
-      const res = await apiAuth.get("/api/erp-auth/validate");
-      return res.data.user;
-    } catch { return null; }
-  };
-
-  const refresh = async (): Promise<boolean> => {
-    try {
-      await apiAuth.post("/api/erp-auth/refresh");
-      return true;
-    } catch { return false; }
-  };
-
   const logout = async (): Promise<void> => {
-    try {
-      await apiAuth.post("/api/erp-auth/logout");
-    } finally {
-      setUser(null);
-    }
+    sessionStorage.removeItem(SCMS_SESSION_KEY);
+    setUser(null);
   };
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-background font-sans text-sm text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+        <span className="font-medium text-xs tracking-wider uppercase">Loading...</span>
+      </div>
+    );
   }
 
   if (!user) {
