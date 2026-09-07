@@ -183,7 +183,7 @@ export default function SupplierModal({
     !phone.trim() || !address.trim();
 
   const fieldClass = (err: string) =>
-    `w-full rounded-xl border ${err ? "border-destructive focus-visible:ring-destructive" : "border-border"} bg-card text-foreground px-4 py-2.5 text-sm transition-colors`;
+    `w-full rounded-xl border ${err ? "!border-destructive focus-visible:!ring-destructive" : "border-border"} bg-card text-foreground px-4 py-2.5 text-sm transition-colors`;
 
   return (
     <ModalWrapper
@@ -227,7 +227,7 @@ export default function SupplierModal({
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
               Phone No. <span className="text-destructive">*</span>
             </label>
-            <div className={`flex rounded-xl border ${phoneError ? "border-destructive" : "border-border"} bg-card overflow-hidden transition-colors`}>
+            <div className={`flex rounded-xl border ${phoneError ? "!border-destructive" : "border-border"} bg-card overflow-hidden transition-colors`}>
               <div className="flex items-center justify-center bg-muted/60 px-3.5 border-r border-border text-xs font-semibold text-muted-foreground select-none">
                 +63
               </div>

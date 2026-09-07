@@ -158,11 +158,11 @@ export default function RecipeModal({
             }}
             placeholder="e.g. Ube Halaya 200g Batch"
             className={`w-full rounded-xl border ${
-              recipeNameError ? "border-red-500 focus-visible:ring-red-500" : "border-border"
+              recipeNameError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
             } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}
           />
           {recipeNameError && (
-            <p className="mt-1 text-xs text-red-500 animate-in fade-in-50">{recipeNameError}</p>
+            <p className="mt-1 text-xs text-destructive animate-in fade-in-50">{recipeNameError}</p>
           )}
         </div>
 
@@ -216,11 +216,11 @@ export default function RecipeModal({
               }}
               placeholder="e.g. 100"
               className={`w-full rounded-xl border ${
-                recipeYieldError ? "border-red-500 focus-visible:ring-red-500" : "border-border"
+                recipeYieldError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
               } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}
             />
             {recipeYieldError && (
-              <p className="mt-1 text-xs text-red-500 animate-in fade-in-50">{recipeYieldError}</p>
+              <p className="mt-1 text-xs text-destructive animate-in fade-in-50">{recipeYieldError}</p>
             )}
           </div>
         </div>

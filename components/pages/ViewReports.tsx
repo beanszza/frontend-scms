@@ -112,7 +112,7 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
             <p className="text-sm text-muted-foreground">Loading report metrics...</p>
           </div>
         ) : error ? (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
+          <div className="p-4 bg-red-500/10 border !border-destructive/20 rounded-xl text-center">
             <p className="text-sm font-semibold text-red-600">{error}</p>
             <Button onClick={fetchData} className="mt-3 text-xs bg-foreground text-background">Retry</Button>
           </div>

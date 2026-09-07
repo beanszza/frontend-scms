@@ -177,7 +177,7 @@ export default function SupplyModal({
             onChange={handleNameChange}
             placeholder="e.g. White Sugar"
             className={`w-full rounded-xl border ${
-              itemNameError ? "border-destructive focus-visible:ring-destructive" : "border-border"
+              itemNameError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
             } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}
           />
           {itemNameError && (
@@ -232,7 +232,7 @@ export default function SupplyModal({
               onChange={handleMinStockChange}
               placeholder="e.g. 10"
               className={`w-full rounded-xl border ${
-                minStockError ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                minStockError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
               } bg-card px-4 py-2.5 text-sm transition-colors`}
             />
             {minStockError && (
@@ -251,7 +251,7 @@ export default function SupplyModal({
               onChange={handleMaxStockChange}
               placeholder="e.g. 100"
               className={`w-full rounded-xl border ${
-                maxStockError ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                maxStockError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
               } bg-card px-4 py-2.5 text-sm transition-colors`}
             />
             {maxStockError && (
@@ -284,7 +284,7 @@ export default function SupplyModal({
                 role="combobox"
                 aria-expanded={openCombobox}
                 className={`w-full justify-between rounded-xl border bg-card text-foreground font-normal hover:bg-muted text-sm ${
-                  supplierError ? "border-destructive" : "border-border"
+                  supplierError ? "!border-destructive" : "border-border"
                 }`}
               >
                 {selectedSupplierIds.length === 0

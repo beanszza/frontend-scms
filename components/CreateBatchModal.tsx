@@ -326,7 +326,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 }}
                 className={`w-full rounded-xl border ${
                   finishedProductError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground`}
               >
@@ -338,7 +338,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 ))}
               </select>
               {finishedProductError && (
-                <p className="mt-1 text-xs text-red-500">{finishedProductError}</p>
+                <p className="mt-1 text-xs text-destructive">{finishedProductError}</p>
               )}
             </div>
 
@@ -358,7 +358,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 disabled={!finishedProduct}
                 className={`w-full rounded-xl border ${
                   variantError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed`}
               >
@@ -369,7 +369,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </option>
                 ))}
               </select>
-              {variantError && <p className="mt-1 text-xs text-red-500">{variantError}</p>}
+              {variantError && <p className="mt-1 text-xs text-destructive">{variantError}</p>}
             </div>
 
             {/* Editable Target Yield */}
@@ -389,12 +389,12 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 disabled={!recipeTargetYield}
                 className={`w-full rounded-xl border ${
                   targetYieldError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed`}
               />
               {targetYieldError && (
-                <p className="mt-1 text-xs text-red-500">{targetYieldError}</p>
+                <p className="mt-1 text-xs text-destructive">{targetYieldError}</p>
               )}
             </div>
 
@@ -414,12 +414,12 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 }}
                 className={`w-full rounded-xl border ${
                   scheduleDateError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground`}
               />
               {scheduleDateError && (
-                <p className="mt-1 text-xs text-red-500">{scheduleDateError}</p>
+                <p className="mt-1 text-xs text-destructive">{scheduleDateError}</p>
               )}
             </div>
           </div>
@@ -473,7 +473,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                                 <Check size={14} /> Sufficient
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-red-500">
+                              <span className="inline-flex items-center gap-1 text-destructive">
                                 <AlertTriangle size={14} /> Insufficient by {deficit.toFixed(2)}{" "}
                                 {ing.uom}
                               </span>

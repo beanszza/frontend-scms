@@ -336,7 +336,7 @@ export default function CreateTransferModal({
             <select
               className={`w-full px-3 py-2 text-sm rounded-lg border ${
                 productError
-                  ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                   : "border-border"
               } bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${
                 isReadOnly ? "opacity-60 cursor-not-allowed" : ""
@@ -362,7 +362,7 @@ export default function CreateTransferModal({
                 </option>
               ))}
             </select>
-            {productError && <p className="mt-1 text-xs text-red-500">{productError}</p>}
+            {productError && <p className="mt-1 text-xs text-destructive">{productError}</p>}
           </div>
 
           {/* Source info (read-only) */}
@@ -380,7 +380,7 @@ export default function CreateTransferModal({
                   className={`font-bold ${
                     availableStock !== null && availableStock > 0
                       ? "text-green-600"
-                      : "text-red-500"
+                      : "text-destructive"
                   }`}
                 >
                   {availableStock !== null ? `${availableStock} units` : "No inventory found"}
@@ -397,7 +397,7 @@ export default function CreateTransferModal({
             <select
               className={`w-full px-3 py-2 text-sm rounded-lg border ${
                 toError
-                  ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                   : "border-border"
               } bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${
                 isReadOnly ? "opacity-60 cursor-not-allowed" : ""
@@ -418,7 +418,7 @@ export default function CreateTransferModal({
                 </option>
               ))}
             </select>
-            {toError && <p className="mt-1 text-xs text-red-500">{toError}</p>}
+            {toError && <p className="mt-1 text-xs text-destructive">{toError}</p>}
           </div>
 
           {/* Quantity & Date */}
@@ -435,7 +435,7 @@ export default function CreateTransferModal({
                 placeholder="e.g., 50"
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${
                   quantityError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-70`}
                 value={quantity}
@@ -456,7 +456,7 @@ export default function CreateTransferModal({
                   }
                 }}
               />
-              {quantityError && <p className="mt-1 text-xs text-red-500">{quantityError}</p>}
+              {quantityError && <p className="mt-1 text-xs text-destructive">{quantityError}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">
@@ -466,7 +466,7 @@ export default function CreateTransferModal({
                 type="date"
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${
                   dateError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-70`}
                 value={date}
@@ -482,7 +482,7 @@ export default function CreateTransferModal({
                   }
                 }}
               />
-              {dateError && <p className="mt-1 text-xs text-red-500">{dateError}</p>}
+              {dateError && <p className="mt-1 text-xs text-destructive">{dateError}</p>}
             </div>
           </div>
 
