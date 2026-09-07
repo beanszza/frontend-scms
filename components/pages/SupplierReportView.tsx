@@ -73,53 +73,57 @@ export default function SupplierReportView({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {scorecard.map((row: any, i: number) => (
-              <tr key={i} className="hover:bg-muted/50 transition-colors">
-                <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-muted-foreground">
-                  {startIdx + i + 1}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground">
-                  {row.supplierName}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground font-medium">
-                  {row.totalOrdersPlaced}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-emerald-600 font-bold">
-                  {row.onTimeDeliveries}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-rose-600 font-bold">
-                  {row.lateDeliveries}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">
-                  {row.orderAccuracyRate}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">
-                  {row.averageLeadTime}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">
-                  {row.rejectionRate}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center">
-                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                    row.overallVendorGrade?.includes("Grade A")
-                      ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                      : row.overallVendorGrade?.includes("Grade B")
-                        ? "bg-muted text-foreground border border-blue-200"
-                        : "bg-amber-50 text-amber-600 border border-amber-200"
-                  }`}>
-                    {row.overallVendorGrade}
-                  </span>
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center">
-                  <Button
-                    onClick={() => onOpenOrdersModal(row)}
-                    className="px-2.5 py-1 rounded-lg bg-muted text-foreground hover:bg-accent border border-border text-xs font-semibold transition-colors"
-                  >
-                    View Orders
-                  </Button>
+            {scorecard.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
+                  No vendor scorecard records match the selected filters.
                 </td>
               </tr>
-            ))}
+            ) : (
+              scorecard.map((row: any, i: number) => (
+                <tr key={i} className="hover:bg-muted/40 transition-colors">
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center font-mono text-[11px] font-bold text-muted-foreground">
+                    {startIdx + i + 1}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground">
+                    {row.supplierName}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-foreground font-medium">
+                    {row.totalOrdersPlaced}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-foreground font-semibold">
+                    {row.onTimeDeliveries}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground font-medium">
+                    {row.lateDeliveries}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">
+                    {row.orderAccuracyRate}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">
+                    {row.averageLeadTime}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center text-muted-foreground">
+                    {row.rejectionRate}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center">
+                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
+                      {row.overallVendorGrade}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenOrdersModal(row)}
+                      className="px-2.5 py-1 rounded-lg bg-card text-foreground hover:bg-muted border border-border text-xs font-semibold transition-colors"
+                    >
+                      View Orders
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

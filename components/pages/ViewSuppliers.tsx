@@ -96,22 +96,67 @@ export default function ResourcesSuppliersPage() {
         const res = await api.post("/api/scms/api/Items", payload);
         itemId = res?.data?.data?.itemId || res?.data?.itemId;
       }
-      // Link suppliers if any selected
-      if (itemId && data.supplierIds && data.supplierIds.length > 0) {
-        await Promise.allSettled(
-          data.supplierIds.map((supplierId: number) =>
-            api.post("/api/scms/api/SupplierItems", {
-              SupplierId: supplierId,
-              ItemId: itemId,
-              UnitPrice: 0,
-              LeadTimeDays: 3,
-              PackSize: 1,
-              MinOrderQuantity: 1,
-              IsPreferred: false,
-              IsActive: true,
-            }).catch(() => {})
-          )
-        );
+      // Sync linked suppliers
+      if (itemId) {
+        const targetSupplierIds: number[] = data.supplierIds || [];
+        if (editingSupply) {
+          try {
+            const curRes = await api.get(`/api/scms/api/SupplierItems/by-item/${itemId}`);
+            const existingItems = curRes.data?.data || curRes.data || [];
+            const existingIds: number[] = existingItems.map((s: any) => s.supplierId);
+
+            const removedIds = existingIds.filter((id) => !targetSupplierIds.includes(id));
+            await Promise.allSettled(
+              removedIds.map((supplierId) => api.delete(`/api/scms/api/SupplierItems/${supplierId}/${itemId}`).catch(() => {}))
+            );
+
+            const addedIds = targetSupplierIds.filter((id) => !existingIds.includes(id));
+            await Promise.allSettled(
+              addedIds.map((supplierId) =>
+                api.post("/api/scms/api/SupplierItems", {
+                  SupplierId: supplierId,
+                  ItemId: itemId,
+                  UnitPrice: 0,
+                  LeadTimeDays: 3,
+                  PackSize: 1,
+                  MinOrderQuantity: 1,
+                  IsPreferred: false,
+                  IsActive: true,
+                }).catch(() => {})
+              )
+            );
+          } catch {
+            await Promise.allSettled(
+              targetSupplierIds.map((supplierId) =>
+                api.post("/api/scms/api/SupplierItems", {
+                  SupplierId: supplierId,
+                  ItemId: itemId,
+                  UnitPrice: 0,
+                  LeadTimeDays: 3,
+                  PackSize: 1,
+                  MinOrderQuantity: 1,
+                  IsPreferred: false,
+                  IsActive: true,
+                }).catch(() => {})
+              )
+            );
+          }
+        } else if (targetSupplierIds.length > 0) {
+          await Promise.allSettled(
+            targetSupplierIds.map((supplierId: number) =>
+              api.post("/api/scms/api/SupplierItems", {
+                SupplierId: supplierId,
+                ItemId: itemId,
+                UnitPrice: 0,
+                LeadTimeDays: 3,
+                PackSize: 1,
+                MinOrderQuantity: 1,
+                IsPreferred: false,
+                IsActive: true,
+              }).catch(() => {})
+            )
+          );
+        }
       }
       setOpenSupplyModal(false); setEditingSupply(null); fetchData();
     } catch (err: any) {
@@ -160,7 +205,7 @@ export default function ResourcesSuppliersPage() {
           supplies={supplyData} searchQuery={supplySearchQuery} onSearchChange={setSupplySearchQuery}
           categoryFilter={supplyFilter} onCategoryFilterChange={setSupplyFilter}
           statusFilter={supplyStatusFilter} onStatusFilterChange={setSupplyStatusFilter}
-          currentPage={supplyPage} onPageChange={setSupplyPage} isAuthorizedForReports={!!isAuth}
+          currentPage={supplyPage} onPageChange={setSupplyPage} isAuthorizedForReports={true}
           onAddNew={() => { setEditingSupply(null); setOpenSupplyModal(true); }}
           onEdit={(item) => { setEditingSupply(item); setOpenSupplyModal(true); }}
           onView={(item) => setViewSupply(item)}
@@ -171,7 +216,7 @@ export default function ResourcesSuppliersPage() {
         <SupplierTab
           suppliers={supplierData} searchQuery={supplierSearchQuery} onSearchChange={setSupplierSearchQuery}
           statusFilter={supplierFilter} onStatusFilterChange={setSupplierFilter}
-          currentPage={supplierPage} onPageChange={setSupplierPage} isAuthorizedForReports={!!isAuth}
+          currentPage={supplierPage} onPageChange={setSupplierPage} isAuthorizedForReports={true}
           onAddNew={() => { setEditingSupplier(null); setOpenSupplierModal(true); }}
           onEdit={(s) => { setEditingSupplier(s); setOpenSupplierModal(true); }}
           onView={(s) => setViewSupplier(s)}
@@ -182,7 +227,7 @@ export default function ResourcesSuppliersPage() {
         <RecipeTab
           recipes={recipeData} searchQuery={recipeSearchQuery} onSearchChange={setRecipeSearchQuery}
           statusFilter={recipeFilter} onStatusFilterChange={setRecipeFilter}
-          currentPage={recipePage} onPageChange={setRecipePage} isAuthorizedForReports={!!isAuth}
+          currentPage={recipePage} onPageChange={setRecipePage} isAuthorizedForReports={true}
           onAddNew={() => { setEditingRecipe(null); setOpenRecipeModal(true); }}
           onEdit={(r) => { setEditingRecipe(r); setOpenRecipeModal(true); }}
         />

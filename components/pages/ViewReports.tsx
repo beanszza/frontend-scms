@@ -13,17 +13,15 @@ import SupplierReportView from "@/components/pages/SupplierReportView";
 import SupplierOrdersModal from "@/components/pages/SupplierOrdersModal";
 import DistributionReportView from "@/components/pages/DistributionReportView";
 import { exportReportCSV } from "@/components/reports/exportReportCSV";
+import api from "@/lib/api";
 
 export default function ViewReports({ initialTab }: { initialTab: string }) {
   const router = useRouter();
   const { user, isLoading } = useAuth() || {};
 
   useEffect(() => {
-    if (!isLoading) {
-      const isAuth =
-        user?.username === "scmsuser" || user?.username === "ERP-ADMIN" ||
-        user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
-      if (!isAuth) router.push("/");
+    if (!isLoading && !user) {
+      router.push("/");
     }
   }, [user, isLoading, router]);
 
@@ -44,14 +42,18 @@ export default function ViewReports({ initialTab }: { initialTab: string }) {
     setLoading(true);
     setError("");
     try {
-      let url = `http://localhost:5006/api/Reports/${initialTab}?`;
-      if (filterMode === "specific" && specificDate) url += `startDate=${specificDate}&endDate=${specificDate}&`;
-      else if (filterMode === "range") {
-        if (startDate) url += `startDate=${startDate}&`;
-        if (endDate) url += `endDate=${endDate}&`;
+      const params = new URLSearchParams();
+      if (filterMode === "specific" && specificDate) {
+        params.append("startDate", specificDate);
+        params.append("endDate", specificDate);
+      } else if (filterMode === "range") {
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
       }
-      const response = await fetch(url);
-      const json = await response.json();
+      const qs = params.toString();
+      const endpoint = `/api/scms/api/Reports/${initialTab}${qs ? `?${qs}` : ""}`;
+      const response = await api.get(endpoint);
+      const json = response.data;
       if (json.success) setData(json.data);
       else setError(json.message || "Failed to fetch data from server");
     } catch {

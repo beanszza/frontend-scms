@@ -9,13 +9,30 @@ import AuditLogsFilterBar from "@/components/pages/AuditLogsFilterBar";
 import AuditLogsTable, { LogEntry } from "@/components/pages/AuditLogsTable";
 import { useAuth } from "@/context/AuthContext";
 
+const parseLogTime = (ts: string): number => {
+  if (!ts) return 0;
+  const d = new Date(ts);
+  if (!isNaN(d.getTime())) return d.getTime();
+  const [datePart, timePart = "00:00:00"] = ts.split(" ");
+  if (datePart && datePart.includes("/")) {
+    const [m, dNum, y] = datePart.split("/").map(Number);
+    const [h, min, s] = timePart.split(":").map(Number);
+    return new Date(y, (m || 1) - 1, dNum || 1, h || 0, min || 0, s || 0).getTime();
+  }
+  return 0;
+};
+
 const fetchLogs = async (type: string | null): Promise<LogEntry[]> => {
   const moduleType = type?.toLowerCase() || "supply";
   try {
     const response = await api.get(`/api/scms/api/AuditLogs?type=${moduleType}`);
     const resData = response.data;
-    if (Array.isArray(resData)) return resData;
-    if (resData?.data && Array.isArray(resData.data)) return resData.data;
+    let list: LogEntry[] = [];
+    if (Array.isArray(resData)) list = resData;
+    else if (resData?.data && Array.isArray(resData.data)) list = resData.data;
+
+    // Strict descending sort so newest records always appear at the top
+    return [...list].sort((a, b) => parseLogTime(b.timestamp) - parseLogTime(a.timestamp));
   } catch (e) {
     console.error("Failed to fetch logs:", e);
   }
@@ -29,11 +46,8 @@ export default function ViewTransactionalLogs() {
   const { user, isLoading } = useAuth() || {};
 
   useEffect(() => {
-    if (!isLoading) {
-      const isAuth =
-        user?.username === "scmsuser" || user?.username === "ERP-ADMIN" ||
-        user?.email === "scmsuser@r3b2p.com" || user?.email === "admin@r3b2p.com" || user?.roles?.includes("Admin");
-      if (!isAuth) router.push("/");
+    if (!isLoading && !user) {
+      router.push("/");
     }
   }, [user, isLoading, router]);
 
@@ -74,23 +88,30 @@ export default function ViewTransactionalLogs() {
         log.user.toLowerCase().includes(q);
       if (!matches) return false;
     }
-    const logDateStr = log.timestamp.split(" ")[0];
-    const [month, day, year] = logDateStr.split("/").map(Number);
-    const logDate = new Date(year, month - 1, day);
+
+    const logTime = parseLogTime(log.timestamp);
+    if (!logTime) return true;
+    const logDate = new Date(logTime);
 
     if (filterMode === "specific" && specificDate) {
       const [specYear, specMonth, specDay] = specificDate.split("-").map(Number);
-      const targetDate = new Date(specYear, specMonth - 1, specDay);
-      if (logDate.getFullYear() !== targetDate.getFullYear() || logDate.getMonth() !== targetDate.getMonth() || logDate.getDate() !== targetDate.getDate()) return false;
+      if (
+        logDate.getFullYear() !== specYear ||
+        logDate.getMonth() !== specMonth - 1 ||
+        logDate.getDate() !== specDay
+      )
+        return false;
     }
     if (filterMode === "range") {
       if (startDate) {
         const [sy, sm, sd] = startDate.split("-").map(Number);
-        if (logDate < new Date(sy, sm - 1, sd)) return false;
+        const startTarget = new Date(sy, sm - 1, sd, 0, 0, 0);
+        if (logDate < startTarget) return false;
       }
       if (endDate) {
         const [ey, em, ed] = endDate.split("-").map(Number);
-        if (logDate > new Date(ey, em - 1, ed)) return false;
+        const endTarget = new Date(ey, em - 1, ed, 23, 59, 59);
+        if (logDate > endTarget) return false;
       }
     }
     return true;
