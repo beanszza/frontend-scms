@@ -73,6 +73,8 @@ export default function RecipeIngredientItem({
             step="any"
             placeholder="e.g. 0.75"
             value={ingredient.quantity}
+            aria-invalid={!!error}
+            style={error ? { borderColor: "var(--destructive)" } : undefined}
             onKeyDown={(e) => {
               if (["-", "+", "e", "E"].includes(e.key)) {
                 e.preventDefault();

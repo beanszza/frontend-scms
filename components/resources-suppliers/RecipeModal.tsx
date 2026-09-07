@@ -157,6 +157,8 @@ export default function RecipeModal({
               else setRecipeNameError("");
             }}
             placeholder="e.g. Ube Halaya 200g Batch"
+            aria-invalid={!!recipeNameError}
+            style={recipeNameError ? { borderColor: "var(--destructive)" } : undefined}
             className={`w-full rounded-xl border ${
               recipeNameError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
             } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}
@@ -215,6 +217,8 @@ export default function RecipeModal({
                 }
               }}
               placeholder="e.g. 100"
+              aria-invalid={!!recipeYieldError}
+              style={recipeYieldError ? { borderColor: "var(--destructive)" } : undefined}
               className={`w-full rounded-xl border ${
                 recipeYieldError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
               } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}

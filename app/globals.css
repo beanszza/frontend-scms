@@ -33,9 +33,9 @@
   --accent:             oklch(0.94 0 0);
   --accent-foreground:  oklch(0.14 0 0);
 
-  /* Destructive — kept slightly warm greyscale for emergency use */
-  --destructive:        oklch(0.38 0 0);
-  --destructive-foreground: oklch(0.98 0 0);
+  /* Destructive — vivid red for error validation and critical alerts */
+  --destructive:            oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
 
   /* Semantic — monochromatic tinting for status */
   --success:            oklch(0.28 0 0);
@@ -270,4 +270,28 @@ header {
 .input-date-icon::-webkit-calendar-picker-indicator {
   opacity: 0;
   -webkit-appearance: none;
+}
+
+/* ─── Input Validation & Error Border Overrides ─── */
+.border-destructive,
+.\!border-destructive,
+[aria-invalid="true"] {
+  border-color: var(--destructive) !important;
+}
+
+.border-destructive:focus,
+.border-destructive:focus-visible,
+.\!border-destructive:focus,
+.\!border-destructive:focus-visible,
+[aria-invalid="true"]:focus,
+[aria-invalid="true"]:focus-visible {
+  border-color: var(--destructive) !important;
+  --tw-ring-color: var(--destructive) !important;
+  box-shadow: 0 0 0 1px var(--destructive) !important;
+  outline-color: var(--destructive) !important;
+}
+
+.text-destructive,
+.\!text-destructive {
+  color: var(--destructive) !important;
 }

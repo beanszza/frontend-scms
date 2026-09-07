@@ -185,6 +185,9 @@ export default function SupplierModal({
   const fieldClass = (err: string) =>
     `w-full rounded-xl border ${err ? "!border-destructive focus-visible:!ring-destructive" : "border-border"} bg-card text-foreground px-4 py-2.5 text-sm transition-colors`;
 
+  const fieldStyle = (err: string) =>
+    err ? { borderColor: "var(--destructive)" } : undefined;
+
   return (
     <ModalWrapper
       open={open}
@@ -199,6 +202,7 @@ export default function SupplierModal({
             Supplier Name <span className="text-destructive">*</span>
           </label>
           <Input type="text" maxLength={50} value={companyName} onChange={handleCompanyNameChange}
+            aria-invalid={!!companyNameError} style={fieldStyle(companyNameError)}
             placeholder="e.g. Acme Supplies Ltd." className={fieldClass(companyNameError)} />
           {companyNameError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{companyNameError}</p>}
         </div>
@@ -209,6 +213,7 @@ export default function SupplierModal({
             Contact Person <span className="text-destructive">*</span>
           </label>
           <Input type="text" maxLength={50} value={contactPerson} onChange={handleContactPersonChange}
+            aria-invalid={!!contactPersonError} style={fieldStyle(contactPersonError)}
             placeholder="e.g. John Doe" className={fieldClass(contactPersonError)} />
           {contactPersonError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{contactPersonError}</p>}
         </div>
@@ -220,6 +225,7 @@ export default function SupplierModal({
               Email <span className="text-destructive">*</span>
             </label>
             <Input type="email" maxLength={50} value={email} onChange={handleEmailChange}
+              aria-invalid={!!emailError} style={fieldStyle(emailError)}
               placeholder="e.g. contact@supplier.com" className={fieldClass(emailError)} />
             {emailError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{emailError}</p>}
           </div>
@@ -227,7 +233,7 @@ export default function SupplierModal({
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
               Phone No. <span className="text-destructive">*</span>
             </label>
-            <div className={`flex rounded-xl border ${phoneError ? "!border-destructive" : "border-border"} bg-card overflow-hidden transition-colors`}>
+            <div style={fieldStyle(phoneError)} className={`flex rounded-xl border ${phoneError ? "!border-destructive" : "border-border"} bg-card overflow-hidden transition-colors`}>
               <div className="flex items-center justify-center bg-muted/60 px-3.5 border-r border-border text-xs font-semibold text-muted-foreground select-none">
                 +63
               </div>
@@ -245,6 +251,7 @@ export default function SupplierModal({
             Address <span className="text-destructive">*</span>
           </label>
           <Input type="text" maxLength={100} value={address} onChange={handleAddressChange}
+            aria-invalid={!!addressError} style={fieldStyle(addressError)}
             placeholder="e.g. 123 Main St, Manila" className={fieldClass(addressError)} />
           {addressError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{addressError}</p>}
         </div>
@@ -253,6 +260,7 @@ export default function SupplierModal({
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-foreground">Website (Optional)</label>
           <Input type="text" maxLength={50} value={website} onChange={handleWebsiteChange}
+            aria-invalid={!!websiteError} style={fieldStyle(websiteError)}
             placeholder="e.g. www.acme.com" className={fieldClass(websiteError)} />
           {websiteError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{websiteError}</p>}
         </div>

@@ -175,7 +175,9 @@ export default function SupplyModal({
             maxLength={50}
             value={itemName}
             onChange={handleNameChange}
+            aria-invalid={!!itemNameError}
             placeholder="e.g. White Sugar"
+            style={itemNameError ? { borderColor: "var(--destructive)" } : undefined}
             className={`w-full rounded-xl border ${
               itemNameError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
             } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}
@@ -230,7 +232,9 @@ export default function SupplyModal({
               value={minStock}
               onKeyDown={handleNumberKeyDown}
               onChange={handleMinStockChange}
+              aria-invalid={!!minStockError}
               placeholder="e.g. 10"
+              style={minStockError ? { borderColor: "var(--destructive)" } : undefined}
               className={`w-full rounded-xl border ${
                 minStockError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
               } bg-card px-4 py-2.5 text-sm transition-colors`}
@@ -249,7 +253,9 @@ export default function SupplyModal({
               value={maxStock}
               onKeyDown={handleNumberKeyDown}
               onChange={handleMaxStockChange}
+              aria-invalid={!!maxStockError}
               placeholder="e.g. 100"
+              style={maxStockError ? { borderColor: "var(--destructive)" } : undefined}
               className={`w-full rounded-xl border ${
                 maxStockError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
               } bg-card px-4 py-2.5 text-sm transition-colors`}
@@ -283,8 +289,10 @@ export default function SupplyModal({
                 variant="outline"
                 role="combobox"
                 aria-expanded={openCombobox}
+                aria-invalid={!!supplierError}
+                style={supplierError ? { borderColor: "var(--destructive)" } : undefined}
                 className={`w-full justify-between rounded-xl border bg-card text-foreground font-normal hover:bg-muted text-sm ${
-                  supplierError ? "!border-destructive" : "border-border"
+                  supplierError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
                 }`}
               >
                 {selectedSupplierIds.length === 0
