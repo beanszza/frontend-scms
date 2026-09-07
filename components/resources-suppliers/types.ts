@@ -9,6 +9,7 @@ export type SupplyItem = {
   maxStockLevel: number;
   currentStock: number;
   isActive: boolean;
+  supplierIds?: number[];
 };
 
 export type Supplier = {

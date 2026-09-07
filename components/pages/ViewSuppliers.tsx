@@ -88,8 +88,31 @@ export default function ResourcesSuppliersPage() {
         itemName: data.itemName, categoryId: data.categoryId, uomId: data.uomId,
         minStockLevel: data.minStock, maxStockLevel: data.maxStock, isActive: data.isActive,
       };
-      if (editingSupply) await api.put(`/api/scms/api/Items/${editingSupply.itemId}`, payload);
-      else await api.post("/api/scms/api/Items", payload);
+      let itemId: number;
+      if (editingSupply) {
+        await api.put(`/api/scms/api/Items/${editingSupply.itemId}`, payload);
+        itemId = editingSupply.itemId;
+      } else {
+        const res = await api.post("/api/scms/api/Items", payload);
+        itemId = res?.data?.data?.itemId || res?.data?.itemId;
+      }
+      // Link suppliers if any selected
+      if (itemId && data.supplierIds && data.supplierIds.length > 0) {
+        await Promise.allSettled(
+          data.supplierIds.map((supplierId: number) =>
+            api.post("/api/scms/api/SupplierItems", {
+              SupplierId: supplierId,
+              ItemId: itemId,
+              UnitPrice: 0,
+              LeadTimeDays: 3,
+              PackSize: 1,
+              MinOrderQuantity: 1,
+              IsPreferred: false,
+              IsActive: true,
+            }).catch(() => {})
+          )
+        );
+      }
       setOpenSupplyModal(false); setEditingSupply(null); fetchData();
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Failed to save supply item.";
@@ -169,6 +192,7 @@ export default function ResourcesSuppliersPage() {
         open={openSupplyModal}
         editingItem={editingSupply}
         existingSupplies={supplyData}
+        suppliers={supplierData.map((s: any) => ({ supplierId: s.supplierId, companyName: s.companyName, supplierCode: s.supplierCode }))}
         onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }}
         onSave={handleSaveSupply}
       />
@@ -181,7 +205,7 @@ export default function ResourcesSuppliersPage() {
           setOpenSupplyModal(true);
         }}
       />
-      <SupplierModal open={openSupplierModal} editingSupplier={editingSupplier} baseSupplies={supplyData} onClose={() => { setOpenSupplierModal(false); setEditingSupplier(null); }} onSave={handleSaveSupplier} />
+      <SupplierModal open={openSupplierModal} editingSupplier={editingSupplier} onClose={() => { setOpenSupplierModal(false); setEditingSupplier(null); }} onSave={handleSaveSupplier} />
       <SupplierDetailsModal supplier={viewSupplier} onClose={() => setViewSupplier(null)} />
       <RecipeModal open={openRecipeModal} editingRecipe={editingRecipe} finishedProducts={finishedProductData} baseSupplies={supplyData} onClose={() => { setOpenRecipeModal(false); setEditingRecipe(null); }} onSave={handleSaveRecipe} />
     </div>

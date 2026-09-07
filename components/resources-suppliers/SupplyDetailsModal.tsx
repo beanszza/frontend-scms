@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import ModalWrapper from "./ModalWrapper";
 import { SupplyItem } from "./types";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Package, Truck, Layers, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Package, Truck, ShoppingCart, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import api from "@/lib/api";
 
 interface SupplyDetailsModalProps {
@@ -17,9 +17,16 @@ interface LinkedSupplier {
   supplierId: number;
   supplierName: string;
   supplierCode?: string;
-  unitPrice?: number;
-  currency?: string;
   leadTimeDays?: number;
+}
+
+interface RecentOrder {
+  poId: number;
+  poNumber: string;
+  orderDate: string;
+  status: string;
+  quantity: number;
+  uomName: string;
 }
 
 export default function SupplyDetailsModal({
@@ -28,41 +35,68 @@ export default function SupplyDetailsModal({
   onEdit,
 }: SupplyDetailsModalProps) {
   const [linkedSuppliers, setLinkedSuppliers] = useState<LinkedSupplier[]>([]);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!item) {
       setLinkedSuppliers([]);
+      setRecentOrders([]);
       return;
     }
 
-    const fetchSuppliers = async () => {
+    const fetchDetails = async () => {
       setLoading(true);
       try {
-        const res = await api
-          .get(`/api/scms/api/SupplierItems/by-item/${item.itemId}`)
-          .catch(() => api.get(`/api/SupplierItems/by-item/${item.itemId}`));
-        if (res?.data?.success) {
-          const list = res.data.data || [];
+        const [suppRes, poRes] = await Promise.allSettled([
+          api.get(`/api/scms/api/SupplierItems/by-item/${item.itemId}`).catch(() =>
+            api.get(`/api/SupplierItems/by-item/${item.itemId}`)
+          ),
+          api.get(`/api/scms/api/PurchaseOrders?pageSize=100`).catch(() =>
+            api.get(`/api/PurchaseOrders?pageSize=100`)
+          ),
+        ]);
+
+        if (suppRes.status === "fulfilled" && suppRes.value?.data?.success) {
+          const list = suppRes.value.data.data || [];
           setLinkedSuppliers(
             list.map((s: any) => ({
               supplierId: s.supplierId,
               supplierName: s.supplierCompanyName || s.companyName || s.supplierName || `Supplier #${s.supplierId}`,
               supplierCode: s.supplierCode,
-              unitPrice: s.unitPrice,
-              currency: s.currency || "PHP",
               leadTimeDays: s.leadTimeDays,
             }))
           );
         }
+
+        if (poRes.status === "fulfilled" && poRes.value?.data?.success) {
+          const allPOs = poRes.value.data.data?.items || poRes.value.data.data || [];
+          const itemOrders: RecentOrder[] = [];
+          for (const po of allPOs) {
+            const poItems = po.items || [];
+            for (const poi of poItems) {
+              if (poi.itemId === item.itemId) {
+                itemOrders.push({
+                  poId: po.poId,
+                  poNumber: po.poNumber,
+                  orderDate: po.orderDate,
+                  status: po.status,
+                  quantity: poi.poItemQuantity,
+                  uomName: poi.purchaseUomName || item.uomName || "",
+                });
+              }
+            }
+          }
+          setRecentOrders(itemOrders.slice(0, 5));
+        }
       } catch {
-        setLinkedSuppliers([]);
+        // silently fail
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSuppliers();
+    fetchDetails();
   }, [item]);
 
   if (!item) return null;
@@ -71,6 +105,26 @@ export default function SupplyDetailsModal({
   const isLowStock = currentStock <= item.minStockLevel;
   const isOverStock = item.maxStockLevel > 0 && currentStock > item.maxStockLevel;
 
+  const stockIcon = isLowStock
+    ? <TrendingDown size={12} className="text-foreground" />
+    : isOverStock
+    ? <TrendingUp size={12} className="text-foreground" />
+    : <Minus size={12} className="text-foreground" />;
+
+  const stockLabel = isLowStock ? "Low Stock" : isOverStock ? "Overstock" : "Normal";
+
+  const statusBadge = (status: string) => {
+    const s = status.toLowerCase();
+    const base = "inline-flex px-2 py-0.5 rounded text-[10px] font-semibold border";
+    if (s === "delivered" || s === "completed" || s === "received")
+      return `${base} bg-foreground/10 text-foreground border-foreground/20`;
+    if (s === "pending" || s === "draft" || s === "approved")
+      return `${base} bg-muted text-muted-foreground border-border`;
+    if (s === "cancelled" || s === "rejected")
+      return `${base} bg-muted/60 text-muted-foreground border-border line-through`;
+    return `${base} bg-muted text-muted-foreground border-border`;
+  };
+
   return (
     <ModalWrapper
       open={!!item}
@@ -78,7 +132,7 @@ export default function SupplyDetailsModal({
       onClose={onClose}
       size="max-w-2xl"
     >
-      <div className="space-y-6">
+      <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
         {/* Header Summary Banner */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-muted/40 border border-border">
           <div className="flex items-center gap-3.5">
@@ -103,7 +157,7 @@ export default function SupplyDetailsModal({
           </div>
         </div>
 
-        {/* Stock Status Cards */}
+        {/* Stock Status Cards — monochromatic */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-4 rounded-xl border border-border bg-card space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Current Stock</span>
@@ -111,20 +165,9 @@ export default function SupplyDetailsModal({
               <span className="text-2xl font-bold text-foreground">{currentStock}</span>
               <span className="text-xs text-muted-foreground font-semibold">{item.uomName}</span>
             </div>
-            <div className="flex items-center gap-1 pt-1 text-[11px]">
-              {isLowStock ? (
-                <span className="text-amber-500 font-medium flex items-center gap-1">
-                  <AlertTriangle size={12} /> Low Stock Alert
-                </span>
-              ) : isOverStock ? (
-                <span className="text-blue-500 font-medium flex items-center gap-1">
-                  <Layers size={12} /> Overstock
-                </span>
-              ) : (
-                <span className="text-emerald-500 font-medium flex items-center gap-1">
-                  <CheckCircle2 size={12} /> Healthy Level
-                </span>
-              )}
+            <div className="flex items-center gap-1 pt-1 text-[11px] text-muted-foreground font-medium">
+              {stockIcon}
+              <span>{stockLabel}</span>
             </div>
           </div>
 
@@ -147,7 +190,7 @@ export default function SupplyDetailsModal({
           </div>
         </div>
 
-        {/* Specifications & Properties */}
+        {/* Specifications */}
         <div className="space-y-2">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Item Specifications
@@ -174,7 +217,7 @@ export default function SupplyDetailsModal({
           </div>
         </div>
 
-        {/* Linked Suppliers Section */}
+        {/* Linked Suppliers */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -187,14 +230,12 @@ export default function SupplyDetailsModal({
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             {loading ? (
-              <div className="p-6 text-center text-xs text-muted-foreground">
-                Loading linked suppliers...
-              </div>
+              <div className="p-6 text-center text-xs text-muted-foreground">Loading...</div>
             ) : linkedSuppliers.length === 0 ? (
               <div className="p-6 text-center space-y-1">
                 <p className="text-xs font-semibold text-foreground">No suppliers linked yet</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Suppliers mapped to this item will automatically be displayed here.
+                  Suppliers mapped to this item will automatically appear here.
                 </p>
               </div>
             ) : (
@@ -216,6 +257,59 @@ export default function SupplyDetailsModal({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Orders */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <ShoppingCart size={14} /> Recent Orders
+            </h4>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            {loading ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">Loading orders...</div>
+            ) : recentOrders.length === 0 ? (
+              <div className="p-6 text-center space-y-1">
+                <p className="text-xs font-semibold text-foreground">No orders found</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Purchase orders for this item will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground text-[11px]">
+                      <th className="px-3 py-2 text-left">PO NUMBER</th>
+                      <th className="px-3 py-2 text-left">DATE</th>
+                      <th className="px-3 py-2 text-left">STATUS</th>
+                      <th className="px-3 py-2 text-right">QTY</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {recentOrders.map((order, i) => (
+                      <tr key={`${order.poId}-${i}`} className="hover:bg-muted/20">
+                        <td className="px-3 py-2.5 font-mono font-semibold text-foreground">{order.poNumber}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          {new Date(order.orderDate).toLocaleDateString("en-PH", {
+                            year: "numeric", month: "short", day: "numeric",
+                          })}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className={statusBadge(order.status)}>{order.status}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-foreground">
+                          {order.quantity} {order.uomName}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
