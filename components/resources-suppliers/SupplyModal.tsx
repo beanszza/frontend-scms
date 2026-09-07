@@ -50,6 +50,7 @@ export default function SupplyModal({
   const [supplyActive, setSupplyActive] = useState(true);
   const [selectedSupplierIds, setSelectedSupplierIds] = useState<number[]>([]);
   const [openCombobox, setOpenCombobox] = useState(false);
+  const [supplierError, setSupplierError] = useState("");
 
   const [itemNameError, setItemNameError] = useState("");
   const [minStockError, setMinStockError] = useState("");
@@ -110,7 +111,7 @@ export default function SupplyModal({
         setItemName(""); setCategoryId(1); setUomId(1);
         setMinStock(""); setMaxStock(""); setSupplyActive(true); setSelectedSupplierIds([]);
       }
-      setItemNameError(""); setMinStockError(""); setMaxStockError("");
+      setItemNameError(""); setMinStockError(""); setMaxStockError(""); setSupplierError("");
     }
   }, [editingItem, open]);
 
@@ -137,7 +138,9 @@ export default function SupplyModal({
     const isNameValid = validateItemName(itemName);
     const isMinValid = validateMinStock(minStock, maxStock);
     const isMaxValid = validateMaxStock(maxStock, minStock);
-    if (!isNameValid || !isMinValid || !isMaxValid) return;
+    const hasSupplier = selectedSupplierIds.length > 0;
+    if (!hasSupplier) setSupplierError("At least one supplier is required.");
+    if (!isNameValid || !isMinValid || !isMaxValid || !hasSupplier) return;
     onSave({
       itemName: itemName.trim(),
       categoryId,
@@ -150,8 +153,9 @@ export default function SupplyModal({
   };
 
   const hasErrors =
-    !!itemNameError || !!minStockError || !!maxStockError ||
-    !itemName.trim() || !minStock.trim() || !maxStock.trim();
+    !!itemNameError || !!minStockError || !!maxStockError || !!supplierError ||
+    !itemName.trim() || !minStock.trim() || !maxStock.trim() ||
+    selectedSupplierIds.length === 0;
 
   return (
     <ModalWrapper
@@ -259,16 +263,29 @@ export default function SupplyModal({
         {/* Linked Suppliers */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-foreground">Linked Suppliers</label>
+            <label className="text-xs font-semibold text-foreground">
+              Linked Suppliers <span className="text-destructive">*</span>
+            </label>
             <span className="text-[11px] text-muted-foreground">{suppliers.length} available</span>
           </div>
-          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+          <Popover
+            open={openCombobox}
+            onOpenChange={(val) => {
+              setOpenCombobox(val);
+              if (!val && selectedSupplierIds.length === 0)
+                setSupplierError("At least one supplier is required.");
+              else
+                setSupplierError("");
+            }}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
                 aria-expanded={openCombobox}
-                className="w-full justify-between rounded-xl border-border bg-card text-foreground font-normal hover:bg-muted text-sm"
+                className={`w-full justify-between rounded-xl border bg-card text-foreground font-normal hover:bg-muted text-sm ${
+                  supplierError ? "border-destructive" : "border-border"
+                }`}
               >
                 {selectedSupplierIds.length === 0
                   ? "Select suppliers..."
@@ -291,11 +308,14 @@ export default function SupplyModal({
                         key={s.supplierId}
                         value={`${s.supplierCode || ""} ${s.companyName}`}
                         onSelect={() => {
-                          setSelectedSupplierIds((prev) =>
-                            prev.includes(s.supplierId)
+                          setSelectedSupplierIds((prev) => {
+                            const next = prev.includes(s.supplierId)
                               ? prev.filter((id) => id !== s.supplierId)
-                              : [...prev, s.supplierId]
-                          );
+                              : [...prev, s.supplierId];
+                            if (next.length > 0) setSupplierError("");
+                            else setSupplierError("At least one supplier is required.");
+                            return next;
+                          });
                         }}
                       >
                         <Check
@@ -313,6 +333,9 @@ export default function SupplyModal({
               </Command>
             </PopoverContent>
           </Popover>
+          {supplierError && (
+            <p className="mt-1 text-xs font-medium text-destructive animate-in fade-in-50">{supplierError}</p>
+          )}
           {selectedSupplierIds.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-1">
               {selectedSupplierIds.map((id) => {
@@ -327,7 +350,13 @@ export default function SupplyModal({
                     {sup?.companyName}
                     <X
                       className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors"
-                      onClick={() => setSelectedSupplierIds((prev) => prev.filter((prevId) => prevId !== id))}
+                      onClick={() => {
+                        setSelectedSupplierIds((prev) => {
+                          const next = prev.filter((prevId) => prevId !== id);
+                          if (next.length === 0) setSupplierError("At least one supplier is required.");
+                          return next;
+                        });
+                      }}
                     />
                   </Badge>
                 );
