@@ -5,30 +5,7 @@ import { Button } from "@/components/ui/button";
 import ModalWrapper from "./ModalWrapper";
 import { Supplier } from "./types";
 import api from "@/lib/api";
-import { ShieldCheck, AlertCircle, FileCheck, Package, Clock, CheckCircle2, XCircle, ShoppingCart } from "lucide-react";
-
-interface SupplierDoc {
-  documentId: number;
-  documentType: string;
-  documentNumber: string;
-  title: string;
-  issueDate: string;
-  expiryDate: string | null;
-  isVerified: boolean;
-  verifiedBy: string | null;
-  status: string;
-  isExpired: boolean;
-  daysUntilExpiry: number | null;
-}
-
-interface ComplianceSummary {
-  hasValidFdaLto: boolean;
-  hasValidSanitaryPermit: boolean;
-  isFullyCompliant: boolean;
-  totalDocumentsCount: number;
-  expiredDocumentsCount: number;
-  documents: SupplierDoc[];
-}
+import { Package, Clock, ShoppingCart } from "lucide-react";
 
 interface CatalogItem {
   itemId: number;
@@ -66,14 +43,12 @@ export default function SupplierDetailsModal({
   supplier,
   onClose,
 }: SupplierDetailsModalProps) {
-  const [compliance, setCompliance] = useState<ComplianceSummary | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!supplier) {
-      setCompliance(null);
       setCatalog([]);
       setRecentOrders([]);
       return;
@@ -82,10 +57,7 @@ export default function SupplierDetailsModal({
     const loadDetails = async () => {
       setLoading(true);
       try {
-        const [compRes, catRes, poRes] = await Promise.allSettled([
-          api.get(`/api/scms/api/SupplierDocuments/compliance-summary/${supplier.supplierId}`).catch(() =>
-            api.get(`/api/SupplierDocuments/compliance-summary/${supplier.supplierId}`)
-          ),
+        const [catRes, poRes] = await Promise.allSettled([
           api.get(`/api/scms/api/SupplierItems/by-supplier/${supplier.supplierId}`).catch(() =>
             api.get(`/api/SupplierItems/by-supplier/${supplier.supplierId}`)
           ),
@@ -94,9 +66,6 @@ export default function SupplierDetailsModal({
           ),
         ]);
 
-        if (compRes.status === "fulfilled" && compRes.value?.data?.success) {
-          setCompliance(compRes.value.data.data);
-        }
         if (catRes.status === "fulfilled" && catRes.value?.data?.success) {
           setCatalog(catRes.value.data.data || []);
         }
@@ -129,9 +98,9 @@ export default function SupplierDetailsModal({
 
   const statusColor = (status: string) => {
     const s = status.toLowerCase();
-    if (s === "delivered" || s === "completed" || s === "received") return "text-emerald-600 bg-emerald-500/10 border-emerald-500/20";
-    if (s === "pending" || s === "draft") return "text-amber-600 bg-amber-500/10 border-amber-500/20";
-    if (s === "cancelled" || s === "rejected") return "text-rose-600 bg-rose-500/10 border-rose-500/20";
+    if (s === "delivered" || s === "completed" || s === "received") return "text-foreground bg-muted border-border";
+    if (s === "pending" || s === "draft") return "text-muted-foreground bg-muted/50 border-border";
+    if (s === "cancelled" || s === "rejected") return "text-muted-foreground bg-muted/30 border-border line-through";
     return "text-muted-foreground bg-muted border-border";
   };
 
@@ -143,45 +112,14 @@ export default function SupplierDetailsModal({
       size="max-w-3xl"
     >
       <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
-        {/* Header Badges */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                supplier.isActive
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                  : "bg-muted/40 text-muted-foreground border border-border"
-              }`}
-            >
-              {supplier.isActive ? "Active Vendor" : "Inactive"}
-            </span>
-
-            {compliance && (
-              <span
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                  compliance.isFullyCompliant
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                }`}
-              >
-                {compliance.isFullyCompliant ? (
-                  <>
-                    <ShieldCheck size={13} /> Fully FDA Compliant
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle size={13} /> Pending Compliance Permits
-                  </>
-                )}
-              </span>
-            )}
-          </div>
-          {supplier.supplierCode && (
+        {/* Header */}
+        {supplier.supplierCode && (
+          <div className="flex items-center justify-end pb-3 border-b border-border">
             <span className="text-xs font-mono text-muted-foreground bg-muted/40 border border-border px-3 py-1 rounded-full">
               Supplier ID: {supplier.supplierCode}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Contact Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 text-xs">
@@ -203,95 +141,10 @@ export default function SupplierDetailsModal({
           </div>
         </div>
 
-        {/* Regulatory & Compliance Documents */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <div className="flex items-center gap-2">
-              <FileCheck size={16} className="text-primary" />
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Regulatory Permits &amp; Quality Assurance Documents
-              </h3>
-            </div>
-            {compliance && (
-              <div className="flex items-center gap-2 text-[11px]">
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  FDA LTO:{" "}
-                  {compliance.hasValidFdaLto ? (
-                    <CheckCircle2 size={13} className="text-emerald-500" />
-                  ) : (
-                    <XCircle size={13} className="text-rose-500" />
-                  )}
-                </span>
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  Sanitary Permit:{" "}
-                  {compliance.hasValidSanitaryPermit ? (
-                    <CheckCircle2 size={13} className="text-emerald-500" />
-                  ) : (
-                    <XCircle size={13} className="text-rose-500" />
-                  )}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="py-6 text-center text-xs text-muted-foreground">Loading documents...</div>
-          ) : !compliance || compliance.documents.length === 0 ? (
-            <div className="py-6 text-center text-xs text-muted-foreground">
-              No regulatory documents registered for this supplier.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground text-[11px]">
-                    <th className="px-2.5 py-2 text-left">DOCUMENT TYPE</th>
-                    <th className="px-2.5 py-2 text-left">PERMIT / REG NO.</th>
-                    <th className="px-2.5 py-2 text-left">ISSUE DATE</th>
-                    <th className="px-2.5 py-2 text-left">EXPIRY DATE</th>
-                    <th className="px-2.5 py-2 text-left">VERIFICATION</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {compliance.documents.map((doc) => (
-                    <tr key={doc.documentId} className="hover:bg-muted/20">
-                      <td className="px-2.5 py-2.5 font-semibold text-foreground">{doc.documentType}</td>
-                      <td className="px-2.5 py-2.5 font-mono text-muted-foreground">{doc.documentNumber}</td>
-                      <td className="px-2.5 py-2.5 text-muted-foreground">{formatDate(doc.issueDate)}</td>
-                      <td className="px-2.5 py-2.5">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            doc.isExpired
-                              ? "bg-rose-500/10 text-rose-600 border border-rose-500/20"
-                              : doc.daysUntilExpiry && doc.daysUntilExpiry <= 30
-                              ? "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                              : "text-emerald-600 font-medium"
-                          }`}
-                        >
-                          {formatDate(doc.expiryDate)} {doc.isExpired ? "(Expired)" : ""}
-                        </span>
-                      </td>
-                      <td className="px-2.5 py-2.5">
-                        {doc.isVerified ? (
-                          <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                            <CheckCircle2 size={12} /> Verified
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">Pending Review</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
         {/* Supplied Items (no prices) */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2 border-b border-border pb-2">
-            <Package size={16} className="text-primary" />
+            <Package size={16} className="text-foreground" />
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
               Linked Supplies
             </h3>
@@ -328,7 +181,7 @@ export default function SupplierDetailsModal({
                       </td>
                       <td className="px-2.5 py-2.5">
                         {ci.isPreferred && (
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-foreground border border-border">
                             ★ Preferred
                           </span>
                         )}
@@ -344,7 +197,7 @@ export default function SupplierDetailsModal({
         {/* Recent Orders */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2 border-b border-border pb-2">
-            <ShoppingCart size={16} className="text-primary" />
+            <ShoppingCart size={16} className="text-foreground" />
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
               Recent Orders
             </h3>
