@@ -114,8 +114,10 @@ export default function AuditLogsFilterBar({
           />
           {specificDate && (
             <Button
+              variant="ghost"
+              size="sm"
               onClick={onResetFilters}
-              className="flex items-center gap-1 text-xs text-rose-600 hover:underline font-semibold"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-semibold h-8 px-2"
             >
               <RotateCcw size={12} /> Clear Date
             </Button>
@@ -148,8 +150,10 @@ export default function AuditLogsFilterBar({
           </div>
           {(startDate || endDate) && (
             <Button
+              variant="ghost"
+              size="sm"
               onClick={onResetFilters}
-              className="flex items-center gap-1 text-xs text-rose-600 hover:underline font-semibold"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-semibold h-8 px-2"
             >
               <RotateCcw size={12} /> Clear Range
             </Button>
