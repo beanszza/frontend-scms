@@ -4,7 +4,7 @@ export function exportReportCSV(initialTab: string, data: any) {
 
   if (initialTab === "inventory") {
     const rows = data.inventoryLevels || data.items || [];
-    csvRows.push(["Item ID", "Item Name", "Category", "Current Stock", "Min Reorder Point", "Status"].join(","));
+    csvRows.push(["Item No", "Item Name", "Category", "Current Stock", "Min Reorder Point", "Status"].join(","));
     rows.forEach((r: any) => {
       csvRows.push([
         `"${r.itemId || r.id || ""}"`,
@@ -17,7 +17,7 @@ export function exportReportCSV(initialTab: string, data: any) {
     });
   } else if (initialTab === "procurement") {
     const rows = data.orders || data.purchaseOrders || [];
-    csvRows.push(["PO ID", "Supplier", "Issue Date", "ETA", "Status", "Total Amount"].join(","));
+    csvRows.push(["PO No", "Supplier", "Issue Date", "ETA", "Status", "Total Amount"].join(","));
     rows.forEach((r: any) => {
       csvRows.push([
         `"${r.poId || r.id || ""}"`,
@@ -30,7 +30,7 @@ export function exportReportCSV(initialTab: string, data: any) {
     });
   } else if (initialTab === "production") {
     const rows = data.batches || data.productionBatches || [];
-    csvRows.push(["Batch ID", "Product", "Multiplier", "Estimated Qty", "Actual Qty", "Production Date", "Stage", "Status"].join(","));
+    csvRows.push(["Batch No", "Product", "Multiplier", "Estimated Qty", "Actual Qty", "Production Date", "Stage", "Status"].join(","));
     rows.forEach((r: any) => {
       csvRows.push([
         `"${r.batchId || r.id || ""}"`,
@@ -45,7 +45,7 @@ export function exportReportCSV(initialTab: string, data: any) {
     });
   } else if (initialTab === "supplier") {
     const rows = data.vendorScorecard || data.suppliers || [];
-    csvRows.push(["Supplier ID", "Supplier Name", "Total Orders", "On-Time Rate", "Fulfillment Rate", "Quality Pass Rate"].join(","));
+    csvRows.push(["Supplier No", "Supplier Name", "Total Orders", "On-Time Rate", "Fulfillment Rate", "Quality Pass Rate"].join(","));
     rows.forEach((r: any) => {
       csvRows.push([
         `"${r.supplierId || r.id || ""}"`,
@@ -58,7 +58,7 @@ export function exportReportCSV(initialTab: string, data: any) {
     });
   } else if (initialTab === "distribution") {
     const rows = data.stockTransfers || data.transfers || [];
-    csvRows.push(["Transfer ID", "Product", "Quantity", "Source", "Destination", "Status", "Transfer Date"].join(","));
+    csvRows.push(["Transfer No", "Product", "Quantity", "Source", "Destination", "Status", "Transfer Date"].join(","));
     rows.forEach((r: any) => {
       csvRows.push([
         `"${r.transferId || r.id || ""}"`,

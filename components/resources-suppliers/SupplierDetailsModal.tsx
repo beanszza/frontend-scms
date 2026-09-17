@@ -116,7 +116,7 @@ export default function SupplierDetailsModal({
         {supplier.supplierCode && (
           <div className="flex items-center justify-end pb-3 border-b border-border">
             <span className="text-xs font-mono text-muted-foreground bg-muted/40 border border-border px-3 py-1 rounded-full">
-              Supplier ID: {supplier.supplierCode}
+              Supplier No: {supplier.supplierCode}
             </span>
           </div>
         )}

@@ -119,21 +119,16 @@ export const systems: SystemItem[] = [
 
 export const accounts: AccountItem[] = [
   {
+    id: "inventory_manager",
+    name: "Inventory Manager",
+    role: "Inventory Manager",
+    email: "scmsuser@r3b2p.com",
+  },
+  {
     id: "admin",
-    name: "Bren Raphael",
-    role: "Administrator",
-    email: "bren@sentracx.com",
-  },
-  {
-    id: "support",
-    name: "Support Lead Account",
-    role: "Support Manager",
-    email: "support.lead@sentracx.com",
-  },
-  {
-    id: "sales",
-    name: "Sales Ops Account",
-    role: "Sales Lead",
-    email: "sales.ops@sentracx.com",
+    name: "Admin Account",
+    role: "Admin",
+    email: "admin@r3b2p.com",
   },
 ];
+

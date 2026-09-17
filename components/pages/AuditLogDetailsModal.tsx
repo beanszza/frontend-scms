@@ -79,7 +79,7 @@ export default function AuditLogDetailsModal({
   });
 
   const handleCopyRaw = () => {
-    const text = `Log ID: ${log.id || "N/A"}\nActivity: ${log.activity}\nTarget: ${log.entityName}\nDate: ${log.timestamp}\nUser: ${log.user}`;
+    const text = `Log No: ${log.id || "N/A"}\nActivity: ${log.activity}\nTarget: ${log.entityName}\nDate: ${log.timestamp}\nUser: ${log.user}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

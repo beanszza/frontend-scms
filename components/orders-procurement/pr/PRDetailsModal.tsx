@@ -1,0 +1,337 @@
+"use client";
+
+import React from "react";
+import {
+  Calendar,
+  AlertCircle,
+} from "lucide-react";
+import { PurchaseRequisition } from "../types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
+
+interface PRDetailsModalProps {
+  pr: PurchaseRequisition | null;
+  isAdmin?: boolean;
+  onClose: () => void;
+  onApprove?: (pr: PurchaseRequisition) => void;
+  onReject?: (pr: PurchaseRequisition) => void;
+  onReturn?: (pr: PurchaseRequisition) => void;
+  onCreatePo?: (pr: PurchaseRequisition) => void;
+}
+
+export function PRDetailsModal({
+  pr,
+  isAdmin = false,
+  onClose,
+  onApprove,
+  onReject,
+  onReturn,
+  onCreatePo,
+}: PRDetailsModalProps) {
+  if (!pr) return null;
+
+  const isPending = pr.status === "Pending Approval" || (pr.status as any) === "Pending";
+  const isApproved = pr.status === "Approved";
+
+  const formattedRequestDate = pr.requestDate
+    ? new Date(pr.requestDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "-";
+
+  const formattedRequiredDate = pr.requiredDate
+    ? new Date(pr.requiredDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "-";
+
+  return (
+    <ModalWrapper
+      open={!!pr}
+      title={isAdmin && isPending ? `Review Product Requisition — ${pr.prNumber}` : `Product Requisition Details — ${pr.prNumber}`}
+      onClose={onClose}
+      size="max-w-5xl"
+    >
+      <div className="space-y-6">
+        {/* Previous Admin Review Notes / Revision Reason (if any) */}
+        {pr.adminNotes && (
+          <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              <AlertCircle className="w-4 h-4 text-foreground shrink-0" />
+              <span>Admin Feedback / Revision Reason:</span>
+            </div>
+            <p className="text-xs text-muted-foreground pl-6 whitespace-pre-wrap">{pr.adminNotes}</p>
+          </div>
+        )}
+
+        {/* Read-only Form matching Inventory side CreatePRForm (2 columns per row) */}
+        <div className="space-y-4">
+          {/* Row 1: PR Number & Request Date */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                PR Number
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={pr.prNumber}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 font-mono text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Request Date
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={formattedRequestDate}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Requested By & Department */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Requested By
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={
+                  pr.requestedBy && pr.requestedBy !== "Unauthenticated"
+                    ? pr.requestedBy
+                    : "Inventory Manager"
+                }
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Department
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={pr.department || "Inventory"}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Request Type & Priority */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Request Type
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={pr.requestType || "Stock Replenishment"}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Priority
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={pr.priority || "Normal"}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+          </div>
+
+          {/* Row 4: Required Date & Requisition Status */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Required Date
+              </label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  readOnly
+                  value={formattedRequiredDate}
+                  className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 pr-10 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+                />
+                <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Requisition Status
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={pr.status}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Requested Supplies & Ingredients Table */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">
+              Requested Supplies &amp; Ingredients
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {pr.items?.length || 0} item(s) listed
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border bg-muted/40 uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">SUPPLY NAME</th>
+                  <th className="px-4 py-3 font-semibold">SUPPLY NO.</th>
+                  <th className="px-4 py-3 font-semibold">UOM</th>
+                  <th className="px-4 py-3 text-right font-semibold">ACTUAL INVENTORY</th>
+                  <th className="px-4 py-3 text-right font-semibold">QUANTITY (TO ORDER)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {pr.items && pr.items.length > 0 ? (
+                  pr.items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {item.itemName}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-muted-foreground">
+                        {item.itemCode || `SPL-${item.itemId}`}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {item.uomName || "pcs"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                        {Number(item.actualInventory || 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-foreground">
+                        {Number(item.requestedQuantity || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                      No supplies or ingredients found in this requisition.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Purpose and Notes (2 columns per row) */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Purpose / Justification
+            </label>
+            <Textarea
+              readOnly
+              rows={3}
+              value={pr.purpose || "—"}
+              className="w-full rounded-xl border border-border bg-muted/40 p-3 text-xs text-foreground cursor-not-allowed resize-none shadow-none focus-visible:ring-0 leading-relaxed"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Notes
+            </label>
+            <Textarea
+              readOnly
+              rows={3}
+              value={pr.notes || "None"}
+              className="w-full rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground cursor-not-allowed resize-none shadow-none focus-visible:ring-0 leading-relaxed"
+            />
+          </div>
+        </div>
+
+        {/* Modal Footer with Operations */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border mt-4">
+          <div className="text-xs text-muted-foreground">
+            {pr.updatedAt ? `Last modified: ${new Date(pr.updatedAt).toLocaleString()}` : ""}
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            {/* Close Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+            >
+              Close
+            </Button>
+
+            {/* Admin Operations for Pending PRs */}
+            {isAdmin && isPending && (
+              <>
+                {onReturn && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onReturn(pr)}
+                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+                  >
+                    Return for Revision
+                  </Button>
+                )}
+
+                {onReject && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onReject(pr)}
+                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+                  >
+                    Reject
+                  </Button>
+                )}
+
+                {onApprove && (
+                  <Button
+                    type="button"
+                    onClick={() => onApprove(pr)}
+                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+                  >
+                    Approve
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Create PO for Approved PRs */}
+            {isApproved && onCreatePo && (
+              <Button
+                type="button"
+                onClick={() => onCreatePo(pr)}
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+              >
+                Create PO
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}

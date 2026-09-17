@@ -53,7 +53,7 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold text-foreground">{recipe.recipeName}</p>
                         {recipe.recipeCode && (
-                          <p className="text-xs font-mono text-muted-foreground">Recipe ID: {recipe.recipeCode}</p>
+                          <p className="text-xs font-mono text-muted-foreground">Recipe No: {recipe.recipeCode}</p>
                         )}
                         {recipe.finishedProduct && (
                           <p className="text-xs text-muted-foreground">Product: {recipe.finishedProduct}</p>

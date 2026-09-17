@@ -56,7 +56,7 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold text-foreground">{item.itemName}</p>
                         {item.itemCode && (
-                          <p className="text-xs font-mono text-muted-foreground">Supply ID: {item.itemCode}</p>
+                          <p className="text-xs font-mono text-muted-foreground">Supply No: {item.itemCode}</p>
                         )}
                         <p className="text-xs text-muted-foreground">Category: {item.categoryName}</p>
                         <p className="text-xs text-muted-foreground">UOM: {item.uomName}</p>

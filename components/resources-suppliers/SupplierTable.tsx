@@ -55,7 +55,7 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold text-foreground">{supplier.companyName}</p>
                         {supplier.supplierCode && (
-                          <p className="text-xs font-mono text-muted-foreground">Supplier ID: {supplier.supplierCode}</p>
+                          <p className="text-xs font-mono text-muted-foreground">Supplier No: {supplier.supplierCode}</p>
                         )}
                         <p className="text-xs text-muted-foreground">Contact: {supplier.contactPerson}</p>
                         <p className="text-xs text-muted-foreground">Email: {supplier.email}</p>

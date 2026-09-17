@@ -90,7 +90,7 @@ export default function SupplierTab({
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by ID, company, contact, or email..."
+              placeholder="Search by Supplier No, company, contact, or email..."
               value={searchQuery}
               onChange={(e) => {
                 onSearchChange(e.target.value);

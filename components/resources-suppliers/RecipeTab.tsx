@@ -87,7 +87,7 @@ export default function RecipeTab({
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by ID, recipe, or product name..."
+              placeholder="Search by Recipe No, recipe, or product name..."
               value={searchQuery}
               onChange={(e) => {
                 onSearchChange(e.target.value);

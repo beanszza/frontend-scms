@@ -92,7 +92,7 @@ export default function SupplyTab({
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by name or ID (e.g. SPL-0001)..."
+              placeholder="Search by name or Supply No (e.g. SPL-0001)..."
               value={searchQuery}
               onChange={(e) => {
                 onSearchChange(e.target.value);
