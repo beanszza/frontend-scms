@@ -4,6 +4,7 @@ import React from "react";
 import {
   Calendar,
   AlertCircle,
+  Truck,
 } from "lucide-react";
 import { PurchaseOrderPO } from "../types";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface PODetailsModalProps {
   onReturn?: (po: PurchaseOrderPO) => void;
   onOrder?: (po: PurchaseOrderPO) => void;
   onCancel?: (po: PurchaseOrderPO) => void;
+  onCreateDelivery?: (po: PurchaseOrderPO) => void;
 }
 
 export function PODetailsModal({
@@ -30,6 +32,7 @@ export function PODetailsModal({
   onReturn,
   onOrder,
   onCancel,
+  onCreateDelivery,
 }: PODetailsModalProps) {
   if (!po) return null;
 
@@ -287,6 +290,18 @@ export function PODetailsModal({
               className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
             >
               Mark as Ordered
+            </Button>
+          )}
+
+          {/* Inventory Manager: Schedule Delivery for Ordered PO */}
+          {!isAdmin && po.status === "Ordered" && onCreateDelivery && (
+            <Button
+              type="button"
+              onClick={() => onCreateDelivery(po)}
+              className="flex items-center gap-2 rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+            >
+              <Truck className="w-4 h-4" />
+              Schedule Delivery
             </Button>
           )}
         </div>

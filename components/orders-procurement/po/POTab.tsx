@@ -15,6 +15,7 @@ import { POTable } from "./POTable";
 import { PODetailsModal } from "./PODetailsModal";
 import { POActionModal, POActionType } from "./POActionModal";
 import { CreatePOModal } from "./CreatePOModal";
+import { CreateDeliveryModal } from "../delivery/CreateDeliveryModal";
 import Pagination from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
 
@@ -72,6 +73,7 @@ export function POTab() {
   const [selectedPO, setSelectedPO] = useState<PurchaseOrderPO | null>(null);
   const [actionModal, setActionModal] = useState<{ po: PurchaseOrderPO; type: POActionType } | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [deliveryPO, setDeliveryPO] = useState<PurchaseOrderPO | null>(null);
   // For editing a Draft/Returned PO — we open CreatePOModal pre-filled (future enhancement)
   // For now we just open view on edit click
 
@@ -287,6 +289,7 @@ export function POTab() {
         onReturn={(po) => { setSelectedPO(null); setActionModal({ po, type: "return" }); }}
         onOrder={(po) => { setSelectedPO(null); setActionModal({ po, type: "order" }); }}
         onCancel={(po) => { setSelectedPO(null); setActionModal({ po, type: "cancel" }); }}
+        onCreateDelivery={(po) => { setSelectedPO(null); setDeliveryPO(po); }}
       />
 
       {/* Action Confirmation Modal */}
@@ -320,6 +323,19 @@ export function POTab() {
           onClose={() => setOpenCreateModal(false)}
           onSuccess={() => {
             setOpenCreateModal(false);
+            fetchOrders();
+          }}
+        />
+      )}
+
+      {/* Schedule Delivery Modal */}
+      {deliveryPO && (
+        <CreateDeliveryModal
+          open={!!deliveryPO}
+          initialPo={deliveryPO}
+          onClose={() => setDeliveryPO(null)}
+          onSuccess={() => {
+            setDeliveryPO(null);
             fetchOrders();
           }}
         />

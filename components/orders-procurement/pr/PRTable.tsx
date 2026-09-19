@@ -140,8 +140,8 @@ export function PRTable({
                 }
               }
 
-              // For Admin: user requested ONLY View in table actions, review operations inside modal
-              const isDropdown = actions.length >= 3;
+              // Always use three-dot dropdown menu
+              const isDropdown = true;
               const isOpen = openDropdownPrId === pr.prId;
 
               return (

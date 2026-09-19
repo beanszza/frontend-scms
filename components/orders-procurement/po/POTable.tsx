@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Eye, Pencil, MoreHorizontal, Ban } from "lucide-react";
 import { PurchaseOrderPO } from "../types";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 interface ActionItem {
   label: string;
@@ -34,30 +33,17 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openDropdownId]);
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "Draft": return "bg-muted text-muted-foreground border-border";
-      case "Pending Approval": return "bg-muted text-foreground border-border font-semibold";
-      case "Returned": return "bg-muted text-foreground border-border";
-      case "Approved": return "bg-muted text-foreground border-border font-semibold";
-      case "Ordered": return "bg-foreground text-background border-foreground font-semibold";
-      case "Rejected": return "bg-muted text-muted-foreground border-border line-through";
-      case "Cancelled": return "bg-muted text-muted-foreground border-border";
-      default: return "bg-muted text-muted-foreground border-border";
-    }
-  };
-
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO NO.</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO NUMBER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PR REF.</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ORDER DATE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUESTED BY</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">TOTAL</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">TOTAL AMOUNT</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
             <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap w-24">ACTIONS</th>
           </tr>
@@ -72,18 +58,16 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
           ) : (
             orders.map((po) => {
               const isDraft = po.status === "Draft";
-              const isPending = po.status === "Pending Approval";
               const isReturned = po.status === "Returned";
-              const isCancellable = isDraft || isPending || isReturned;
+              const isCancellable = po.status === "Draft" || po.status === "Pending Approval" || po.status === "Approved" || po.status === "Returned";
 
-              const actions: ActionItem[] = [];
-
-              // View Details — always
-              actions.push({
-                label: "View Details",
-                icon: <Eye className="w-4 h-4 text-foreground" />,
-                onClick: () => { setOpenDropdownId(null); onView(po); },
-              });
+              const actions: ActionItem[] = [
+                {
+                  label: "View Details",
+                  icon: <Eye className="w-4 h-4 text-foreground" />,
+                  onClick: () => { setOpenDropdownId(null); onView(po); },
+                },
+              ];
 
               // Inventory Manager actions only
               if (!isAdmin) {
@@ -103,7 +87,6 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
                 }
               }
 
-              const isDropdown = actions.length >= 3;
               const isOpen = openDropdownId === po.poId;
 
               const fmtDate = (d: string) =>
@@ -113,7 +96,7 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
                 new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 }).format(n);
 
               return (
-                <tr key={po.poId} className="hover:bg-muted/30 transition-colors">
+                <tr key={po.poId} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onView(po)}>
                   <td className="px-4 py-3.5 font-mono text-foreground whitespace-nowrap font-medium">
                     {po.poNumber}
                   </td>
@@ -133,68 +116,42 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
                     {fmtCurrency(po.totalAmount || 0)}
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] border ${getStatusClass(po.status)}`}>
-                      {po.status}
-                    </span>
+                    <StatusBadge status={po.status} />
                   </td>
-                  <td className="px-4 py-3.5 text-center whitespace-nowrap relative">
-                    {isDropdown ? (
-                      <div className="relative inline-flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setOpenDropdownId(isOpen ? null : po.poId)}
-                          className={`p-1.5 rounded-lg border transition-all ${
-                            isOpen
-                              ? "bg-muted border-border text-foreground shadow-sm"
-                              : "border-transparent text-foreground hover:bg-muted/80"
-                          }`}
-                          aria-label="Actions menu"
+                  <td className="px-4 py-3.5 text-center whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative inline-flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setOpenDropdownId(isOpen ? null : po.poId)}
+                        className={`p-1.5 rounded-lg border transition-all ${
+                          isOpen
+                            ? "bg-muted border-border text-foreground shadow-sm"
+                            : "border-transparent text-foreground hover:bg-muted/80"
+                        }`}
+                        aria-label="Actions menu"
+                      >
+                        <MoreHorizontal className="w-4 h-4 text-foreground" />
+                      </button>
+                      {isOpen && (
+                        <div
+                          ref={dropdownRef}
+                          style={{ minWidth: "175px" }}
+                          className="absolute right-0 top-full mt-1.5 z-[200] rounded-xl border border-border bg-card py-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100 text-left"
                         >
-                          <MoreHorizontal className="w-4 h-4 text-foreground" />
-                        </button>
-                        {isOpen && (
-                          <div
-                            ref={dropdownRef}
-                            style={{ minWidth: "175px" }}
-                            className="absolute right-0 top-full mt-1.5 z-[200] rounded-xl border border-border bg-card py-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100 text-left"
-                          >
-                            {actions.map((action, idx) => (
-                              <button
-                                key={action.label + idx}
-                                type="button"
-                                onClick={action.onClick}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left"
-                              >
-                                <span className="shrink-0 text-foreground">{action.icon}</span>
-                                <span className="truncate text-foreground">{action.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <TooltipProvider delayDuration={150}>
-                        <div className="flex items-center justify-center gap-1">
                           {actions.map((action, idx) => (
-                            <Tooltip key={action.label + idx}>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={action.onClick}
-                                  className="h-7 w-7 rounded-lg hover:bg-muted text-foreground"
-                                >
-                                  {action.icon}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {action.label}
-                              </TooltipContent>
-                            </Tooltip>
+                            <button
+                              key={action.label + idx}
+                              type="button"
+                              onClick={action.onClick}
+                              className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left"
+                            >
+                              <span className="shrink-0 text-foreground">{action.icon}</span>
+                              <span className="truncate text-foreground">{action.label}</span>
+                            </button>
                           ))}
                         </div>
-                      </TooltipProvider>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

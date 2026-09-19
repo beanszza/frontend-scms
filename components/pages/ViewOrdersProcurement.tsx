@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { PRTab } from "@/components/orders-procurement/pr/PRTab";
 import { POTab } from "@/components/orders-procurement/po/POTab";
 import { CreatePOModal } from "@/components/orders-procurement/po/CreatePOModal";
+import { DeliveryTab } from "@/components/orders-procurement/delivery/DeliveryTab";
 
 export default function OrdersProcurementPage() {
   const [mainTab, setMainTab] = useState<"pr" | "po" | "delivery">("pr");
@@ -79,17 +80,7 @@ export default function OrdersProcurementPage() {
       {mainTab === "po" && <POTab />}
 
       {/* MAIN TAB 3: DELIVERY */}
-      {mainTab === "delivery" && (
-        <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card space-y-3">
-          <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center border border-border">
-            <Truck className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <h3 className="text-sm font-bold text-foreground">Delivery Management</h3>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            The Delivery and Shipment tracking module will handle incoming consignments, supplier DR verification, and warehouse bay check-ins following purchase order fulfillment.
-          </p>
-        </div>
-      )}
+      {mainTab === "delivery" && <DeliveryTab />}
 
       {/* Global CreatePO Modal — opened from PR details "Create PO" button */}
       {showCreatePO && (

@@ -123,3 +123,59 @@ export type PurchaseOrderPO = {
   totalAmount: number;
   items: POItem[];
 };
+
+// ─── Delivery Types ─────────────────────────────────────────────────────────
+
+export type DeliveryStatus = "Scheduled" | "In Transit" | "Arrived" | "Cancelled";
+
+export type DeliveryItem = {
+  deliveryItemId?: number;
+  poItemId: number;
+  itemId: number;
+  itemName: string;
+  itemCode: string;
+  poOrderedQuantity: number;
+  poTotalReceivedQuantity: number;
+  poOutstandingQuantity: number;
+  alreadyScheduledQuantity?: number;
+  declaredQuantity: number;
+  purchaseUomId: number;
+  purchaseUomName: string;
+};
+
+export type Delivery = {
+  deliveryId: number;
+  deliveryNumber: string;
+  poId: number;
+  poNumber: string;
+  supplierId: number;
+  supplierName: string;
+  paymentType?: string;
+  receivingLocationId: number;
+  receivingLocationName: string;
+  status: DeliveryStatus;
+  scheduledDate: string;
+  expectedArrivalDate?: string;
+  dispatchedDate?: string;
+  actualArrivalDate?: string;
+  trackingNumber?: string;
+  carrier?: string;
+  driverName?: string;
+  vehiclePlateNumber?: string;
+  deliveryNoteNumber?: string;
+  arrivalCondition?: string;
+  arrivalNotes?: string;
+  notes?: string;
+  attachmentUrl?: string;
+  scheduledAttachment?: string;
+  dispatchAttachment?: string;
+  arrivalAttachment?: string;
+  createdBy: string;
+  dispatchedBy?: string;
+  receivedBy?: string;
+  createdAt: string;
+  grnId?: number;
+  grnNumber?: string;
+  items: DeliveryItem[];
+};
+

@@ -114,8 +114,20 @@ export default function ViewGoodsReceiving() {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // New GRN form state
-  const [newGrn, setNewGrn] = useState({ poId: "", notes: "" });
+  const [newGrn, setNewGrn] = useState<{ poId: string; notes: string; deliveryId?: string }>({ poId: "", notes: "" });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const poId = params.get("poId");
+      const deliveryId = params.get("deliveryId");
+      if (poId) {
+        setNewGrn(prev => ({ ...prev, poId, deliveryId: deliveryId || undefined }));
+        setShowGrnModal(true);
+      }
+    }
+  }, []);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -204,6 +216,8 @@ export default function ViewGoodsReceiving() {
     try {
       await api.post("/api/scms/api/GoodsReceipts", {
         purchaseOrderId: parseInt(newGrn.poId),
+        poId: parseInt(newGrn.poId),
+        deliveryId: newGrn.deliveryId ? parseInt(newGrn.deliveryId) : undefined,
         notes: newGrn.notes,
       });
       setShowGrnModal(false);
