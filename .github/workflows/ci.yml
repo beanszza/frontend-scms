@@ -27,5 +27,6 @@ jobs:
     uses: ./.github/workflows/node-build.yml
     with:
       name: ${{ matrix.name }}
+    secrets: inherit
 
  

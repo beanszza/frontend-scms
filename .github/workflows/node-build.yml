@@ -10,7 +10,7 @@ on:
       port:
         description: 'Container port exposed by the app'
         required: false
-        default: '3001'
+        default: '3004'
         type: string
 
 jobs:
@@ -35,16 +35,27 @@ jobs:
         with:
             path: |
                 ~/.npm
-                ${{ github.workspace }}/.next/cache 
+                ${{ github.workspace }}/.next/cache
             key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
             restore-keys: |
                 ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Build Next.js app
         run: npm run build
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: http://localhost:${{ inputs.port }}
+          NEXT_PUBLIC_API_URL: http://localhost:5006/
+          NEXT_PUBLIC_HOST_URL: http://localhost:3000
+          NEXT_PUBLIC_HRMS_URL: http://localhost:3001
+          NEXT_PUBLIC_POS_URL: http://localhost:3002
+          NEXT_PUBLIC_SCMS_URL: http://localhost:3003
+          NEXT_PUBLIC_OOS_URL: http://localhost:3004
+          NEXT_PUBLIC_CRMS_URL: http://localhost:3005
+          NODE_TLS_REJECT_UNAUTHORIZED: 0
 
       - name: Build Docker
         run: docker build -t ${{ inputs.name }} .
