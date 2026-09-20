@@ -151,7 +151,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
             <label className="block text-xs font-semibold text-foreground mb-1.5">Dispatch Date <span className="text-muted-foreground">*</span></label>
             <input 
               type="date" 
-              className={`w-full px-3 py-2 text-sm rounded-lg border ${dispatchDateError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${dispatchDateError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
               value={dispatchDate} 
               onChange={e => {
                 const val = e.target.value;
@@ -164,7 +164,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
                 }
               }} 
             />
-            {dispatchDateError && <p className="mt-1 text-xs text-red-500">{dispatchDateError}</p>}
+            {dispatchDateError && <p className="mt-1 text-xs text-destructive">{dispatchDateError}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -173,22 +173,22 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
               <input 
                 type="text" 
                 placeholder="Driver name" 
-                className={`w-full px-3 py-2 text-sm rounded-lg border ${driverNameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${driverNameError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
                 value={driverName} 
                 onChange={handleDriverNameChange} 
               />
-              {driverNameError && <p className="mt-1 text-xs text-red-500">{driverNameError}</p>}
+              {driverNameError && <p className="mt-1 text-xs text-destructive">{driverNameError}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Tracking/Vehicle Number</label>
               <input 
                 type="text" 
                 placeholder="e.g., ABC1234" 
-                className={`w-full px-3 py-2 text-sm rounded-lg border ${trackingNumberError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${trackingNumberError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
                 value={trackingNumber} 
                 onChange={handleTrackingNumberChange} 
               />
-              {trackingNumberError && <p className="mt-1 text-xs text-red-500">{trackingNumberError}</p>}
+              {trackingNumberError && <p className="mt-1 text-xs text-destructive">{trackingNumberError}</p>}
             </div>
           </div>
 
@@ -198,7 +198,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
               Proof of Transaction (Receipt) <span className="text-muted-foreground">*</span></label>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed ${receiptError ? 'border-red-500' : 'border-border'} p-6 cursor-pointer hover:bg-muted/50 transition-colors bg-card`}
+              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed ${receiptError ? '!border-destructive' : 'border-border'} p-6 cursor-pointer hover:bg-muted/50 transition-colors bg-card`}
             >
               <Upload size={24} className="text-muted-foreground mb-2" />
               <p className="text-xs text-muted-foreground">
@@ -213,7 +213,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
               onChange={handleFileChange}
               className="hidden"
             />
-            {receiptError && <p className="mt-1 text-xs text-red-500">{receiptError}</p>}
+            {receiptError && <p className="mt-1 text-xs text-destructive">{receiptError}</p>}
 
             {previews.length > 0 && (
               <div className="mt-3 grid grid-cols-4 gap-3">

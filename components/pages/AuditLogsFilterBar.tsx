@@ -85,7 +85,7 @@ export default function AuditLogsFilterBar({
             <Search className="absolute left-3 top-2.5 text-muted-foreground" size={16} />
             <Input
               type="text"
-              placeholder="Search activity, items, users..."
+              placeholder="Search by ID, activity, items, users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -114,8 +114,10 @@ export default function AuditLogsFilterBar({
           />
           {specificDate && (
             <Button
+              variant="ghost"
+              size="sm"
               onClick={onResetFilters}
-              className="flex items-center gap-1 text-xs text-rose-600 hover:underline font-semibold"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-semibold h-8 px-2"
             >
               <RotateCcw size={12} /> Clear Date
             </Button>
@@ -148,8 +150,10 @@ export default function AuditLogsFilterBar({
           </div>
           {(startDate || endDate) && (
             <Button
+              variant="ghost"
+              size="sm"
               onClick={onResetFilters}
-              className="flex items-center gap-1 text-xs text-rose-600 hover:underline font-semibold"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-semibold h-8 px-2"
             >
               <RotateCcw size={12} /> Clear Range
             </Button>

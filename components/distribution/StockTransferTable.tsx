@@ -11,18 +11,7 @@ interface StockTransferTableProps {
   onCancel: (item: TransferItem) => void;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "Completed") {
-    return <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-foreground text-background border border-foreground">Completed</span>;
-  }
-  if (status === "In Transit") {
-    return <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-muted text-foreground border border-border">In Transit</span>;
-  }
-  if (status === "Pending") {
-    return <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-muted/60 text-foreground border border-border">Pending</span>;
-  }
-  return <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-muted/30 text-muted-foreground border border-border">{status}</span>;
-}
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 export default function StockTransferTable({
   transfers,

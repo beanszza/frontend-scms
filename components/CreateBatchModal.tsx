@@ -185,10 +185,17 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     }
   }, [userTargetYield, recipeTargetYield, yieldUnit]);
 
+  // Batch multiplier is decimal on the backend as of the decimal(18,3) migration, so the exact
+  // ratio can be sent. It used to be rounded up with Math.ceil, which silently overproduced:
+  // asking for 30 jars from a 20-jar recipe cooked 40 and consumed ingredients for 40.
+  const batchMultiplierFor = (targetYield: number | string, recipeYield: number | null) => {
+    if (!recipeYield || targetYield === "" || Number(targetYield) <= 0) return 1;
+    // Rounded to 3 decimals to match the backend column scale.
+    return Math.round((Number(targetYield) / recipeYield) * 1000) / 1000;
+  };
+
   const hasStockIssue = useMemo(() => {
-    const multiplier = recipeTargetYield && userTargetYield !== "" && Number(userTargetYield) > 0 
-      ? Math.ceil(Number(userTargetYield) / recipeTargetYield) 
-      : 1;
+    const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
     return ingredients.some((ing) => ing.availableStock < ing.requiredQty * multiplier);
   }, [ingredients, userTargetYield, recipeTargetYield]);
 
@@ -207,7 +214,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     if (!isFormValid) return;
     setIsSubmitting(true);
     try {
-      const multiplier = Math.ceil(Number(userTargetYield) / (recipeTargetYield || 1));
+      const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
       
       await api.post("/api/scms/api/ProductionBatches", {
         recipeId: Number(selectedVariantId),
@@ -319,7 +326,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 }}
                 className={`w-full rounded-xl border ${
                   finishedProductError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground`}
               >
@@ -331,7 +338,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 ))}
               </select>
               {finishedProductError && (
-                <p className="mt-1 text-xs text-red-500">{finishedProductError}</p>
+                <p className="mt-1 text-xs text-destructive">{finishedProductError}</p>
               )}
             </div>
 
@@ -351,7 +358,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 disabled={!finishedProduct}
                 className={`w-full rounded-xl border ${
                   variantError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed`}
               >
@@ -362,7 +369,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </option>
                 ))}
               </select>
-              {variantError && <p className="mt-1 text-xs text-red-500">{variantError}</p>}
+              {variantError && <p className="mt-1 text-xs text-destructive">{variantError}</p>}
             </div>
 
             {/* Editable Target Yield */}
@@ -382,12 +389,12 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 disabled={!recipeTargetYield}
                 className={`w-full rounded-xl border ${
                   targetYieldError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed`}
               />
               {targetYieldError && (
-                <p className="mt-1 text-xs text-red-500">{targetYieldError}</p>
+                <p className="mt-1 text-xs text-destructive">{targetYieldError}</p>
               )}
             </div>
 
@@ -407,12 +414,12 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 }}
                 className={`w-full rounded-xl border ${
                   scheduleDateError
-                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
                     : "border-border"
                 } bg-card py-2.5 px-3 text-sm text-foreground`}
               />
               {scheduleDateError && (
-                <p className="mt-1 text-xs text-red-500">{scheduleDateError}</p>
+                <p className="mt-1 text-xs text-destructive">{scheduleDateError}</p>
               )}
             </div>
           </div>
@@ -442,9 +449,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </thead>
                   <tbody>
                     {ingredients.map((ing) => {
-                      const multiplier = recipeTargetYield && userTargetYield !== "" && Number(userTargetYield) > 0 
-                        ? Math.ceil(Number(userTargetYield) / recipeTargetYield) 
-                        : 1;
+                      const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
                       const required = ing.requiredQty * multiplier;
                       const deficit = required - ing.availableStock;
                       const sufficient = deficit <= 0;
@@ -468,7 +473,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                                 <Check size={14} /> Sufficient
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-red-500">
+                              <span className="inline-flex items-center gap-1 text-destructive">
                                 <AlertTriangle size={14} /> Insufficient by {deficit.toFixed(2)}{" "}
                                 {ing.uom}
                               </span>

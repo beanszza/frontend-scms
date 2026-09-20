@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { MoreHorizontal, Pencil } from "lucide-react";
 import { Recipe } from "./types";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface RecipeTableProps {
   recipes: Recipe[];
@@ -40,19 +42,37 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
                 <td className="px-5 py-4 text-sm text-muted-foreground">
                   {index + 1 + (currentPage - 1) * pageSize}
                 </td>
-                <td className="px-5 py-4 text-sm font-semibold text-foreground">{recipe.recipeName}</td>
+                <td className="px-5 py-4 text-sm font-semibold text-foreground">
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <span className="cursor-default whitespace-nowrap">
+                        {recipe.recipeName}
+                      </span>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-72">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-foreground">{recipe.recipeName}</p>
+                        {recipe.recipeCode && (
+                          <p className="text-xs font-mono text-muted-foreground">Recipe No: {recipe.recipeCode}</p>
+                        )}
+                        {recipe.finishedProduct && (
+                          <p className="text-xs text-muted-foreground">Product: {recipe.finishedProduct}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Target Yield: {recipe.outputQuantity}</p>
+                        {recipe.notes && (
+                          <p className="text-xs text-muted-foreground">Notes: {recipe.notes}</p>
+                        )}
+                        <div className="pt-1">
+                          <StatusBadge status={recipe.isActive ? "Active" : "Inactive"} />
+                        </div>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                </td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.finishedProduct || "N/A"}</td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.outputQuantity}</td>
                 <td className="px-5 py-4">
-                  <span
-                    className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                      recipe.isActive
-                        ? "bg-foreground text-background border border-foreground font-semibold"
-                        : "bg-muted/40 text-muted-foreground border border-border"
-                    }`}
-                  >
-                    {recipe.isActive ? "Active" : "Inactive"}
-                  </span>
+                  <StatusBadge status={recipe.isActive ? "Active" : "Inactive"} />
                 </td>
                 <td className="px-5 py-4 text-center relative">
                   <button

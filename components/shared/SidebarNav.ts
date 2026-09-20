@@ -3,11 +3,16 @@ import {
   Warehouse,
   ShoppingCart,
   Boxes,
-  Truck,
   Building2,
+  Truck,
   Settings,
   Users2,
   CreditCard,
+  PackageCheck,
+  GitBranch,
+  ClipboardList,
+  BarChart3,
+  Calculator,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -15,6 +20,12 @@ export interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  group?: string;
+}
+
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
 }
 
 export interface SystemItem {
@@ -33,14 +44,37 @@ export interface AccountItem {
 
 export type Account = AccountItem;
 
-export const mainNavItems: NavItem[] = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Resources & Suppliers", href: "/resources-suppliers", icon: Warehouse },
-  { name: "Orders & Procurement", href: "/orders-procurement", icon: ShoppingCart },
-  { name: "Inventory", href: "/inventory", icon: Boxes },
-  { name: "Production & Quality", href: "/production-quality", icon: Building2 },
-  { name: "Distribution", href: "/distribution", icon: Truck },
+export const navGroups: NavGroup[] = [
+  {
+    label: "Core",
+    items: [
+      { name: "Dashboard",            href: "/",                    icon: LayoutDashboard },
+      { name: "Resources & Suppliers", href: "/resources-suppliers", icon: Warehouse },
+      { name: "Orders & Procurement", href: "/orders-procurement",  icon: ShoppingCart },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { name: "Goods Receiving",      href: "/goods-receiving",     icon: PackageCheck },
+      { name: "Inventory",            href: "/inventory",           icon: Boxes },
+      { name: "Production & Quality", href: "/production-quality",  icon: Building2 },
+      { name: "Distribution",         href: "/distribution",        icon: Truck },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
+      { name: "Traceability",         href: "/traceability",        icon: GitBranch },
+      { name: "Cycle Counts",         href: "/cycle-counts",        icon: ClipboardList },
+      { name: "Valuation",            href: "/valuation",           icon: BarChart3 },
+      { name: "MRP Planning",         href: "/mrp",                 icon: Calculator },
+    ],
+  },
 ];
+
+/** Flat list of all nav items for breadcrumb lookups */
+export const mainNavItems: NavItem[] = navGroups.flatMap((g) => g.items);
 
 export const settingsNavItem: NavItem = {
   name: "Settings",
@@ -85,21 +119,16 @@ export const systems: SystemItem[] = [
 
 export const accounts: AccountItem[] = [
   {
+    id: "inventory_manager",
+    name: "Inventory Manager",
+    role: "Inventory Manager",
+    email: "scmsuser@r3b2p.com",
+  },
+  {
     id: "admin",
-    name: "Bren Raphael",
-    role: "Administrator",
-    email: "bren@sentracx.com",
-  },
-  {
-    id: "support",
-    name: "Support Lead Account",
-    role: "Support Manager",
-    email: "support.lead@sentracx.com",
-  },
-  {
-    id: "sales",
-    name: "Sales Ops Account",
-    role: "Sales Lead",
-    email: "sales.ops@sentracx.com",
+    name: "Admin Account",
+    role: "Admin",
+    email: "admin@r3b2p.com",
   },
 ];
+

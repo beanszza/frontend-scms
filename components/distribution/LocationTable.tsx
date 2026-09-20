@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { MoreHorizontal, Pencil, Eye } from "lucide-react";
 import { LocationItem } from "./types";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 interface LocationTableProps {
   locations: LocationItem[];
@@ -39,11 +40,7 @@ export default function LocationTable({ locations, onEdit, onView }: LocationTab
                 <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{loc.type}</td>
                 <td className="px-3 py-3 text-muted-foreground">{loc.address}</td>
                 <td className="px-3 py-3">
-                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                    loc.status === "Active" ? "bg-foreground text-background border border-foreground font-semibold" : "bg-muted/40 text-muted-foreground border border-border"
-                  }`}>
-                    {loc.status}
-                  </span>
+                  <StatusBadge status={loc.status} />
                 </td>
                 <td className="px-3 py-3 text-center relative">
                   <button

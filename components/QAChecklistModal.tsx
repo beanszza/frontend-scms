@@ -116,9 +116,9 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
                 }
               }}
               placeholder="QA notes..."
-              className={`w-full rounded-xl border ${notesError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card py-2.5 px-3 text-sm text-foreground`}
+              className={`w-full rounded-xl border ${notesError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card py-2.5 px-3 text-sm text-foreground`}
             />
-            {notesError && <p className="mt-1 text-xs text-red-500">{notesError}</p>}
+            {notesError && <p className="mt-1 text-xs text-destructive">{notesError}</p>}
           </div>
 
           {/* ---------- Decision Section ---------- */}
@@ -162,9 +162,9 @@ export default function QAChecklistModal({ open, batchId, onClose, onSubmit }: P
                     }
                   }}
                   placeholder="Explain why this batch is rejected..."
-                  className={`w-full rounded-xl border ${rejectionError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-border'} bg-card py-2.5 px-3 text-sm text-foreground`}
+                  className={`w-full rounded-xl border ${rejectionError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card py-2.5 px-3 text-sm text-foreground`}
                 />
-                {rejectionError && <p className="mt-1 text-xs text-red-500">{rejectionError}</p>}
+                {rejectionError && <p className="mt-1 text-xs text-destructive">{rejectionError}</p>}
               </div>
             )}
           </div>

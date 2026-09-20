@@ -9,9 +9,11 @@ import SupplyTab from "@/components/resources-suppliers/SupplyTab";
 import SupplierTab from "@/components/resources-suppliers/SupplierTab";
 import RecipeTab from "@/components/resources-suppliers/RecipeTab";
 import SupplyModal from "@/components/resources-suppliers/SupplyModal";
+import SupplyDetailsModal from "@/components/resources-suppliers/SupplyDetailsModal";
 import SupplierModal from "@/components/resources-suppliers/SupplierModal";
 import SupplierDetailsModal from "@/components/resources-suppliers/SupplierDetailsModal";
 import RecipeModal from "@/components/resources-suppliers/RecipeModal";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function ResourcesSuppliersPage() {
   const auth = useAuth();
@@ -43,6 +45,7 @@ export default function ResourcesSuppliersPage() {
   // Modals & Selected Items
   const [openSupplyModal, setOpenSupplyModal] = useState(false);
   const [editingSupply, setEditingSupply] = useState<SupplyItem | null>(null);
+  const [viewSupply, setViewSupply] = useState<SupplyItem | null>(null);
   const [openSupplierModal, setOpenSupplierModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [viewSupplier, setViewSupplier] = useState<Supplier | null>(null);
@@ -58,7 +61,13 @@ export default function ResourcesSuppliersPage() {
         api.get("/api/scms/api/FinishedProducts"),
       ]);
       const [itemsRes, suppliersRes, recipesRes, fpRes] = results.map((r) => (r.status === "fulfilled" ? r.value : null));
-      if (itemsRes?.data?.success) setSupplyData(itemsRes.data.data.items || itemsRes.data.data || []);
+      if (itemsRes?.data?.success) {
+        const rawItems = itemsRes.data.data.items || itemsRes.data.data || [];
+        const suppliesOnly = rawItems.filter(
+          (i: any) => i.categoryName !== "Finished Good" && i.categoryName !== "Finished Goods"
+        );
+        setSupplyData([...suppliesOnly].sort((a: any, b: any) => a.itemId - b.itemId));
+      }
       if (suppliersRes?.data?.success) setSupplierData(suppliersRes.data.data.items || suppliersRes.data.data || []);
       if (recipesRes?.data?.success) setRecipeData((recipesRes.data.data.items || recipesRes.data.data || []).sort((a: any, b: any) => a.recipeId - b.recipeId));
       if (fpRes?.data?.success) {
@@ -79,10 +88,81 @@ export default function ResourcesSuppliersPage() {
         itemName: data.itemName, categoryId: data.categoryId, uomId: data.uomId,
         minStockLevel: data.minStock, maxStockLevel: data.maxStock, isActive: data.isActive,
       };
-      if (editingSupply) await api.put(`/api/scms/api/Items/${editingSupply.itemId}`, payload);
-      else await api.post("/api/scms/api/Items", payload);
+      let itemId: number;
+      if (editingSupply) {
+        await api.put(`/api/scms/api/Items/${editingSupply.itemId}`, payload);
+        itemId = editingSupply.itemId;
+      } else {
+        const res = await api.post("/api/scms/api/Items", payload);
+        itemId = res?.data?.data?.itemId || res?.data?.itemId;
+      }
+      // Sync linked suppliers
+      if (itemId) {
+        const targetSupplierIds: number[] = data.supplierIds || [];
+        if (editingSupply) {
+          try {
+            const curRes = await api.get(`/api/scms/api/SupplierItems/by-item/${itemId}`);
+            const existingItems = curRes.data?.data || curRes.data || [];
+            const existingIds: number[] = existingItems.map((s: any) => s.supplierId);
+
+            const removedIds = existingIds.filter((id) => !targetSupplierIds.includes(id));
+            await Promise.allSettled(
+              removedIds.map((supplierId) => api.delete(`/api/scms/api/SupplierItems/${supplierId}/${itemId}`).catch(() => {}))
+            );
+
+            const addedIds = targetSupplierIds.filter((id) => !existingIds.includes(id));
+            await Promise.allSettled(
+              addedIds.map((supplierId) =>
+                api.post("/api/scms/api/SupplierItems", {
+                  SupplierId: supplierId,
+                  ItemId: itemId,
+                  UnitPrice: 0,
+                  LeadTimeDays: 3,
+                  PackSize: 1,
+                  MinOrderQuantity: 1,
+                  IsPreferred: false,
+                  IsActive: true,
+                }).catch(() => {})
+              )
+            );
+          } catch {
+            await Promise.allSettled(
+              targetSupplierIds.map((supplierId) =>
+                api.post("/api/scms/api/SupplierItems", {
+                  SupplierId: supplierId,
+                  ItemId: itemId,
+                  UnitPrice: 0,
+                  LeadTimeDays: 3,
+                  PackSize: 1,
+                  MinOrderQuantity: 1,
+                  IsPreferred: false,
+                  IsActive: true,
+                }).catch(() => {})
+              )
+            );
+          }
+        } else if (targetSupplierIds.length > 0) {
+          await Promise.allSettled(
+            targetSupplierIds.map((supplierId: number) =>
+              api.post("/api/scms/api/SupplierItems", {
+                SupplierId: supplierId,
+                ItemId: itemId,
+                UnitPrice: 0,
+                LeadTimeDays: 3,
+                PackSize: 1,
+                MinOrderQuantity: 1,
+                IsPreferred: false,
+                IsActive: true,
+              }).catch(() => {})
+            )
+          );
+        }
+      }
       setOpenSupplyModal(false); setEditingSupply(null); fetchData();
-    } catch { alert("Failed to save supply item."); }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to save supply item.";
+      alert(msg);
+    }
   };
 
   const handleSaveSupplier = async (data: any) => {
@@ -106,11 +186,11 @@ export default function ResourcesSuppliersPage() {
   };
 
   return (
-    <div className="w-full min-h-full py-xl px-lg md:px-xl space-y-2xl animate-page-in">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Resources & Suppliers</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Manage your foundation data - Supply, Suppliers, and Recipes</p>
-      </div>
+    <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
+      <PageHeader
+        title="Resources & Suppliers"
+        description="Manage your foundation data - Supply, Suppliers, and Recipes"
+      />
 
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="mb-8">
         <TabsList>
@@ -125,9 +205,10 @@ export default function ResourcesSuppliersPage() {
           supplies={supplyData} searchQuery={supplySearchQuery} onSearchChange={setSupplySearchQuery}
           categoryFilter={supplyFilter} onCategoryFilterChange={setSupplyFilter}
           statusFilter={supplyStatusFilter} onStatusFilterChange={setSupplyStatusFilter}
-          currentPage={supplyPage} onPageChange={setSupplyPage} isAuthorizedForReports={!!isAuth}
+          currentPage={supplyPage} onPageChange={setSupplyPage} isAuthorizedForReports={true}
           onAddNew={() => { setEditingSupply(null); setOpenSupplyModal(true); }}
           onEdit={(item) => { setEditingSupply(item); setOpenSupplyModal(true); }}
+          onView={(item) => setViewSupply(item)}
         />
       )}
 
@@ -135,7 +216,7 @@ export default function ResourcesSuppliersPage() {
         <SupplierTab
           suppliers={supplierData} searchQuery={supplierSearchQuery} onSearchChange={setSupplierSearchQuery}
           statusFilter={supplierFilter} onStatusFilterChange={setSupplierFilter}
-          currentPage={supplierPage} onPageChange={setSupplierPage} isAuthorizedForReports={!!isAuth}
+          currentPage={supplierPage} onPageChange={setSupplierPage} isAuthorizedForReports={true}
           onAddNew={() => { setEditingSupplier(null); setOpenSupplierModal(true); }}
           onEdit={(s) => { setEditingSupplier(s); setOpenSupplierModal(true); }}
           onView={(s) => setViewSupplier(s)}
@@ -146,13 +227,29 @@ export default function ResourcesSuppliersPage() {
         <RecipeTab
           recipes={recipeData} searchQuery={recipeSearchQuery} onSearchChange={setRecipeSearchQuery}
           statusFilter={recipeFilter} onStatusFilterChange={setRecipeFilter}
-          currentPage={recipePage} onPageChange={setRecipePage} isAuthorizedForReports={!!isAuth}
+          currentPage={recipePage} onPageChange={setRecipePage} isAuthorizedForReports={true}
           onAddNew={() => { setEditingRecipe(null); setOpenRecipeModal(true); }}
           onEdit={(r) => { setEditingRecipe(r); setOpenRecipeModal(true); }}
         />
       )}
 
-      <SupplyModal open={openSupplyModal} editingItem={editingSupply} onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }} onSave={handleSaveSupply} />
+      <SupplyModal
+        open={openSupplyModal}
+        editingItem={editingSupply}
+        existingSupplies={supplyData}
+        suppliers={supplierData.map((s: any) => ({ supplierId: s.supplierId, companyName: s.companyName, supplierCode: s.supplierCode }))}
+        onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }}
+        onSave={handleSaveSupply}
+      />
+      <SupplyDetailsModal
+        item={viewSupply}
+        onClose={() => setViewSupply(null)}
+        onEdit={(item) => {
+          setViewSupply(null);
+          setEditingSupply(item);
+          setOpenSupplyModal(true);
+        }}
+      />
       <SupplierModal open={openSupplierModal} editingSupplier={editingSupplier} onClose={() => { setOpenSupplierModal(false); setEditingSupplier(null); }} onSave={handleSaveSupplier} />
       <SupplierDetailsModal supplier={viewSupplier} onClose={() => setViewSupplier(null)} />
       <RecipeModal open={openRecipeModal} editingRecipe={editingRecipe} finishedProducts={finishedProductData} baseSupplies={supplyData} onClose={() => { setOpenRecipeModal(false); setEditingRecipe(null); }} onSave={handleSaveRecipe} />

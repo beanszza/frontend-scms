@@ -16,21 +16,26 @@ import {
 import { HeaderNotifications } from "./HeaderNotifications";
 import { navItems } from "./SidebarNav";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator"
-
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function getBreadcrumbItems(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);
 
   if (segments.length === 0) {
     return [
-      { label: "SCMS", href: "/dashboard" },
+      { label: "SCMS", href: "/" },
       { label: "Dashboard", isCurrent: true },
     ];
   }
 
   const items: Array<{ label: string; href?: string; isCurrent?: boolean }> = [
-    { label: "SCMS", href: "/dashboard" },
+    { label: "SCMS", href: "/" },
   ];
 
   if (segments[0] === "dashboard") {
@@ -60,23 +65,28 @@ export function Header() {
   const breadcrumbItems = getBreadcrumbItems(pathname);
 
   return (
-    <header className="sticky top-0 z-50 flex justify-between items-center w-full px-md sm:px-lg h-16 bg-background border-b border-border">
+    <header className="sticky top-0 z-50 flex justify-between items-center w-full px-4 sm:px-6 h-14 bg-background border-b border-border">
       {/* Left: Sidebar Toggle & Breadcrumb */}
-      <div className="flex items-center gap-sm sm:gap-md flex-1 overflow-hidden">
-        <SidebarTrigger className="h-9 w-9 shrink-0  hover:bg-accent text-foreground transition-all cursor-pointer" />
-        <Separator orientation="vertical" className="h-5" /> 
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-hidden">
+        <SidebarTrigger className="h-8 w-8 shrink-0 hover:bg-accent text-foreground transition-all cursor-pointer rounded-md" />
+        <Separator orientation="vertical" className="h-4" />
         <Breadcrumb className="overflow-hidden">
-          <BreadcrumbList className="flex-nowrap whitespace-nowrap text-sm sm:text-base font-semibold">
+          <BreadcrumbList className="flex-nowrap whitespace-nowrap text-sm font-medium">
             {breadcrumbItems.map((item, index) => (
               <React.Fragment key={index}>
-                {index > 0 && <BreadcrumbSeparator className="text-muted-foreground [&>svg]:w-4 [&>svg]:h-4" />}
+                {index > 0 && (
+                  <BreadcrumbSeparator className="text-muted-foreground [&>svg]:w-3.5 [&>svg]:h-3.5" />
+                )}
                 <BreadcrumbItem>
                   {item.isCurrent ? (
-                    <BreadcrumbPage className="font-bold text-foreground">
+                    <BreadcrumbPage className="font-semibold text-foreground text-sm">
                       {item.label}
                     </BreadcrumbPage>
                   ) : (
-                    <BreadcrumbLink asChild className="text-muted-foreground hover:text-foreground font-semibold">
+                    <BreadcrumbLink
+                      asChild
+                      className="text-muted-foreground hover:text-foreground font-medium text-sm"
+                    >
                       <Link href={item.href || "#"}>{item.label}</Link>
                     </BreadcrumbLink>
                   )}
@@ -88,11 +98,22 @@ export function Header() {
       </div>
 
       {/* Right: Notifications & Help */}
-      <div className="flex items-center gap-xs shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <HeaderNotifications />
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground w-8 h-8">
-          <HelpCircle className="w-4 h-4" />
-        </Button>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground w-8 h-8 rounded-md"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Help & documentation</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </header>
   );

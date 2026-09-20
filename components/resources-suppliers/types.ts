@@ -1,5 +1,6 @@
 export type SupplyItem = {
   itemId: number;
+  itemCode?: string;
   itemName: string;
   categoryName: string;
   uomId: number;
@@ -8,10 +9,12 @@ export type SupplyItem = {
   maxStockLevel: number;
   currentStock: number;
   isActive: boolean;
+  supplierIds?: number[];
 };
 
 export type Supplier = {
   supplierId: number;
+  supplierCode?: string;
   companyName: string;
   contactPerson: string;
   email: string;
@@ -19,6 +22,7 @@ export type Supplier = {
   address: string;
   website?: string;
   isActive: boolean;
+  suppliedItems?: { itemId: number; itemName: string }[];
 };
 
 export type Ingredient = {
@@ -31,6 +35,7 @@ export type Ingredient = {
 
 export type Recipe = {
   recipeId: number;
+  recipeCode?: string;
   recipeName: string;
   finishedProduct: string;
   productId: number;
