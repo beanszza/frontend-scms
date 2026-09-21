@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         source: "/api/erp-auth/:path*",
         destination: `${authApiUrl}/api/erp-auth/:path*`,
       },
+      {
+        source: "/api/:path*",
+        destination: `${scmsApiUrl}/api/:path*`,
+      },
     ];
   },
 };

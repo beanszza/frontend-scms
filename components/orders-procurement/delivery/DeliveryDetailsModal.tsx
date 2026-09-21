@@ -100,7 +100,7 @@ export function DeliveryDetailsModal({
           </div>
         </div>
 
-        {/* Row 2: Supplier, Payment Terms, Receiving Location (3 Columns) */}
+        {/* Row 2: Supplier, Payment Terms, fixed inbound destination (3 Columns) */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
@@ -126,12 +126,12 @@ export function DeliveryDetailsModal({
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
-              Receiving Location
+              Delivery destination
             </label>
             <Input
               type="text"
               readOnly
-              value={delivery.receivingLocationName || "Raw Materials Warehouse"}
+              value="Commissary"
               className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0 font-medium"
             />
           </div>

@@ -1,0 +1,111 @@
+"use client";
+
+import React, { useState } from "react";
+import { Truck, Eye, MoreHorizontal } from "lucide-react";
+import { ArrivedDelivery } from "./types";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Button } from "@/components/ui/button";
+
+interface PendingReceivingTableProps {
+  deliveries: ArrivedDelivery[];
+  loading: boolean;
+  onViewDelivery: (delivery: ArrivedDelivery) => void;
+}
+
+export default function PendingReceivingTable({
+  deliveries,
+  loading,
+  onViewDelivery,
+}: PendingReceivingTableProps) {
+  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  if (loading) {
+    return (
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm p-12 text-center text-xs text-muted-foreground animate-pulse">
+        Loading pending deliveries arrived at docks...
+      </div>
+    );
+  }
+
+  if (deliveries.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+        <EmptyState
+          icon={Truck}
+          title="No Deliveries Pending Receiving"
+          description="All arrived shipments have been counted and posted to GRN. New dispatched supplier trucks will appear here upon gate arrival."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-muted/40">
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DELIVERY NO.</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO NUMBER</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ARRIVAL DATE</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">CARRIER</th>
+            <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
+            <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap w-36">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {deliveries.map((del) => (
+            <tr key={del.deliveryId} className="hover:bg-muted/30 transition-colors">
+              <td className="px-4 py-3 font-mono font-semibold text-foreground whitespace-nowrap">
+                {del.deliveryNumber}
+              </td>
+              <td className="px-4 py-3 font-mono font-medium text-foreground whitespace-nowrap">
+                {del.poNumber}
+              </td>
+              <td className="px-4 py-3 font-medium text-foreground max-w-[200px] truncate" title={del.supplierName}>
+                {del.supplierName}
+              </td>
+              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                {del.actualArrival
+                  ? new Date(del.actualArrival).toLocaleDateString()
+                  : del.estimatedArrival
+                  ? new Date(del.estimatedArrival).toLocaleDateString()
+                  : "Today"}
+              </td>
+              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                {del.carrier || "Supplier Logistics"}
+              </td>
+              <td className="px-4 py-3 text-center whitespace-nowrap">
+                <StatusBadge status={del.status} />
+              </td>
+              <td className="px-4 py-3 text-center whitespace-nowrap relative">
+                <button
+                  type="button"
+                  onClick={() => setActiveMenuId(activeMenuId === del.deliveryId ? null : del.deliveryId)}
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors focus:outline-none"
+                  title="Actions"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {activeMenuId === del.deliveryId && (
+                  <div className="absolute right-6 top-10 z-[50] w-36 rounded-xl border border-border bg-card shadow-xl py-1 text-left animate-in fade-in-50 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onViewDelivery(del);
+                        setActiveMenuId(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-muted-foreground" /> View Details
+                    </button>
+                  </div>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

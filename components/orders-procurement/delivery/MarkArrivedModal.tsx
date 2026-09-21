@@ -148,7 +148,7 @@ export function MarkArrivedModal({
         {delivery.items && delivery.items.length > 0 && (
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-foreground">
-              Arriving Items (Will update Purchase Order Received Quantity)
+              Arriving Items (available for GRN after arrival)
             </label>
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-xs text-left">
