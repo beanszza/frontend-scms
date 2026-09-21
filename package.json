@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3003 --experimental-https --experimental-https-cert ./localhost.pem --experimental-https-key ./localhost-key.pem",
+    "dev": "next dev --port 3003 --experimental-https",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -36,7 +36,7 @@
     "cmdk": "^1.1.1",
     "lucide-react": "^1.31.0",
     "next": "16.2.6",
-    "next-auth": "^4.24.15",
+    "next-auth": "^5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -44,6 +44,7 @@
     "recharts": "^3.10.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
+    "undici": "^8.10.2",
     "vaul": "^1.1.2",
     "webcharts": "^1.11.6"
   },

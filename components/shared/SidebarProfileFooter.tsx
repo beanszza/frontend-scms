@@ -107,7 +107,7 @@ export function SidebarProfileFooter({ activeAccount, onSelectAccount }: Sidebar
             className="cursor-pointer text-xs font-medium gap-2 p-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             <a
-              href={`https://localhost:5001/connect/logout?post_logout_redirect_uri=${encodeURIComponent("https://localhost:3003/")}`}
+              href="/api/logout"
               onClick={() => localStorage.removeItem("activeAccount")}
             >
               <LogOut className="w-3.5 h-3.5" />
