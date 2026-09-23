@@ -43,12 +43,21 @@ const STATUS_MAP: Record<string, BadgeTier> = {
   Reconciled:    "active",
   Open:          "muted",
 
-  // Documents / GRN
+  // Documents / GRN / RTV
   Inspected:     "active",
   Accepted:      "active",
+  QaCompleted:   "active",
+  "QA Completed": "active",
+  QaPending:     "muted",
+  "QA Pending":  "muted",
   "Non-Conforming": "outline",
   Returned:      "outline",
   Credited:      "subtle",
+  PendingApproval: "muted",
+  "Pending Approval": "muted",
+  PendingDispatch: "subtle",
+  "Pending Dispatch": "subtle",
+  Dispatched:    "active",
 
   // Recall
   Active:        "active",

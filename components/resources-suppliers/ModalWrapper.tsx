@@ -25,12 +25,18 @@ export default function ModalWrapper({
   if (!open || !mounted) return null;
 
   const maxWidthStyle =
-    size === "max-w-5xl"
+    size === "max-w-7xl"
+      ? "1380px"
+      : size === "max-w-6xl"
+      ? "1240px"
+      : size === "max-w-5xl"
       ? "1050px"
       : size === "max-w-4xl"
       ? "950px"
       : size === "max-w-3xl"
       ? "800px"
+      : size === "max-w-2xl"
+      ? "672px"
       : size === "max-w-xl"
       ? "576px"
       : "900px";

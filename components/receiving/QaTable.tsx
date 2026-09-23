@@ -23,18 +23,6 @@ export default function QaTable({ inspections, loading, onSelectInspection, pend
     );
   }
 
-  if (inspections.length === 0) {
-    return (
-      <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
-        <EmptyState
-          icon={ClipboardCheck}
-          title="No Quality Inspections Found"
-          description="Posted GRNs automatically hand over items for incoming QA inspection and disposition."
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
       <table className="w-full text-xs">
@@ -54,7 +42,14 @@ export default function QaTable({ inspections, loading, onSelectInspection, pend
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {inspections.map((qc) => {
+          {inspections.length === 0 ? (
+            <tr>
+              <td colSpan={pendingView ? 5 : 8} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                No quality inspections found
+              </td>
+            </tr>
+          ) : (
+            inspections.map((qc) => {
             const isReady =
               qc.status === "Pending" ||
               qc.status === "InInspection" ||
@@ -100,7 +95,7 @@ export default function QaTable({ inspections, loading, onSelectInspection, pend
                 </td>
               </tr>
             );
-          })}
+          }))}
         </tbody>
       </table>
     </div>

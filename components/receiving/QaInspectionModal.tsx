@@ -266,10 +266,25 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
               const expanded = expandedItems[item.inspectionItemId];
               return (
                 <div key={item.inspectionItemId} className="border border-border rounded-xl overflow-hidden">
-                  <button type="button" onClick={() => setExpandedItems((current) => ({ ...current, [item.inspectionItemId]: !expanded }))} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left bg-muted/20 hover:bg-muted/40">
+                  <button type="button" onClick={() => setExpandedItems((current) => ({ ...current, [item.inspectionItemId]: !expanded }))} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left bg-muted/20 hover:bg-muted/40 transition-colors">
                     <span className="flex items-center gap-3 min-w-0">
                       {expanded ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
-                      <span className="min-w-0"><span className="block text-sm font-semibold truncate">{item.itemName}</span><span className="block text-[10px] text-muted-foreground">{item.categoryName || "Raw Materials"}{item.lotCode ? ` · Lot ${item.lotCode}` : ""}</span></span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold truncate text-foreground">{item.itemName}</span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-muted text-foreground border border-border">
+                            {item.categoryName || "Raw Materials"}
+                          </span>
+                          {item.lotCode && (
+                            <span className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">
+                              Lot: {item.lotCode}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Protocol: {getChecks(item) === toolAndSupplyChecks ? "Tools & Supplies Verification" : "Food / Raw Material Specification"}
+                        </div>
+                      </div>
                     </span>
                     <span className={`text-[11px] font-semibold whitespace-nowrap ${itemComplete ? "text-emerald-600" : "text-muted-foreground"}`}>{itemComplete ? "Ready" : "Incomplete"}</span>
                   </button>

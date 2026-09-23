@@ -27,18 +27,6 @@ export default function PendingReceivingTable({
     );
   }
 
-  if (deliveries.length === 0) {
-    return (
-      <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
-        <EmptyState
-          icon={Truck}
-          title="No Deliveries Pending Receiving"
-          description="All arrived shipments have been counted and posted to GRN. New dispatched supplier trucks will appear here upon gate arrival."
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
       <table className="w-full text-xs">
@@ -54,7 +42,14 @@ export default function PendingReceivingTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {deliveries.map((del) => (
+          {deliveries.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                No deliveries pending receiving
+              </td>
+            </tr>
+          ) : (
+            deliveries.map((del) => (
             <tr key={del.deliveryId} className="hover:bg-muted/30 transition-colors">
               <td className="px-4 py-3 font-mono font-semibold text-foreground whitespace-nowrap">
                 {del.deliveryNumber}
@@ -103,7 +98,7 @@ export default function PendingReceivingTable({
                 )}
               </td>
             </tr>
-          ))}
+          )))}
         </tbody>
       </table>
     </div>

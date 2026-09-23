@@ -44,9 +44,53 @@ export interface GRN {
   createdAt: string;
   postedBy?: string;
   postedAt?: string;
-  status: string; // "Received", "QaCompleted", "PartiallyPutAway", "FullyPutAway", "Cancelled"
+  status: string; // "Draft", "Received", "QaPending", "QaCompleted", "PartiallyPutAway", "FullyPutAway", "Cancelled", "Rejected"
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   notes?: string;
   items: GRNItem[];
+}
+
+export interface StockInLine {
+  stockInLineId: number;
+  stockInId: number;
+  grnItemId?: number;
+  itemId: number;
+  itemName: string;
+  itemCode?: string;
+  categoryName?: string;
+  purchaseUomId?: number;
+  purchaseUomName: string;
+  quantityToStock: number;
+  currentStockBeforeCommit: number;
+  lotCode: string;
+  expiryDate?: string;
+  committedToInventory: boolean;
+  inventoryLotId?: number;
+  notes?: string;
+}
+
+export interface StockIn {
+  stockInId: number;
+  stockInNumber: string;
+  grnId: number;
+  grnNumber: string;
+  supplierId: number;
+  supplierName: string;
+  poNumber: string;
+  status: string; // "Draft", "PendingApproval", "Approved", "Rejected"
+  createdBy: string;
+  createdAt: string;
+  submittedBy?: string;
+  submittedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  notes?: string;
+  lines: StockInLine[];
 }
 
 export interface QAInspectionItem {
@@ -145,6 +189,9 @@ export interface LossReport {
   totalCost?: number;
   reason: string;
   notes?: string;
+  isAcknowledged?: boolean;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
   authorisedBy: string;
   createdBy: string;
   createdAt: string;
@@ -225,10 +272,17 @@ export interface RtvRecord {
   supplierName: string;
   itemId?: number;
   itemName?: string;
-  quantityReturned: number;
+  returnedQuantity?: number;
+  quantityReturned?: number;
   uomName?: string;
   returnReason?: string;
   status: string;
+  approvalRequestNotes?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   trackingNumber?: string;
   carrier?: string;
   shippedDate?: string;

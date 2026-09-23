@@ -289,10 +289,10 @@ export default function DiscrepancyDetailsModal({
             {activeForm === "rtv" && (
               <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
                 <div className="font-semibold text-xs text-foreground uppercase tracking-wide">
-                  Return to Supplier (RTV-YYYY-NNNN)
+                  Request Return to Supplier (RTV-YYYY-NNNN)
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Creates an official return shipment task and links the defective / excess lot.
+                  Creates an official return shipment request submitted for administrator approval prior to dispatch.
                 </p>
 
                 <div className="space-y-3 text-xs">
@@ -307,7 +307,7 @@ export default function DiscrepancyDetailsModal({
                     />
                   </div>
                   <div>
-                    <label className="font-semibold block mb-1">Carrier / Courier</label>
+                    <label className="font-semibold block mb-1">Carrier / Courier (Optional)</label>
                     <input
                       type="text"
                       placeholder="e.g. DHL / Supplier Pickup"
@@ -317,10 +317,10 @@ export default function DiscrepancyDetailsModal({
                     />
                   </div>
                   <div>
-                    <label className="font-semibold block mb-1">Return Notes</label>
+                    <label className="font-semibold block mb-1">Approval Request Notes</label>
                     <input
                       type="text"
-                      placeholder="Optional notes or return authorization number"
+                      placeholder="Notes for administrator approval or vendor RMA number"
                       value={rtvNotes}
                       onChange={(e) => setRtvNotes(e.target.value)}
                       className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-foreground focus:outline-none"
@@ -342,15 +342,15 @@ export default function DiscrepancyDetailsModal({
                     disabled={submitting}
                     className="bg-foreground text-background rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-foreground/85"
                   >
-                    {submitting ? "Creating RTV..." : "Confirm Return to Supplier"}
+                    {submitting ? "Submitting..." : "Submit Return Request"}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* BUTTONS PALETTE */}
+            {/* ACTION BUTTONS (when no sub-form active) */}
             {activeForm === "none" && (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 pt-2">
                 {discrepancy.discrepancyType === "PartialShort" && (
                   <>
                     <button
@@ -358,12 +358,12 @@ export default function DiscrepancyDetailsModal({
                       onClick={() =>
                         handleResolveDirect(
                           "NewDelivery",
-                          "Supplier will fulfill remaining quantity via a subsequent delivery."
+                          "Supplier notified to deliver remaining shortage on next shipment."
                         )
                       }
                       className="border border-border bg-card text-foreground rounded-xl px-4 py-2 text-xs font-semibold hover:bg-muted"
                     >
-                      Keep Open (Expect Later Delivery)
+                      Wait for Next Delivery
                     </button>
 
                     <button
@@ -396,7 +396,7 @@ export default function DiscrepancyDetailsModal({
                       onClick={() => setActiveForm("rtv")}
                       className="bg-foreground text-background rounded-xl px-4 py-2 text-xs font-semibold hover:bg-foreground/85"
                     >
-                      Return to Supplier (RTV)
+                      Request Return to Supplier (RTV)
                     </button>
 
                     <button
@@ -416,7 +416,7 @@ export default function DiscrepancyDetailsModal({
                       onClick={() => setActiveForm("rtv")}
                       className="bg-foreground text-background rounded-xl px-4 py-2 text-xs font-semibold hover:bg-foreground/85"
                     >
-                      Return Excess to Supplier (RTV)
+                      Request Return Excess (RTV)
                     </button>
 
                     <button

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Trash2, Search, RefreshCw, Eye, ShieldAlert } from "lucide-react";
+import { Trash2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -19,6 +19,8 @@ export default function LossReportTab() {
 
   const [selectedReport, setSelectedReport] = useState<LossReport | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchLossReports = useCallback(async () => {
     setLoading(true);
@@ -38,6 +40,26 @@ export default function LossReportTab() {
     fetchLossReports();
   }, [fetchLossReports]);
 
+  const handleAcknowledge = async (reportId: number) => {
+    setActionLoadingId(reportId);
+    setError(null);
+    try {
+      const res = await api.post(`/api/LossReports/${reportId}/acknowledge`);
+      if (res.data?.success) {
+        await fetchLossReports();
+        if (selectedReport && selectedReport.lossReportId === reportId) {
+          setSelectedReport(res.data.data);
+        }
+      } else {
+        setError(res.data?.message || "Failed to acknowledge loss report.");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Failed to acknowledge loss report.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   // Filter
   const filtered = useMemo(() => {
     if (!search.trim()) return lossReports;
@@ -52,12 +74,12 @@ export default function LossReportTab() {
         r.supplierName?.toLowerCase().includes(s) ||
         r.itemName?.toLowerCase().includes(s) ||
         r.reason?.toLowerCase().includes(s) ||
-        r.authorisedBy?.toLowerCase().includes(s)
+        r.authorisedBy?.toLowerCase().includes(s) ||
+        r.acknowledgedBy?.toLowerCase().includes(s)
       );
     });
   }, [lossReports, search]);
 
-  // Paginated list
   const totalCount = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const paginatedList = useMemo(() => {
@@ -71,36 +93,46 @@ export default function LossReportTab() {
   };
 
   return (
-    <div className="space-y-6 animate-page-in">
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Loss Reports & Inventory Disposal</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Audited write-off records for non-deliverable shortages and condemned materials with direct stock ledger disposal traceability
-          </p>
+    <div className="space-y-4">
+      {/* Top action row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Loss & Disposal Reports ({lossReports.length})
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
+            type="button"
             variant="outline"
-            size="sm"
             onClick={fetchLossReports}
             disabled={loading}
-            className="flex items-center justify-center gap-2 rounded-xl bg-card border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors h-10"
+            className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            Refresh
           </Button>
         </div>
       </div>
 
-      {/* Full-width Search Bar: Identical to PR/PO */}
-      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
+      {error && (
+        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-foreground flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-foreground font-bold text-xs hover:underline ml-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Full-width Search Bar */}
+      <div className="mb-4 border border-border rounded-md overflow-hidden bg-card">
         <div className="flex items-center justify-between px-4 py-2 bg-muted/20">
           <div className="flex items-center gap-2 flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search loss reports by Report#, Discrepancy#, GRN#, PO#, PR#, Item, or Authoriser..."
+              placeholder="Search loss reports by Report#, Item, or Supplier..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -126,92 +158,102 @@ export default function LossReportTab() {
 
       {/* Table */}
       {loading ? (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm p-12 text-center text-xs text-muted-foreground animate-pulse">
+        <div className="rounded-xl border border-border bg-card p-12 text-center text-xs text-muted-foreground animate-pulse">
           Loading Loss & Disposal Reports...
         </div>
-      ) : paginatedList.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
-          <EmptyState
-            icon={Trash2}
-            title="No Loss / Disposal Reports Found"
-            description="When physical count shortages or condemned items are authorized as write-offs, official loss reports are generated here with accounting audit trail."
-          />
-        </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
-          <table className="w-full text-xs">
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <table className="w-full text-xs text-left border-collapse">
             <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REPORT NO.</th>
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DISCREPANCY REF</th>
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO / GRN NO.</th>
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ITEM</th>
-                <th className="px-3 py-3 text-right font-bold text-muted-foreground tracking-wider whitespace-nowrap">LOST QTY</th>
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REASON</th>
-                <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">AUTHORISED / DATE</th>
-                <th className="px-3 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap w-20">ACTION</th>
+              <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-3">Report No.</th>
+                <th className="px-4 py-3">Item Name</th>
+                <th className="px-3 py-3 text-right">Lost Qty</th>
+                <th className="px-4 py-3">Reason</th>
+                <th className="px-3 py-3 text-center">Status</th>
+                <th className="px-4 py-3 text-right w-36">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paginatedList.map((r) => (
-                <tr key={r.lossReportId} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap">
-                    {r.lossReportNumber}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-muted-foreground whitespace-nowrap">
-                    {r.discrepancyNumber ? (
-                      <span className="bg-muted/50 px-2 py-0.5 rounded text-[11px] font-semibold text-foreground">
-                        {r.discrepancyNumber}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground/60">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
-                    <div className="font-mono font-medium text-foreground">{r.poNumber || "—"}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">{r.grnNumber || "—"}</div>
-                  </td>
-                  <td className="px-3 py-2.5 font-medium text-foreground max-w-[140px] truncate" title={r.supplierName}>
-                    {r.supplierName || "—"}
-                  </td>
-                  <td className="px-3 py-2.5 font-medium text-foreground max-w-[140px] truncate" title={r.itemName}>
-                    {r.itemName}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono font-bold text-foreground whitespace-nowrap">
-                    {r.lostQuantity.toLocaleString()} {r.uomName || "Units"}
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground max-w-[160px] truncate" title={r.reason}>
-                    {r.reason}
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
-                    <div className="text-foreground font-medium">{r.authorisedBy}</div>
-                    <div className="text-muted-foreground text-[11px]">{new Date(r.createdAt).toLocaleDateString()}</div>
-                  </td>
-                  <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSelectReport(r)}
-                      className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors mx-auto"
-                    >
-                      View
-                    </Button>
+              {paginatedList.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                    No loss reports found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedList.map((r) => {
+                const isAck = !!r.isAcknowledged;
+                return (
+                  <tr key={r.lossReportId} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap">
+                      {r.lossReportNumber}
+                      <div className="text-[10px] text-muted-foreground font-sans">
+                        {new Date(r.createdAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 font-medium text-foreground max-w-[200px] truncate" title={r.itemName}>
+                      {r.itemName}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-mono font-semibold text-foreground whitespace-nowrap">
+                      {r.lostQuantity.toLocaleString()} {r.uomName || "Units"}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground max-w-[220px] truncate" title={r.reason}>
+                      {r.reason}
+                    </td>
+                    <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                      {isAck ? (
+                        <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md bg-muted border border-border text-foreground">
+                          Acknowledged
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md bg-muted/50 border border-border text-muted-foreground">
+                          Awaiting Ack
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {!isAck && (
+                          <button
+                            type="button"
+                            onClick={() => handleAcknowledge(r.lossReportId)}
+                            disabled={actionLoadingId === r.lossReportId}
+                            className="rounded-xl bg-foreground px-3 py-1 text-xs font-semibold text-background hover:bg-foreground/85 disabled:opacity-40 transition-colors shadow-sm"
+                          >
+                            {actionLoadingId === r.lossReportId ? "…" : "Ack"}
+                          </button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSelectReport(r)}
+                          className="rounded-xl border border-border bg-card px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted"
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }))}
             </tbody>
           </table>
         </div>
       )}
 
       {/* Pagination */}
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        totalCount={totalCount}
-        onPageChange={setPage}
-      />
+      {totalPages > 1 && (
+        <div className="p-4 border-t border-border">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
 
       {/* View Loss Report Details Modal */}
       {selectedReport && (
@@ -221,45 +263,55 @@ export default function LossReportTab() {
           onClose={() => setModalOpen(false)}
           size="max-w-2xl"
         >
-          <div className="space-y-6 text-foreground text-xs">
+          <div className="space-y-5 text-foreground text-xs">
             {/* Summary Box */}
-            <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-foreground shrink-0 mt-0.5" />
-              <div>
+            <div className="bg-muted/20 border border-border rounded-xl p-4">
+              <div className="flex items-center justify-between">
                 <div className="font-semibold text-sm text-foreground">
-                  Authorized Write-Off Confirmation
+                  Authorized Write-Off
                 </div>
-                <p className="text-muted-foreground mt-0.5">
-                  This report certifies stock loss or shortage and adjusts ledger balance without pending supplier re-delivery.
-                </p>
+                {selectedReport.isAcknowledged ? (
+                  <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-muted border border-border text-foreground">
+                    Acknowledged
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-muted/50 border border-border text-muted-foreground">
+                    Pending Admin Acknowledgement
+                  </span>
+                )}
               </div>
+              <p className="text-muted-foreground mt-1 text-xs">
+                This report certifies stock loss or shortage and adjusts the ledger balance.
+              </p>
+              {selectedReport.acknowledgedBy && (
+                <div className="text-[11px] text-muted-foreground mt-2 border-t border-border/60 pt-1.5">
+                  Acknowledged by <strong className="text-foreground">{selectedReport.acknowledgedBy}</strong>
+                  {selectedReport.acknowledgedAt && ` on ${new Date(selectedReport.acknowledgedAt).toLocaleString()}`}
+                </div>
+              )}
             </div>
 
             {/* Traceability Grid */}
-            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Discrepancy</div>
-                <div className="font-mono font-semibold text-sm mt-0.5">{selectedReport.discrepancyNumber || "Direct"}</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.discrepancyNumber || "Direct"}</div>
               </div>
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source GRN</div>
-                <div className="font-mono font-semibold text-sm mt-0.5">{selectedReport.grnNumber || "—"}</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.grnNumber || "—"}</div>
               </div>
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
-                <div className="font-mono font-semibold text-sm mt-0.5">{selectedReport.poNumber || "—"}</div>
-              </div>
-              <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Product Requisition</div>
-                <div className="font-mono font-semibold text-sm mt-0.5">{selectedReport.prNumber || "—"}</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.poNumber || "—"}</div>
               </div>
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
-                <div className="font-medium text-sm mt-0.5">{selectedReport.supplierName || "—"}</div>
+                <div className="font-medium text-xs mt-0.5">{selectedReport.supplierName || "—"}</div>
               </div>
               <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Stock Ledger Entry ID</div>
-                <div className="font-mono text-sm mt-0.5">#{selectedReport.stockLedgerEntryId || "—"}</div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Authorised By</div>
+                <div className="font-medium text-xs mt-0.5">{selectedReport.authorisedBy || "—"}</div>
               </div>
             </div>
 
@@ -272,7 +324,7 @@ export default function LossReportTab() {
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground">Quantity Written Off</div>
-                  <div className="font-mono font-bold text-base text-destructive">
+                  <div className="font-mono font-bold text-sm text-foreground">
                     {selectedReport.lostQuantity.toLocaleString()} {selectedReport.uomName || "Units"}
                   </div>
                 </div>
@@ -295,14 +347,26 @@ export default function LossReportTab() {
               )}
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
-              <Button
+            <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+              <div>
+                {!selectedReport.isAcknowledged && (
+                  <button
+                    type="button"
+                    onClick={() => handleAcknowledge(selectedReport.lossReportId)}
+                    disabled={actionLoadingId === selectedReport.lossReportId}
+                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors"
+                  >
+                    {actionLoadingId === selectedReport.lossReportId ? "Acknowledging..." : "Acknowledge This Report"}
+                  </button>
+                )}
+              </div>
+              <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors shadow-sm"
               >
                 Close
-              </Button>
+              </button>
             </div>
           </div>
         </ModalWrapper>

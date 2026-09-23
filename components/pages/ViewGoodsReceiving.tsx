@@ -1,35 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { 
-  PackageCheck, 
-  ClipboardCheck, 
-  AlertTriangle, 
-  Boxes, 
-  RotateCcw, 
-  Trash2, 
-  FileText 
-} from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import GrnTab from "@/components/receiving/GrnTab";
-import QaTab from "@/components/receiving/QaTab";
 import DiscrepancyTab from "@/components/receiving/DiscrepancyTab";
-import PutAwayTab from "@/components/receiving/PutAwayTab";
+import StockInTab from "@/components/receiving/StockInTab";
 import RtvTab from "@/components/receiving/RtvTab";
 import LossReportTab from "@/components/receiving/LossReportTab";
 
-type MainTabId = "grn" | "qa" | "discrepancies" | "putaway" | "rtv" | "loss";
+type MainTabId = "grn" | "discrepancies" | "stockin" | "rtv" | "loss";
 
 export default function ViewGoodsReceiving() {
   const [activeTab, setActiveTab] = useState<MainTabId>("grn");
   const [counts, setCounts] = useState({
     grn: 0,
-    qa: 0,
     discrepancies: 0,
-    putaway: 0,
+    stockin: 0,
     rtv: 0,
     loss: 0,
   });
@@ -37,12 +24,11 @@ export default function ViewGoodsReceiving() {
   // Fetch count indicators for navigation badges
   const loadTabCounts = async () => {
     try {
-      const [grnRes, delRes, qaRes, discRes, paRes, rtvRes, lrRes] = await Promise.allSettled([
+      const [grnRes, delRes, discRes, stockInRes, rtvRes, lrRes] = await Promise.allSettled([
         api.get("/api/GoodsReceipts"),
         api.get("/api/Deliveries"),
-        api.get("/api/QualityInspections"),
         api.get("/api/Discrepancies"),
-        api.get("/api/PutAway"),
+        api.get("/api/StockIns"),
         api.get("/api/ReturnToVendors"),
         api.get("/api/LossReports"),
       ]);
@@ -50,12 +36,16 @@ export default function ViewGoodsReceiving() {
       let pendingDeliveriesCount = 0;
       const deliveryPayload = delRes.status === "fulfilled" ? delRes.value.data?.data : null;
       const deliveries = Array.isArray(deliveryPayload?.items)
-        ? deliveryPayload.items as any[]
-        : Array.isArray(deliveryPayload) ? deliveryPayload as any[] : [];
+        ? (deliveryPayload.items as any[])
+        : Array.isArray(deliveryPayload)
+        ? (deliveryPayload as any[])
+        : [];
       if (deliveries.length > 0) {
         const postedDeliveryIds = new Set(
           grnRes.status === "fulfilled" && Array.isArray(grnRes.value.data?.data)
-            ? (grnRes.value.data.data as any[]).filter((g) => g.status !== "Draft" && g.deliveryId).map((g) => g.deliveryId)
+            ? (grnRes.value.data.data as any[])
+                .filter((g) => g.status !== "Draft" && g.deliveryId)
+                .map((g) => g.deliveryId)
             : []
         );
         pendingDeliveriesCount = deliveries.filter(
@@ -65,36 +55,34 @@ export default function ViewGoodsReceiving() {
         ).length;
       }
 
-      let pendingQaCount = 0;
-      if (qaRes.status === "fulfilled" && Array.isArray(qaRes.value.data?.data)) {
-        pendingQaCount = (qaRes.value.data.data as any[]).filter((q) => q.status === "Pending").length;
-      }
-
       let openDiscCount = 0;
       if (discRes.status === "fulfilled" && Array.isArray(discRes.value.data?.data)) {
         openDiscCount = (discRes.value.data.data as any[]).filter((d) => d.status === "Open").length;
       }
 
-      let pendingPaCount = 0;
-      if (paRes.status === "fulfilled" && Array.isArray(paRes.value.data?.data)) {
-        pendingPaCount = (paRes.value.data.data as any[]).filter((p) => p.status === "Pending").length;
+      let pendingStockInCount = 0;
+      if (stockInRes.status === "fulfilled" && Array.isArray(stockInRes.value.data?.data)) {
+        pendingStockInCount = (stockInRes.value.data.data as any[]).filter(
+          (s) => s.status === "PendingApproval" || s.status === "Pending"
+        ).length;
       }
 
       let rtvCount = 0;
       if (rtvRes.status === "fulfilled" && Array.isArray(rtvRes.value.data?.data)) {
-        rtvCount = (rtvRes.value.data.data as any[]).length;
+        rtvCount = (rtvRes.value.data.data as any[]).filter(
+          (r) => r.status === "PendingApproval" || r.status === "Pending Approval"
+        ).length;
       }
 
       let lossCount = 0;
       if (lrRes.status === "fulfilled" && Array.isArray(lrRes.value.data?.data)) {
-        lossCount = (lrRes.value.data.data as any[]).length;
+        lossCount = (lrRes.value.data.data as any[]).filter((l) => !l.isAcknowledged).length;
       }
 
       setCounts({
         grn: pendingDeliveriesCount,
-        qa: pendingQaCount,
         discrepancies: openDiscCount,
-        putaway: pendingPaCount,
+        stockin: pendingStockInCount,
         rtv: rtvCount,
         loss: lossCount,
       });
@@ -109,22 +97,20 @@ export default function ViewGoodsReceiving() {
 
   const tabs: { id: MainTabId; label: string; badgeCount?: number }[] = [
     { id: "grn", label: "GRN / RECEIVE", badgeCount: counts.grn },
-    { id: "qa", label: "QA INSPECTION", badgeCount: counts.qa },
     { id: "discrepancies", label: "DISCREPANCIES", badgeCount: counts.discrepancies },
-    { id: "putaway", label: "PUT AWAY", badgeCount: counts.putaway },
+    { id: "stockin", label: "STOCK IN", badgeCount: counts.stockin },
     { id: "rtv", label: "SUPPLIER RETURNS", badgeCount: counts.rtv },
     { id: "loss", label: "LOSS / DISPOSAL", badgeCount: counts.loss },
   ];
 
   return (
     <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
-      {/* Page Header exactly matching Orders & Procurement */}
       <PageHeader
         title="Goods Receiving & Inbound Logistics"
-        description="End-to-end receipt verification: PO count verification, incoming QA inspection, automated discrepancy resolution, and inventory put away."
+        description="End-to-end receipt verification: PO physical counts & QA inspection, automated discrepancy logging, and stock-in approval into inventory."
       />
 
-      {/* Top Process Tabs matching Product Requisition / Product Order / Delivery underline tabs */}
+      {/* Process Tabs */}
       <div className="border-b border-border">
         <div className="flex items-center gap-2 overflow-x-auto">
           {tabs.map((tab) => {
@@ -156,12 +142,18 @@ export default function ViewGoodsReceiving() {
         </div>
       </div>
 
-      {/* Active Tab Subpage */}
+      {/* Active Tab Content */}
       <div>
-        {activeTab === "grn" && <GrnTab onPosted={() => { setActiveTab("qa"); loadTabCounts(); }} />}
-        {activeTab === "qa" && <QaTab />}
+        {activeTab === "grn" && (
+          <GrnTab
+            onPosted={() => {
+              setActiveTab("stockin");
+              loadTabCounts();
+            }}
+          />
+        )}
         {activeTab === "discrepancies" && <DiscrepancyTab />}
-        {activeTab === "putaway" && <PutAwayTab />}
+        {activeTab === "stockin" && <StockInTab />}
         {activeTab === "rtv" && <RtvTab />}
         {activeTab === "loss" && <LossReportTab />}
       </div>

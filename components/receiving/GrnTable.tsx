@@ -1,11 +1,9 @@
 "use client";
 
-import React from "react";
-import { FileText, Eye } from "lucide-react";
+import React, { useState } from "react";
+import { Eye, MoreHorizontal } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { GRN } from "./types";
-import { Button } from "@/components/ui/button";
 
 interface GrnTableProps {
   grns: GRN[];
@@ -14,83 +12,94 @@ interface GrnTableProps {
 }
 
 export default function GrnTable({ grns, loading, onSelectGrn }: GrnTableProps) {
+  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+
   if (loading) {
     return (
-      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm p-12 text-center text-xs text-muted-foreground animate-pulse">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm p-12 text-center text-xs text-muted-foreground animate-pulse">
         Loading Goods Receipt Notes...
       </div>
     );
   }
 
-  if (grns.length === 0) {
-    return (
-      <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
-        <EmptyState
-          icon={FileText}
-          title="No Posted Goods Receipt Notes"
-          description="Deliveries counted and received will be listed here with immediate QA handover."
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm overflow-visible">
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">GRN NO.</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PR REF.</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO NUMBER</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DELIVERY #</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">RECEIVED DATE</th>
-            <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
-            <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap w-24">ACTIONS</th>
+          <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
+            <th className="px-5 py-4">GRN No.</th>
+            <th className="px-5 py-4">PR Ref.</th>
+            <th className="px-5 py-4">PO Number</th>
+            <th className="px-5 py-4">Delivery #</th>
+            <th className="px-5 py-4">Supplier</th>
+            <th className="px-5 py-4">Received Date</th>
+            <th className="px-5 py-4">Status</th>
+            <th className="px-5 py-4 text-center w-20">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {grns.map((grn) => (
-            <tr key={grn.grnId} className="hover:bg-muted/30 transition-colors">
-              <td className="px-4 py-3 font-mono font-semibold text-foreground whitespace-nowrap">
-                {grn.grnNumber}
-              </td>
-              <td className="px-4 py-3 font-mono text-muted-foreground whitespace-nowrap">
-                {grn.prNumber ? (
-                  <span className="bg-muted/50 border border-border px-2 py-0.5 rounded text-[11px] font-semibold text-foreground">
-                    {grn.prNumber}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground/60">—</span>
-                )}
-              </td>
-              <td className="px-4 py-3 font-mono font-medium text-foreground whitespace-nowrap">
-                {grn.poNumber}
-              </td>
-              <td className="px-4 py-3 font-mono text-muted-foreground whitespace-nowrap">
-                {grn.deliveryNumber || "—"}
-              </td>
-              <td className="px-4 py-3 font-medium text-foreground max-w-[200px] truncate" title={grn.supplierName}>
-                {grn.supplierName}
-              </td>
-              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                {new Date(grn.receivedDate).toLocaleDateString()}
-              </td>
-              <td className="px-4 py-3 text-center whitespace-nowrap">
-                <StatusBadge status={grn.status} />
-              </td>
-              <td className="px-4 py-3 text-center whitespace-nowrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSelectGrn(grn)}
-                  className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors flex items-center gap-1.5 mx-auto"
-                >
-                  <Eye className="w-3.5 h-3.5" /> View
-                </Button>
+          {grns.length === 0 ? (
+            <tr>
+              <td colSpan={8} className="px-5 py-8 text-center text-xs text-muted-foreground">
+                No goods receipt notes found
               </td>
             </tr>
-          ))}
+          ) : (
+            grns.map((grn) => (
+              <tr key={grn.grnId} className="hover:bg-muted/20 transition-colors">
+                <td className="px-5 py-4 font-mono font-semibold text-foreground whitespace-nowrap">
+                  {grn.grnNumber}
+                </td>
+                <td className="px-5 py-4 font-mono text-muted-foreground whitespace-nowrap">
+                  {grn.prNumber ? (
+                    <span className="bg-muted px-2 py-0.5 rounded text-[11px] font-semibold text-foreground">
+                      {grn.prNumber}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/60">—</span>
+                  )}
+                </td>
+                <td className="px-5 py-4 font-mono font-medium text-foreground whitespace-nowrap">
+                  {grn.poNumber}
+                </td>
+                <td className="px-5 py-4 font-mono text-muted-foreground whitespace-nowrap">
+                  {grn.deliveryNumber || "—"}
+                </td>
+                <td className="px-5 py-4 font-medium text-foreground max-w-[180px] truncate" title={grn.supplierName}>
+                  {grn.supplierName}
+                </td>
+                <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">
+                  {new Date(grn.receivedDate).toLocaleDateString()}
+                </td>
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <StatusBadge status={grn.status} />
+                </td>
+                <td className="px-5 py-4 text-center relative">
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenuId(activeMenuId === grn.grnId ? null : grn.grnId)}
+                    className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
+                  >
+                    <MoreHorizontal size={18} />
+                  </button>
+                  {activeMenuId === grn.grnId && (
+                    <div className="absolute right-6 top-2 z-[100] w-36 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectGrn(grn);
+                          setActiveMenuId(null);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Eye size={14} className="shrink-0" /> View Details
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

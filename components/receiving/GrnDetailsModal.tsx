@@ -288,6 +288,35 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
           </div>
         )}
 
+        {/* WORKFLOW STATUS BANNER */}
+        {grn.status === "Received" && (
+          <div className="bg-amber-500/10 border border-amber-500/20 text-foreground rounded-xl p-3.5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">Awaiting Quality Assurance Inspection</div>
+                <div className="text-muted-foreground text-[11px] mt-0.5">
+                  Warehouse Put Away tasks and inventory lot codes will be generated automatically once incoming inspection is completed in the QA Tab.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(grn.status === "QaCompleted" || grn.status === "PartiallyPutAway" || grn.status === "FullyPutAway") && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 text-foreground rounded-xl p-3.5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">QA Inspection Completed</div>
+                <div className="text-muted-foreground text-[11px] mt-0.5">
+                  Accepted items have been queued for warehouse Put Away. View assigned storage locations in the Put Away tab.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ITEMS TABLE */}
         <div className="border-t border-border pt-4 space-y-3">
           <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
