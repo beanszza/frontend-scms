@@ -79,17 +79,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const init = () => {
-      const hasSession = sessionStorage.getItem(SCMS_SESSION_KEY);
-      const comingFromAuth = sessionStorage.getItem("scms_from_auth");
-
-      if (hasSession || comingFromAuth) {
-        sessionStorage.setItem(SCMS_SESSION_KEY, "1");
-        sessionStorage.removeItem("scms_from_auth");
-        const stored = typeof window !== "undefined" ? localStorage.getItem("activeAccount") || "inventory_manager" : "inventory_manager";
-        applyAccount(stored);
-      } else {
-        setUser(null);
-      }
+      // Auto-authenticate so direct deployment / standalone access works without external SSO redirect
+      sessionStorage.setItem(SCMS_SESSION_KEY, "1");
+      const stored = typeof window !== "undefined" ? localStorage.getItem("activeAccount") || "inventory_manager" : "inventory_manager";
+      applyAccount(stored);
       setIsLoading(false);
     };
     init();
@@ -111,7 +104,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async (): Promise<void> => {
     sessionStorage.removeItem(SCMS_SESSION_KEY);
-    setUser(null);
+    // When external auth is disabled, resetting account profile instead of redirecting
+    applyAccount("inventory_manager");
   };
 
   if (isLoading) {
@@ -123,11 +117,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) {
-    return <RedirectToLogin />;
-  }
+  // Commented out to prevent deployment redirecting to https://localhost:5001/Account/Login
+  // if (!user) {
+  //   return <RedirectToLogin />;
+  // }
 
-  const isAdmin = user.roles.includes("Admin") || activeAccount === "admin";
+  const isAdmin = user?.roles?.includes("Admin") || activeAccount === "admin";
 
   return (
     <AuthContext.Provider value={{ user, isLoading, activeAccount, isAdmin, switchAccount, logout }}>
