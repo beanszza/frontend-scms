@@ -432,39 +432,72 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
     setSubmitting(true);
     setError(null);
     try {
-      const requestItems = items.flatMap((i) =>
-        i.batches.map((b) => ({
-          poItemId: i.poItemId,
-          deliveryItemId: i.deliveryItemId,
-          itemId: i.itemId,
-          deliveredQuantity: Number(b.deliveredQuantity) || 0,
-          expiryDate: b.expiryDate || undefined,
-        }))
+      // Check if a GRN already exists for this delivery (handles retry after partial failure)
+      let resolvedGrn: GRN | null = null;
+
+      const existingGrnRes = await api.get(`/api/GoodsReceipts?deliveryId=${selected.deliveryId}`);
+      const existingGrns: GRN[] = Array.isArray(existingGrnRes.data?.data) ? existingGrnRes.data.data : [];
+
+      // Find a GRN that has already been posted (Received or later) for this delivery
+      const postedGrn = existingGrns.find(
+        (g) => g.deliveryId === selected.deliveryId && g.status !== "Draft" && g.status !== "Cancelled"
       );
 
-      const { data: createData } = await api.post("/api/GoodsReceipts", {
-        deliveryId: selected.deliveryId,
-        notes: notes.trim() || undefined,
-        ...verified,
-        items: requestItems,
-      });
+      if (postedGrn) {
+        // GRN was already posted — reuse it and skip creation
+        resolvedGrn = postedGrn;
+        setActiveGrn(postedGrn);
+      } else {
+        // Check for existing draft for this delivery
+        const draftGrn = existingGrns.find(
+          (g) => g.deliveryId === selected.deliveryId && g.status === "Draft"
+        );
 
-      if (!createData?.success) {
-        throw new Error(createData?.message || "Failed to create draft GRN.");
+        let createdGrn: GRN;
+
+        if (draftGrn) {
+          // Reuse existing draft
+          createdGrn = draftGrn;
+        } else {
+          // Create a new draft GRN
+          const requestItems = items.flatMap((i) =>
+            i.batches.map((b) => ({
+              poItemId: i.poItemId,
+              deliveryItemId: i.deliveryItemId,
+              itemId: i.itemId,
+              deliveredQuantity: Number(b.deliveredQuantity) || 0,
+              expiryDate: b.expiryDate || undefined,
+            }))
+          );
+
+          const { data: createData } = await api.post("/api/GoodsReceipts", {
+            deliveryId: selected.deliveryId,
+            notes: notes.trim() || undefined,
+            ...verified,
+            items: requestItems,
+          });
+
+          if (!createData?.success) {
+            throw new Error(createData?.message || "Failed to create draft GRN.");
+          }
+
+          createdGrn = createData.data;
+        }
+
+        setActiveGrn(createdGrn);
+
+        // Post the draft GRN
+        const postResult = await api.post(`/api/GoodsReceipts/${createdGrn.grnId}/post`);
+        if (!postResult.data?.success) {
+          throw new Error(postResult.data?.message || "GRN saved as draft but failed to advance.");
+        }
+
+        resolvedGrn = postResult.data.data;
+        setActiveGrn(resolvedGrn);
       }
 
-      const createdGrn: GRN = createData.data;
-      setActiveGrn(createdGrn);
-
-      const postResult = await api.post(`/api/GoodsReceipts/${createdGrn.grnId}/post`);
-      if (!postResult.data?.success) {
-        throw new Error(postResult.data?.message || "GRN saved as draft but failed to advance.");
-      }
-
-      const updatedGrn: GRN = postResult.data.data;
-      setActiveGrn(updatedGrn);
-
-      const qaRes = await api.get(`/api/QualityInspections?grnId=${createdGrn.grnId}`);
+      // Fetch or locate the QA inspection for this GRN
+      const qaRes = await api.get(`/api/QualityInspections?grnId=${resolvedGrn!.grnId}`);
       const inspectionList: QAInspection[] = Array.isArray(qaRes.data?.data) ? qaRes.data.data : [];
       const inspection = inspectionList[0] || null;
 
