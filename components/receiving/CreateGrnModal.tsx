@@ -95,6 +95,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [previewGrnNo, setPreviewGrnNo] = useState<string>("GRN-Pending");
   const [notes, setNotes] = useState("");
 
@@ -125,6 +126,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
     if (!open) return;
     setStep(1);
     setError(null);
+    setFieldErrors({});
     setItems([]);
     setSelected(null);
     setNotes("");
@@ -145,7 +147,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
     });
 
     api
-      .get("/api/Deliveries")
+      .get("/api/Deliveries?eligibleForGrn=true&pageSize=1000")
       .then(({ data }) => {
         const payload = data?.data;
         const list = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
@@ -236,6 +238,11 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
   };
 
   const updateBatchQuantity = (itemIndex: number, batchIndex: number, value: string) => {
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[`qty_${itemIndex}_${batchIndex}`];
+      return copy;
+    });
     setItems((current) =>
       current.map((item, i) => {
         if (i !== itemIndex) return item;
@@ -253,6 +260,11 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
   };
 
   const updateBatchExpiry = (itemIndex: number, batchIndex: number, value: string) => {
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[`expiry_${itemIndex}_${batchIndex}`];
+      return copy;
+    });
     setItems((current) =>
       current.map((item, i) => {
         if (i !== itemIndex) return item;
@@ -408,24 +420,36 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
   // STEP 1 Action: Proceed to QA Step in same modal
   const executeProceedToQa = async () => {
     if (!selected) {
-      setError("Please select an arrived delivery first.");
+      setFieldErrors({ delivery: "Please select an arrived delivery." });
       return;
     }
 
-    // Build a list of items that are still incomplete
-    const incomplete: string[] = [];
-    items.forEach((item) => {
+    if (items.length === 0) {
+      setError("No items found for this delivery.");
+      return;
+    }
+
+    const errs: Record<string, string> = {};
+
+    items.forEach((item, itemIdx) => {
       const reqExpiry = isItemExpiryRequired(item);
-      const missingQty = item.batches.some(
-        (b) => b.deliveredQuantity === "" || typeof b.deliveredQuantity !== "number" || b.deliveredQuantity <= 0
-      );
-      const missingExpiry = reqExpiry && item.batches.some((b) => !b.expiryDate?.trim());
-      if (missingQty) incomplete.push(`${item.itemName} — quantity missing`);
-      else if (missingExpiry) incomplete.push(`${item.itemName} — expiry date required`);
+      item.batches.forEach((b, batchIdx) => {
+        const hasQty =
+          b.deliveredQuantity !== "" &&
+          typeof b.deliveredQuantity === "number" &&
+          !isNaN(b.deliveredQuantity) &&
+          b.deliveredQuantity > 0;
+        if (!hasQty) {
+          errs[`qty_${itemIdx}_${batchIdx}`] = "Quantity required (> 0)";
+        }
+        if (reqExpiry && (!b.expiryDate || !b.expiryDate.trim())) {
+          errs[`expiry_${itemIdx}_${batchIdx}`] = "Expiry date required";
+        }
+      });
     });
 
-    if (incomplete.length > 0) {
-      setError(`Cannot proceed — please complete the following:\n• ${incomplete.join("\n• ")}`);
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
       return;
     }
 
@@ -840,26 +864,48 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                       </td>
                       <td className="px-3 py-3 text-right font-mono font-semibold">{item.declared}</td>
                       <td className="px-3 py-3 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          value={item.batches[0].deliveredQuantity === "" ? "" : item.batches[0].deliveredQuantity}
-                          placeholder=""
-                          onKeyDown={(e) => {
-                            if (e.key === "-" || e.key === "e") e.preventDefault();
-                          }}
-                          onChange={(e) => updateBatchQuantity(itemIndex, 0, e.target.value)}
-                          className="w-24 rounded-xl border border-border bg-background px-2.5 py-1.5 text-right font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-foreground"
-                        />
+                        <div className="flex flex-col items-end">
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            value={item.batches[0].deliveredQuantity === "" ? "" : item.batches[0].deliveredQuantity}
+                            placeholder=""
+                            onKeyDown={(e) => {
+                              if (e.key === "-" || e.key === "e") e.preventDefault();
+                            }}
+                            onChange={(e) => updateBatchQuantity(itemIndex, 0, e.target.value)}
+                            className={`w-24 rounded-xl border ${
+                              fieldErrors[`qty_${itemIndex}_0`]
+                                ? "!border-destructive text-destructive focus:!ring-destructive"
+                                : "border-border"
+                            } bg-background px-2.5 py-1.5 text-right font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-foreground`}
+                          />
+                          {fieldErrors[`qty_${itemIndex}_0`] && (
+                            <span className="text-[10px] text-destructive font-medium mt-0.5 whitespace-nowrap">
+                              {fieldErrors[`qty_${itemIndex}_0`]}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-center">
-                        <input
-                          type="date"
-                          value={item.batches[0].expiryDate}
-                          onChange={(e) => updateBatchExpiry(itemIndex, 0, e.target.value)}
-                          className="rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-foreground"
-                        />
+                        <div className="flex flex-col items-center">
+                          <input
+                            type="date"
+                            value={item.batches[0].expiryDate}
+                            onChange={(e) => updateBatchExpiry(itemIndex, 0, e.target.value)}
+                            className={`rounded-xl border ${
+                              fieldErrors[`expiry_${itemIndex}_0`]
+                                ? "!border-destructive text-destructive focus:!ring-destructive"
+                                : "border-border"
+                            } bg-background px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-foreground`}
+                          />
+                          {fieldErrors[`expiry_${itemIndex}_0`] && (
+                            <span className="text-[10px] text-destructive font-medium mt-0.5 whitespace-nowrap">
+                              {fieldErrors[`expiry_${itemIndex}_0`]}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-center font-medium">
                         {variance === null ? (
@@ -901,26 +947,48 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                           </td>
                           <td className="px-3 py-2 text-right text-[11px] text-muted-foreground">—</td>
                           <td className="px-3 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={batch.deliveredQuantity === "" ? "" : batch.deliveredQuantity}
-                              placeholder=""
-                              onKeyDown={(e) => {
-                                if (e.key === "-" || e.key === "e") e.preventDefault();
-                              }}
-                              onChange={(e) => updateBatchQuantity(itemIndex, batchIndex, e.target.value)}
-                              className="w-24 rounded-xl border border-border bg-background px-2.5 py-1.5 text-right font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-foreground"
-                            />
+                            <div className="flex flex-col items-end">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={batch.deliveredQuantity === "" ? "" : batch.deliveredQuantity}
+                                placeholder=""
+                                onKeyDown={(e) => {
+                                  if (e.key === "-" || e.key === "e") e.preventDefault();
+                                }}
+                                onChange={(e) => updateBatchQuantity(itemIndex, batchIndex, e.target.value)}
+                                className={`w-24 rounded-xl border ${
+                                  fieldErrors[`qty_${itemIndex}_${batchIndex}`]
+                                    ? "!border-destructive text-destructive focus:!ring-destructive"
+                                    : "border-border"
+                                } bg-background px-2.5 py-1.5 text-right font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-foreground`}
+                              />
+                              {fieldErrors[`qty_${itemIndex}_${batchIndex}`] && (
+                                <span className="text-[10px] text-destructive font-medium mt-0.5 whitespace-nowrap">
+                                  {fieldErrors[`qty_${itemIndex}_${batchIndex}`]}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-3 py-2 text-center">
-                            <input
-                              type="date"
-                              value={batch.expiryDate}
-                              onChange={(e) => updateBatchExpiry(itemIndex, batchIndex, e.target.value)}
-                              className="rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-foreground"
-                            />
+                            <div className="flex flex-col items-center">
+                              <input
+                                type="date"
+                                value={batch.expiryDate}
+                                onChange={(e) => updateBatchExpiry(itemIndex, batchIndex, e.target.value)}
+                                className={`rounded-xl border ${
+                                  fieldErrors[`expiry_${itemIndex}_${batchIndex}`]
+                                    ? "!border-destructive text-destructive focus:!ring-destructive"
+                                    : "border-border"
+                                } bg-background px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-foreground`}
+                              />
+                              {fieldErrors[`expiry_${itemIndex}_${batchIndex}`] && (
+                                <span className="text-[10px] text-destructive font-medium mt-0.5 whitespace-nowrap">
+                                  {fieldErrors[`expiry_${itemIndex}_${batchIndex}`]}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-3 py-2 text-center text-xs text-muted-foreground">—</td>
                           <td className="px-3 py-2 text-right">
@@ -1008,6 +1076,11 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                     value={selected?.deliveryId ?? ""}
                     onChange={(e) => {
                       const val = e.target.value;
+                      setFieldErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.delivery;
+                        return copy;
+                      });
                       if (!val) {
                         setSelected(null);
                         setItems([]);
@@ -1018,7 +1091,11 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                       const target = deliveries.find((d) => d.deliveryId === id);
                       if (target) loadSource(target);
                     }}
-                    className="w-64 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground cursor-pointer"
+                    className={`w-64 rounded-xl border ${
+                      fieldErrors.delivery
+                        ? "!border-destructive focus:!ring-destructive"
+                        : "border-border"
+                    } bg-card px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground cursor-pointer`}
                   >
                     <option value="">Select Delivery</option>
                     {deliveries.map((d) => (
@@ -1028,10 +1105,15 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                     ))}
                   </select>
                 </div>
+                {fieldErrors.delivery && (
+                  <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">
+                    {fieldErrors.delivery}
+                  </p>
+                )}
 
                 {selected && (
                   <div className="mt-3 rounded-xl border border-border bg-muted/20 p-3 text-xs">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       <div>
                         <span className="text-[10px] font-bold uppercase text-muted-foreground block">Supplier</span>
                         <span className="font-semibold text-foreground">{selected.supplierName}</span>
@@ -1044,10 +1126,12 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                         <span className="text-[10px] font-bold uppercase text-muted-foreground block">Delivery Note</span>
                         <span className="font-semibold text-foreground">{selected.deliveryNumber}</span>
                       </div>
-                      <div>
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground block">Carrier</span>
-                        <span className="font-semibold text-foreground">{selected.carrier || "Direct Delivery"}</span>
-                      </div>
+                      {selected.carrier && selected.carrier !== "N/A" && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground block">Carrier</span>
+                          <span className="font-semibold text-foreground">{selected.carrier}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1122,7 +1206,8 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-foreground hover:text-background transition-colors"
+                  disabled={submitting}
+                  className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>
@@ -1133,16 +1218,16 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                       type="button"
                       disabled={submitting}
                       onClick={() => setShowRejectModal(true)}
-                      className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-foreground hover:text-background transition-colors"
+                      className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Reject Entire Shipment
                     </button>
                   )}
                   <button
                     type="button"
-                    disabled={submitting}
+                    disabled={submitting || !selected}
                     onClick={executeProceedToQa}
-                    className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
                     {submitting ? "Proceeding…" : "Proceed to QA"}
                   </button>
@@ -1363,7 +1448,8 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-foreground hover:text-background transition-colors"
+                  disabled={submitting}
+                  className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Back to Receiving Counts
                 </button>
@@ -1371,9 +1457,9 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    disabled={!isQaDone}
+                    disabled={!isQaDone || submitting}
                     onClick={handlePrintGrnReport}
-                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-foreground hover:text-background disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Print GRN Report
                   </button>
@@ -1381,7 +1467,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                     type="button"
                     disabled={!isQaDone || submitting}
                     onClick={() => setConfirmFinishGrnOpen(true)}
-                    className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
                     {submitting ? "Finishing GRN…" : "Finish GRN"}
                   </button>
@@ -1438,7 +1524,8 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
               <button
                 type="button"
                 onClick={() => setShowRejectModal(false)}
-                className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-foreground hover:text-background transition-colors"
+                disabled={submitting}
+                className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </button>
@@ -1446,7 +1533,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                 type="button"
                 disabled={!rejectionReason.trim() || submitting}
                 onClick={handleRejectShipment}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {submitting ? "Rejecting…" : "Confirm Rejection"}
               </button>

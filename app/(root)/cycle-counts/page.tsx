@@ -1,4 +1,6 @@
-import ViewCycleCounts from "@/components/pages/ViewCycleCounts";
+import { notFound } from "next/navigation";
+
 export default function CycleCountsPage() {
-  return <ViewCycleCounts />;
+  notFound();
 }
+

@@ -68,7 +68,7 @@ export default function PendingReceivingTable({
                   : "Today"}
               </td>
               <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                {del.carrier || "Supplier Logistics"}
+                {del.carrier || "—"}
               </td>
               <td className="px-4 py-3 text-center whitespace-nowrap">
                 <StatusBadge status={del.status} />
@@ -77,10 +77,10 @@ export default function PendingReceivingTable({
                 <button
                   type="button"
                   onClick={() => setActiveMenuId(activeMenuId === del.deliveryId ? null : del.deliveryId)}
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors focus:outline-none"
+                  className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
                   title="Actions"
                 >
-                  <MoreHorizontal className="w-4 h-4" />
+                  <MoreHorizontal size={18} />
                 </button>
                 {activeMenuId === del.deliveryId && (
                   <div className="absolute right-6 top-10 z-[50] w-36 rounded-xl border border-border bg-card shadow-xl py-1 text-left animate-in fade-in-50 duration-100">

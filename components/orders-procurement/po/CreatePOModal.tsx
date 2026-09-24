@@ -267,10 +267,10 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
         onSuccess();
         onClose();
       } else {
-        alert(res.data?.message || "Failed to create purchase order.");
+        setErrors((p) => ({ ...p, general: res.data?.message || "Failed to create purchase order." }));
       }
     } catch (e: any) {
-      alert(e?.response?.data?.message || "Failed to create purchase order.");
+      setErrors((p) => ({ ...p, general: e?.response?.data?.message || "Failed to create purchase order." }));
     } finally {
       setSubmitting(false);
     }
@@ -292,6 +292,24 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
   return (
     <ModalWrapper open={open} title="Create Purchase Order" onClose={onClose} size="max-w-5xl">
       <div className="space-y-6">
+        {errors.general && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center justify-between animate-in fade-in-50">
+            <span className="font-medium">{errors.general}</span>
+            <button
+              type="button"
+              onClick={() =>
+                setErrors((prev) => {
+                  const c = { ...prev };
+                  delete c.general;
+                  return c;
+                })
+              }
+              className="font-bold underline ml-2 shrink-0 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         {/* Step Progress */}
         <div className="flex items-center gap-0">
           {[1, 2, 3].map((s) => (

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 interface PRDetailsModalProps {
   pr: PurchaseRequisition | null;
@@ -59,6 +60,16 @@ export function PRDetailsModal({
       size="max-w-5xl"
     >
       <div className="space-y-6">
+        {/* Top Header Row with Status Badge & Document No */}
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={pr.status} />
+            <span className="font-mono text-sm font-bold text-foreground">{pr.prNumber}</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {pr.department} · {pr.priority} Priority
+          </div>
+        </div>
         {/* Previous Admin Review Notes / Revision Reason (if any) */}
         {pr.adminNotes && (
           <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">

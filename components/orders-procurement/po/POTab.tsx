@@ -215,7 +215,6 @@ export function POTab() {
                   : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
-              <Inbox className="w-3.5 h-3.5" />
               <span>Requests</span>
               {counts.Requests > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${

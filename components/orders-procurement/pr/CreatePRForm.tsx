@@ -44,7 +44,7 @@ export function CreatePRModal({
 
   // Form State
   const [prNumber, setPrNumber] = useState(initialData?.prNumber || "PR-2026-0001");
-  const [requestDate] = useState(
+  const [requestDate, setRequestDate] = useState(
     initialData?.requestDate
       ? new Date(initialData.requestDate).toLocaleDateString("en-US", {
           month: "short",
@@ -64,28 +64,20 @@ export function CreatePRModal({
   const [requestedBy, setRequestedBy] = useState(
     initialData?.requestedBy && initialData.requestedBy !== "Unauthenticated"
       ? initialData.requestedBy
-      : (defaultAccountName || "Inventory Manager")
+      : ""
   );
 
-  useEffect(() => {
-    if (!initialData?.requestedBy && user) {
-      const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "";
-      if (name) {
-        setRequestedBy(name);
-      }
-    }
-  }, [user, initialData]);
-  const [department, setDepartment] = useState(initialData?.department || "Inventory");
-  const [requestType, setRequestType] = useState(initialData?.requestType || "Stock Replenishment");
-  const [priority, setPriority] = useState(initialData?.priority || "Normal");
+  const [department, setDepartment] = useState(initialData?.department || "");
+  const [requestType, setRequestType] = useState(initialData?.requestType || "");
+  const [priority, setPriority] = useState(initialData?.priority || "");
   const [requiredDate, setRequiredDate] = useState(
     initialData?.requiredDate
       ? new Date(initialData.requiredDate).toISOString().split("T")[0]
-      : new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
+      : ""
   );
-  const [statusText] = useState(initialData?.status || "Draft");
+  const [statusText, setStatusText] = useState(initialData?.status || "Draft");
 
-  // Items table
+  // Items table (starts completely empty when creating new)
   const [items, setItems] = useState<PRItem[]>(
     initialData?.items?.map((it) => ({
       ...it,
@@ -106,6 +98,66 @@ export function CreatePRModal({
     action: "draft" | "submit" | "cancel";
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Reset or populate on open
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        if (initialData.prNumber) setPrNumber(initialData.prNumber);
+        if (initialData.requestDate) {
+          setRequestDate(
+            new Date(initialData.requestDate).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          );
+        }
+        setRequestedBy(
+          initialData.requestedBy && initialData.requestedBy !== "Unauthenticated"
+            ? initialData.requestedBy
+            : defaultAccountName || ""
+        );
+        setDepartment(initialData.department || "");
+        setRequestType(initialData.requestType || "");
+        setPriority(initialData.priority || "");
+        setRequiredDate(
+          initialData.requiredDate
+            ? new Date(initialData.requiredDate).toISOString().split("T")[0]
+            : ""
+        );
+        setStatusText(initialData.status || "Draft");
+        setPurpose(initialData.purpose || "");
+        setNotes(initialData.notes || "");
+        setItems(
+          initialData.items?.map((it) => ({
+            ...it,
+            requestedQuantity: it.requestedQuantity || 1,
+          })) || []
+        );
+        setErrors({});
+      } else {
+        // Completely empty form when creating a new PR
+        setRequestDate(
+          new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        );
+        setRequestedBy("");
+        setDepartment("");
+        setRequestType("");
+        setPriority("");
+        setRequiredDate("");
+        setStatusText("Draft");
+        setPurpose("");
+        setNotes("");
+        setItems([]);
+        setErrors({});
+      }
+    }
+  }, [open, initialData, user, defaultAccountName]);
 
   // Fetch supplies and next PR number
   useEffect(() => {
@@ -166,22 +218,6 @@ export function CreatePRModal({
             const nextSeq = String(maxSeq + 1).padStart(4, "0");
             setPrNumber(`PR-${year}-${nextSeq}`);
           }
-        }
-
-        // Initialize default item if creating new and none exists
-        if (!initialData?.items?.length && formatted.length > 0 && items.length === 0) {
-          const first = formatted[0];
-          setItems([
-            {
-              prItemId: 0,
-              itemId: first.itemId,
-              itemCode: first.itemCode,
-              itemName: first.itemName,
-              uomName: first.uomName,
-              actualInventory: first.currentStock,
-              requestedQuantity: 1,
-            },
-          ]);
         }
       } catch (err) {
         console.error("Failed to load supplies for PR:", err);
@@ -260,7 +296,16 @@ export function CreatePRModal({
     if (!department.trim()) newErrors.department = "Department is required.";
     if (!requestType.trim()) newErrors.requestType = "Request type is required.";
     if (!priority.trim()) newErrors.priority = "Priority is required.";
-    if (!requiredDate) newErrors.requiredDate = "Required date is required.";
+    if (!requiredDate) {
+      newErrors.requiredDate = "Required date is required.";
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const sel = new Date(requiredDate);
+      if (sel <= today) {
+        newErrors.requiredDate = "Required date must be a future date.";
+      }
+    }
     if (!purpose.trim()) newErrors.purpose = "Purpose / Justification is required.";
 
     if (items.length === 0) {
@@ -281,6 +326,11 @@ export function CreatePRModal({
   const executeSave = async (submitForApproval: boolean) => {
     try {
       setSubmitting(true);
+      setErrors((prev) => {
+        const c = { ...prev };
+        delete c.submit;
+        return c;
+      });
       const payload = {
         department: department.trim(),
         requestedBy: requestedBy.trim(),
@@ -309,7 +359,10 @@ export function CreatePRModal({
       }
     } catch (err: any) {
       console.error("Failed to save PR:", err);
-      alert(err?.response?.data?.message || "An error occurred while saving the requisition.");
+      setErrors((prev) => ({
+        ...prev,
+        submit: err?.response?.data?.message || "An error occurred while saving the requisition.",
+      }));
     } finally {
       setSubmitting(false);
     }
@@ -328,34 +381,46 @@ export function CreatePRModal({
     <>
       <ModalWrapper
         open={open}
-        title={isEdit ? "Edit Product Requisition" : "Add Product Requisition"}
+        title={isEdit ? "Edit Purchase Requisition" : "Create Purchase Requisition"}
         onClose={handleCloseAttempt}
         size="max-w-5xl"
       >
         <div className="space-y-4">
+          {errors.submit && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center justify-between animate-in fade-in-50">
+              <span className="font-medium">{errors.submit}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setErrors((prev) => {
+                    const c = { ...prev };
+                    delete c.submit;
+                    return c;
+                  })
+                }
+                className="font-bold underline ml-2 shrink-0 cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {/* Row 1: PR Number & Request Date (2 Columns) */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                PR Number
+                PR Number <span className="text-[10px] text-muted-foreground font-normal">(Auto-generated)</span>
               </label>
-              <Input
-                type="text"
-                readOnly
-                value={prNumber}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+              <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 font-mono text-xs text-muted-foreground">
+                {prNumber || "PR-XXXX-XXXX"}
+              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Request Date
               </label>
-              <Input
-                type="text"
-                readOnly
-                value={requestDate}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+              <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 text-xs text-muted-foreground">
+                {requestDate}
+              </div>
             </div>
           </div>
 
@@ -399,13 +464,18 @@ export function CreatePRModal({
                     return c;
                   });
                 }}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className={`w-full rounded-xl border ${
+                  errors.department ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
+                  department ? "text-foreground" : "text-muted-foreground"
+                }`}
               >
-                <option value="Inventory">Inventory</option>
-                <option value="Production">Production</option>
-                <option value="Warehouse">Warehouse</option>
-                <option value="Quality Assurance">Quality Assurance</option>
-                <option value="Administration">Administration</option>
+                <option value="">Select department...</option>
+                <option value="Inventory" className="text-foreground">Inventory</option>
+                <option value="Production" className="text-foreground">Production</option>
+                <option value="Warehouse" className="text-foreground">Warehouse</option>
+                <option value="Quality Assurance" className="text-foreground">Quality Assurance</option>
+                <option value="Administration" className="text-foreground">Administration</option>
               </select>
               {errors.department && (
                 <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.department}</p>
@@ -429,13 +499,18 @@ export function CreatePRModal({
                     return c;
                   });
                 }}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className={`w-full rounded-xl border ${
+                  errors.requestType ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
+                  requestType ? "text-foreground" : "text-muted-foreground"
+                }`}
               >
-                <option value="Stock Replenishment">Stock Replenishment</option>
-                <option value="Emergency Restock">Emergency Restock</option>
-                <option value="Production Run">Production Run</option>
-                <option value="Trial / New Product">Trial / New Product</option>
-                <option value="Other">Other</option>
+                <option value="">Select request type...</option>
+                <option value="Stock Replenishment" className="text-foreground">Stock Replenishment</option>
+                <option value="Emergency Restock" className="text-foreground">Emergency Restock</option>
+                <option value="Production Run" className="text-foreground">Production Run</option>
+                <option value="Trial / New Product" className="text-foreground">Trial / New Product</option>
+                <option value="Other" className="text-foreground">Other</option>
               </select>
               {errors.requestType && (
                 <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.requestType}</p>
@@ -455,12 +530,17 @@ export function CreatePRModal({
                     return c;
                   });
                 }}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className={`w-full rounded-xl border ${
+                  errors.priority ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
+                  priority ? "text-foreground" : "text-muted-foreground"
+                }`}
               >
-                <option value="Normal">Normal</option>
-                <option value="Low">Low</option>
-                <option value="High">High</option>
-                <option value="Urgent">Urgent</option>
+                <option value="">Select priority...</option>
+                <option value="Normal" className="text-foreground">Normal</option>
+                <option value="Low" className="text-foreground">Low</option>
+                <option value="High" className="text-foreground">High</option>
+                <option value="Urgent" className="text-foreground">Urgent</option>
               </select>
               {errors.priority && (
                 <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.priority}</p>
@@ -500,12 +580,10 @@ export function CreatePRModal({
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Requisition Status
               </label>
-              <Input
-                type="text"
-                readOnly
-                value={statusText}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+              <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 text-xs font-medium text-muted-foreground">
+                <span className="w-2 h-2 rounded-full bg-amber-500/70 mr-2 shrink-0" />
+                <span>{statusText || "Draft"}</span>
+              </div>
             </div>
           </div>
 
@@ -568,25 +646,32 @@ export function CreatePRModal({
                             {Number(item.actualInventory || 0).toLocaleString()}
                           </td>
                           <td className="px-3.5 py-2 text-right">
-                            <Input
-                              type="number"
-                              step="any"
-                              min="0.001"
-                              value={item.requestedQuantity || ""}
-                              onChange={(e) => {
-                                handleQuantityChange(idx, e.target.value);
-                                if (errors[qtyErrorKey]) {
-                                  setErrors((prev) => {
-                                    const copy = { ...prev };
-                                    delete copy[qtyErrorKey];
-                                    return copy;
-                                  });
-                                }
-                              }}
-                              className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
-                                hasQtyError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                              }`}
-                            />
+                            <div className="flex flex-col items-end">
+                              <Input
+                                type="number"
+                                step="any"
+                                min="0.001"
+                                value={item.requestedQuantity || ""}
+                                onChange={(e) => {
+                                  handleQuantityChange(idx, e.target.value);
+                                  if (errors[qtyErrorKey]) {
+                                    setErrors((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[qtyErrorKey];
+                                      return copy;
+                                    });
+                                  }
+                                }}
+                                className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
+                                  hasQtyError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                                }`}
+                              />
+                              {hasQtyError && (
+                                <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
+                                  {errors[qtyErrorKey]}
+                                </p>
+                              )}
+                            </div>
                           </td>
                           <td className="px-3.5 py-2 text-center">
                             <button
@@ -628,7 +713,7 @@ export function CreatePRModal({
               <Textarea
                 rows={3}
                 maxLength={500}
-                placeholder="e.g. Stock replenishment for planned production run..."
+                placeholder="Enter purpose or justification..."
                 value={purpose}
                 onChange={(e) => {
                   setPurpose(e.target.value);
@@ -657,7 +742,7 @@ export function CreatePRModal({
               <Textarea
                 rows={3}
                 maxLength={300}
-                placeholder="e.g. Special handling or delivery time window..."
+                placeholder="Enter additional notes (optional)..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring resize-none"

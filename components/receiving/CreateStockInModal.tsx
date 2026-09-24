@@ -210,7 +210,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
               className="w-52 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
             >
               <option value="" disabled>
-                -- Select GRN --
+                Select GRN
               </option>
               {grns.map((g) => (
                 <option key={g.grnId} value={g.grnId}>
@@ -294,7 +294,8 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+            disabled={submitting}
+            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>

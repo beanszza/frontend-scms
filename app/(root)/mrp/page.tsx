@@ -1,4 +1,6 @@
-import ViewMrp from "@/components/pages/ViewMrp";
+import { notFound } from "next/navigation";
+
 export default function MrpPage() {
-  return <ViewMrp />;
+  notFound();
 }
+

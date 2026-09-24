@@ -79,7 +79,7 @@ export interface StockIn {
   supplierId: number;
   supplierName: string;
   poNumber: string;
-  status: string; // "Draft", "PendingApproval", "Approved", "Rejected"
+  status: string; // "Draft", "PendingApproval", "Approved", "Committed", "Rejected"
   createdBy: string;
   createdAt: string;
   submittedBy?: string;
@@ -89,6 +89,8 @@ export interface StockIn {
   rejectedBy?: string;
   rejectedAt?: string;
   rejectionReason?: string;
+  committedBy?: string;
+  committedAt?: string;
   notes?: string;
   lines: StockInLine[];
 }

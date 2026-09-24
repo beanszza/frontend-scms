@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
+import { MoreHorizontal, Eye } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Discrepancy } from "./types";
-import { Button } from "@/components/ui/button";
 
 interface DiscrepancyTableProps {
   discrepancies: Discrepancy[];
@@ -16,6 +16,7 @@ export default function DiscrepancyTable({
   loading,
   onSelectDiscrepancy,
 }: DiscrepancyTableProps) {
+  const [activeMenuId, setActiveMenuId] = React.useState<number | null>(null);
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-card p-12 text-center text-xs text-muted-foreground animate-pulse">
@@ -25,7 +26,7 @@ export default function DiscrepancyTable({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm min-h-[300px]">
       <table className="w-full text-xs text-left border-collapse">
         <thead>
           <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -92,19 +93,29 @@ export default function DiscrepancyTable({
                   <td className="px-3 py-3 text-center whitespace-nowrap">
                     <StatusBadge status={d.status} />
                   </td>
-                  <td className="px-4 py-3 text-center whitespace-nowrap">
-                    <Button
+                  <td className="px-4 py-3 text-center whitespace-nowrap relative">
+                    <button
                       type="button"
-                      size="sm"
-                      onClick={() => onSelectDiscrepancy(d)}
-                      className={`rounded-xl px-4 py-1.5 text-xs font-semibold transition-colors mx-auto ${
-                        isOpen
-                          ? "bg-foreground text-background hover:bg-foreground/85 shadow-sm"
-                          : "border border-border bg-card text-foreground hover:bg-muted"
-                      }`}
+                      onClick={() => setActiveMenuId(activeMenuId === d.discrepancyId ? null : d.discrepancyId)}
+                      className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
+                      title="Actions"
                     >
-                      {isOpen ? "Resolve" : "View"}
-                    </Button>
+                      <MoreHorizontal size={18} />
+                    </button>
+                    {activeMenuId === d.discrepancyId && (
+                      <div className="absolute right-6 top-2 z-[100] w-36 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectDiscrepancy(d);
+                            setActiveMenuId(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Eye size={14} className="shrink-0" /> {isOpen ? "Resolve" : "View Details"}
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );

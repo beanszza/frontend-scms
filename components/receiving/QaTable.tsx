@@ -15,6 +15,8 @@ interface QaTableProps {
 }
 
 export default function QaTable({ inspections, loading, onSelectInspection, pendingView }: QaTableProps) {
+  const [activeMenuId, setActiveMenuId] = React.useState<number | null>(null);
+
   if (loading) {
     return (
       <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm p-12 text-center text-xs text-muted-foreground animate-pulse">
@@ -76,22 +78,29 @@ export default function QaTable({ inspections, loading, onSelectInspection, pend
                 <td className="px-4 py-3 text-center whitespace-nowrap">
                   <StatusBadge status={qc.status} />
                 </td>
-                <td className="px-4 py-3 text-center whitespace-nowrap">
-                  <Button
-                    size="sm"
-                    onClick={() => onSelectInspection(qc)}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 mx-auto ${
-                      isReady
-                        ? "bg-foreground text-background hover:bg-foreground/85 shadow-sm"
-                        : "border border-border bg-card text-foreground hover:bg-muted"
-                    }`}
+                <td className="px-4 py-3 text-center whitespace-nowrap relative">
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenuId(activeMenuId === qc.inspectionId ? null : qc.inspectionId)}
+                    className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
+                    title="Actions"
                   >
-                    {isReady ? <MoreHorizontal className="w-4 h-4" /> : (
-                      <>
-                        <Eye className="w-3.5 h-3.5" /> View
-                      </>
-                    )}
-                  </Button>
+                    <MoreHorizontal size={18} />
+                  </button>
+                  {activeMenuId === qc.inspectionId && (
+                    <div className="absolute right-6 top-2 z-[100] w-36 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectInspection(qc);
+                          setActiveMenuId(null);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Eye size={14} className="shrink-0" /> {isReady ? "Inspect" : "View Details"}
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             );

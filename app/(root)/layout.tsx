@@ -21,7 +21,13 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
       const roles = user.roles || [];
       const isHeadCook = username === "headcook" || email === "headcook@r3b2p.com" || roles.includes("Head Cook");
 
-      if (isHeadCook && (pathname === "/" || pathname === "/dashboard" || pathname === "/reports" || pathname === "/audit-logs" || pathname === "/resources-suppliers" || pathname === "/orders-procurement" || pathname === "/distribution-analytics")) {
+      if (
+        isHeadCook &&
+        pathname !== "/production-quality" &&
+        !pathname.startsWith("/production-quality/") &&
+        pathname !== "/inventory" &&
+        !pathname.startsWith("/inventory/")
+      ) {
         router.replace("/production-quality");
       }
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { RotateCcw, Search } from "lucide-react";
+import { Search, MoreHorizontal, Eye, Check, XCircle, Truck, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -18,13 +18,30 @@ export default function RtvTab() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  // Dropdown & details
+  const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
+  const [selectedRtv, setSelectedRtv] = useState<RtvRecord | null>(null);
+
   // Modals for actions
   const [rejectingRtv, setRejectingRtv] = useState<RtvRecord | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState<string | null>(null);
   const [dispatchingRtv, setDispatchingRtv] = useState<RtvRecord | null>(null);
   const [creditNoteNumber, setCreditNoteNumber] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-actions-dropdown]")) {
+        setActiveDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const fetchRtvs = useCallback(async () => {
     setLoading(true);
@@ -64,11 +81,12 @@ export default function RtvTab() {
   const handleConfirmReject = async () => {
     if (!rejectingRtv) return;
     if (!rejectionReason.trim()) {
-      setActionError("Please provide a reason for rejecting this return request.");
+      setRejectionError("Please provide a reason for rejecting this return request.");
       return;
     }
     setActionLoading(true);
     setActionError(null);
+    setRejectionError(null);
     try {
       const res = await api.post(`/api/ReturnToVendors/${rejectingRtv.rtvId}/reject`, {
         reason: rejectionReason.trim(),
@@ -76,6 +94,7 @@ export default function RtvTab() {
       if (res.data?.success) {
         setRejectingRtv(null);
         setRejectionReason("");
+        setRejectionError(null);
         await fetchRtvs();
       } else {
         setActionError(res.data?.message || "Failed to reject return request.");
@@ -156,19 +175,6 @@ export default function RtvTab() {
         </div>
       </div>
 
-      {actionError && (
-        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-foreground flex items-center justify-between">
-          <span>{actionError}</span>
-          <button
-            type="button"
-            onClick={() => setActionError(null)}
-            className="text-foreground font-bold text-xs hover:underline ml-2"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
       {/* Full-width Search Bar */}
       <div className="mb-4 border border-border rounded-md overflow-hidden bg-card">
         <div className="flex items-center justify-between px-4 py-2 bg-muted/20">
@@ -216,7 +222,7 @@ export default function RtvTab() {
                 <th className="px-3 py-3 text-right">Return Qty</th>
                 <th className="px-4 py-3">Reason</th>
                 <th className="px-3 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-right w-36">Actions</th>
+                <th className="px-4 py-3 text-center w-20">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -230,8 +236,6 @@ export default function RtvTab() {
                 paginatedList.map((rtv) => {
                 const isPendingApproval = rtv.status === "PendingApproval" || rtv.status === "Pending Approval";
                 const isPendingDispatch = rtv.status === "PendingDispatch" || rtv.status === "Pending Dispatch";
-                const isDispatched = rtv.status === "Dispatched" || rtv.status === "CreditNoteReceived";
-                const isCancelled = rtv.status === "Cancelled";
 
                 return (
                   <tr key={rtv.rtvId} className="hover:bg-muted/20 transition-colors">
@@ -256,60 +260,73 @@ export default function RtvTab() {
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <StatusBadge status={rtv.status} />
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {isPendingApproval && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleApprove(rtv)}
-                              disabled={actionLoading}
-                              className="rounded-xl bg-foreground text-background hover:bg-foreground/85 px-3 py-1.5 text-xs font-semibold transition-colors"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRejectingRtv(rtv);
-                                setRejectionReason("");
-                                setActionError(null);
-                              }}
-                              disabled={actionLoading}
-                              className="rounded-xl border border-border bg-card text-foreground hover:bg-muted px-3 py-1.5 text-xs font-semibold transition-colors"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-
-                        {isPendingDispatch && (
+                    <td className="px-4 py-3 text-center whitespace-nowrap relative" data-actions-dropdown>
+                      <button
+                        type="button"
+                        onClick={() => setActiveDropdownId(activeDropdownId === rtv.rtvId ? null : rtv.rtvId)}
+                        className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
+                        title="Actions"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                      {activeDropdownId === rtv.rtvId && (
+                        <div className="absolute right-6 top-2 z-[100] w-40 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left animate-in fade-in-50">
                           <button
                             type="button"
                             onClick={() => {
-                              setDispatchingRtv(rtv);
-                              setCreditNoteNumber("");
-                              setActionError(null);
+                              setSelectedRtv(rtv);
+                              setActiveDropdownId(null);
                             }}
-                            disabled={actionLoading}
-                            className="rounded-xl bg-foreground text-background hover:bg-foreground/85 px-3 py-1.5 text-xs font-semibold transition-colors"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                           >
-                            Dispatch
+                            <Eye size={14} className="shrink-0" /> View Details
                           </button>
-                        )}
-
-                        {isDispatched && (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {rtv.creditNoteNumber ? `Credit: ${rtv.creditNoteNumber}` : "Dispatched"}
-                          </span>
-                        )}
-
-                        {isCancelled && (
-                          <span className="text-xs text-muted-foreground font-medium">
-                            Rejected
-                          </span>
-                        )}
-                      </div>
+                          {isPendingApproval && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleApprove(rtv);
+                                  setActiveDropdownId(null);
+                                }}
+                                disabled={actionLoading}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                              >
+                                <Check size={14} className="shrink-0" /> Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRejectingRtv(rtv);
+                                  setRejectionReason("");
+                                  setRejectionError(null);
+                                  setActionError(null);
+                                  setActiveDropdownId(null);
+                                }}
+                                disabled={actionLoading}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                              >
+                                <XCircle size={14} className="shrink-0" /> Reject
+                              </button>
+                            </>
+                          )}
+                          {isPendingDispatch && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDispatchingRtv(rtv);
+                                setCreditNoteNumber("");
+                                setActionError(null);
+                                setActiveDropdownId(null);
+                              }}
+                              disabled={actionLoading}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                            >
+                              <Truck size={14} className="shrink-0" /> Dispatch
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -331,6 +348,143 @@ export default function RtvTab() {
         </div>
       )}
 
+      {/* VIEW RTV DETAILS MODAL */}
+      {selectedRtv && (
+        <ModalWrapper
+          open={!!selectedRtv}
+          title={`Supplier Return Details — ${selectedRtv.rtvNumber}`}
+          onClose={() => setSelectedRtv(null)}
+          size="max-w-2xl"
+        >
+          <div className="space-y-5 text-foreground text-xs">
+            {/* Status Summary Banner */}
+            <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-sm text-foreground">
+                  Return to Vendor (RTV)
+                </div>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Physical return documentation and quarantine disposition record.
+                </p>
+              </div>
+              <StatusBadge status={selectedRtv.status} />
+            </div>
+
+            {/* Traceability Grid */}
+            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">RTV No.</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.rtvNumber}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Discrepancy</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.discrepancyNumber || "Direct"}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source GRN</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.grnNumber || "—"}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.poNumber || "—"}</div>
+              </div>
+            </div>
+
+            {/* Item & Return Details */}
+            <div className="border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-muted-foreground text-[11px]">Item Description</div>
+                  <div className="font-semibold text-sm">{selectedRtv.itemName || `Item #${selectedRtv.itemId}`}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-muted-foreground text-[11px]">Quantity to Return</div>
+                  <div className="font-mono font-bold text-sm text-foreground">
+                    {(selectedRtv.returnedQuantity ?? selectedRtv.quantityReturned ?? 0).toLocaleString()} {selectedRtv.uomName || "Units"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-3">
+                <div className="text-muted-foreground font-semibold mb-1">Supplier:</div>
+                <div className="font-medium text-foreground">{selectedRtv.supplierName || `Supplier #${selectedRtv.supplierId}`}</div>
+              </div>
+
+              <div className="border-t border-border pt-3">
+                <div className="text-muted-foreground font-semibold mb-1">Reason for Return:</div>
+                <div className="bg-card p-3 rounded-lg border border-border text-foreground">
+                  {selectedRtv.returnReason || (selectedRtv as any).reason || "Defective stock"}
+                </div>
+              </div>
+
+              {selectedRtv.creditNoteNumber && (
+                <div className="border-t border-border pt-3">
+                  <div className="text-muted-foreground font-semibold mb-1">Supplier Credit Note:</div>
+                  <div className="bg-muted/40 p-2.5 rounded-lg text-foreground font-mono text-xs">
+                    {selectedRtv.creditNoteNumber}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer - Lower right corner */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-4">
+              <button
+                type="button"
+                onClick={() => setSelectedRtv(null)}
+                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors shadow-sm"
+              >
+                Close
+              </button>
+              {(selectedRtv.status === "PendingApproval" || selectedRtv.status === "Pending Approval") && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = selectedRtv;
+                      setSelectedRtv(null);
+                      setRejectingRtv(target);
+                      setRejectionReason("");
+                      setRejectionError(null);
+                    }}
+                    disabled={actionLoading}
+                    className="rounded-xl border border-border bg-card text-foreground px-4 py-2.5 text-xs font-semibold hover:bg-muted transition-colors disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleApprove(selectedRtv);
+                      setSelectedRtv(null);
+                    }}
+                    disabled={actionLoading}
+                    className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    Approve Return
+                  </button>
+                </>
+              )}
+              {(selectedRtv.status === "PendingDispatch" || selectedRtv.status === "Pending Dispatch") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = selectedRtv;
+                    setSelectedRtv(null);
+                    setDispatchingRtv(target);
+                    setCreditNoteNumber("");
+                  }}
+                  disabled={actionLoading}
+                  className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                >
+                  Dispatch Shipment
+                </button>
+              )}
+            </div>
+          </div>
+        </ModalWrapper>
+      )}
+
       {/* REJECT RTV MODAL */}
       {rejectingRtv && (
         <ModalWrapper
@@ -339,14 +493,22 @@ export default function RtvTab() {
           onClose={() => {
             setRejectingRtv(null);
             setRejectionReason("");
+            setRejectionError(null);
             setActionError(null);
           }}
           size="max-w-md"
         >
           <div className="space-y-4 text-foreground text-xs">
             {actionError && (
-              <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-foreground">
-                {actionError}
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center justify-between">
+                <span className="font-medium">{actionError}</span>
+                <button
+                  type="button"
+                  onClick={() => setActionError(null)}
+                  className="font-bold underline ml-2 shrink-0 cursor-pointer"
+                >
+                  Dismiss
+                </button>
               </div>
             )}
 
@@ -361,21 +523,38 @@ export default function RtvTab() {
             </div>
 
             <div>
-              <label className="font-semibold block mb-1">Rejection Reason *</label>
+              <label className="font-semibold block mb-1">
+                Rejection Reason <span className="text-destructive">*</span>
+              </label>
               <textarea
                 rows={3}
                 placeholder="Explain why this supplier return request is being rejected..."
                 value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full bg-card border border-border rounded-xl p-2.5 text-xs text-foreground focus:ring-1 focus:ring-foreground focus:outline-none"
+                onChange={(e) => {
+                  setRejectionReason(e.target.value);
+                  if (rejectionError) setRejectionError(null);
+                }}
+                className={`w-full bg-card border ${
+                  rejectionError ? "!border-destructive focus:!ring-destructive" : "border-border"
+                } rounded-xl p-2.5 text-xs text-foreground focus:ring-1 focus:outline-none`}
               />
+              {rejectionError && (
+                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">
+                  {rejectionError}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setRejectingRtv(null)}
-                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted"
+                onClick={() => {
+                  setRejectingRtv(null);
+                  setRejectionError(null);
+                  setActionError(null);
+                }}
+                disabled={actionLoading}
+                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </button>
@@ -383,7 +562,7 @@ export default function RtvTab() {
                 type="button"
                 onClick={handleConfirmReject}
                 disabled={actionLoading}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85"
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 {actionLoading ? "Rejecting..." : "Confirm Rejection"}
               </button>
@@ -406,8 +585,15 @@ export default function RtvTab() {
         >
           <div className="space-y-4 text-foreground text-xs">
             {actionError && (
-              <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-foreground">
-                {actionError}
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center justify-between">
+                <span className="font-medium">{actionError}</span>
+                <button
+                  type="button"
+                  onClick={() => setActionError(null)}
+                  className="font-bold underline ml-2 shrink-0 cursor-pointer"
+                >
+                  Dismiss
+                </button>
               </div>
             )}
 
@@ -436,7 +622,8 @@ export default function RtvTab() {
               <button
                 type="button"
                 onClick={() => setDispatchingRtv(null)}
-                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted"
+                disabled={actionLoading}
+                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </button>
@@ -444,7 +631,7 @@ export default function RtvTab() {
                 type="button"
                 onClick={handleConfirmDispatch}
                 disabled={actionLoading}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85"
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 {actionLoading ? "Dispatching..." : "Confirm Dispatch"}
               </button>

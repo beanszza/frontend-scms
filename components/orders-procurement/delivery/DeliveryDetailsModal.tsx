@@ -5,6 +5,7 @@ import { Truck, ShieldCheck, Receipt, FileText, AlertCircle } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Delivery, DeliveryStatus } from "../types";
 
 interface DeliveryDetailsModalProps {
@@ -52,6 +53,16 @@ export function DeliveryDetailsModal({
       size="max-w-4xl"
     >
       <div className="space-y-5">
+        {/* Top Header Row with Status Badge & Document No */}
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={delivery.status} />
+            <span className="font-mono text-sm font-bold text-foreground">{delivery.deliveryNumber}</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            PO Ref: <span className="font-mono font-medium text-foreground">{delivery.poNumber}</span>
+          </div>
+        </div>
         {/* Cancellation Reason Notice */}
         {isCancelled && delivery.notes && (
           <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs flex items-start gap-2.5">

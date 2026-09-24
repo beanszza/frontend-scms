@@ -37,6 +37,7 @@ const STATUS_MAP: Record<string, BadgeTier> = {
 
   // Stock / Transfer
   Transferred:   "active",
+  Committed:     "active",
   "In Transit":  "subtle",
   InTransit:     "subtle",
   Arrived:       "subtle",
@@ -71,6 +72,15 @@ const STATUS_MAP: Record<string, BadgeTier> = {
   Inactive:      "outline",
   Yes:           "active",
   No:            "outline",
+
+  // Inventory
+  "In Stock":    "active",
+  InStock:       "active",
+  Available:     "active",
+  "Low Stock":   "subtle",
+  LowStock:      "subtle",
+  "Out of Stock": "outline",
+  OutOfStock:    "outline",
 };
 
 const TIER_CLASSES: Record<BadgeTier, string> = {

@@ -219,7 +219,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
         )}
 
         {/* HEADER SUMMARY */}
-        <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-6 gap-4">
+        <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           <div>
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Inspection #</div>
             <div className="text-sm font-semibold mt-0.5">{inspection.inspectionNumber}</div>
@@ -228,18 +228,24 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Reference GRN</div>
             <div className="text-sm font-semibold mt-0.5">{inspection.referenceNumber || inspection.grnNumber}</div>
           </div>
-          <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
-            <div className="text-sm font-semibold mt-0.5">{inspection.poNumber || "—"}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Product Requisition</div>
-            <div className="text-sm font-semibold mt-0.5">{inspection.prNumber || "—"}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
-            <div className="text-sm font-semibold mt-0.5 truncate" title={inspection.supplierName}>{inspection.supplierName || "—"}</div>
-          </div>
+          {inspection.poNumber && inspection.poNumber !== "—" && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
+              <div className="text-sm font-semibold mt-0.5">{inspection.poNumber}</div>
+            </div>
+          )}
+          {inspection.prNumber && inspection.prNumber !== "—" && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Product Requisition</div>
+              <div className="text-sm font-semibold mt-0.5">{inspection.prNumber}</div>
+            </div>
+          )}
+          {inspection.supplierName && inspection.supplierName !== "—" && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
+              <div className="text-sm font-semibold mt-0.5 truncate" title={inspection.supplierName}>{inspection.supplierName}</div>
+            </div>
+          )}
           <div>
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Status</div>
             <div className="text-sm font-semibold mt-0.5">{inspection.status}</div>
@@ -372,7 +378,8 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
+                  disabled={submitting}
+                  className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>
@@ -380,7 +387,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting || mismatch || missingChecks || missingDefectReasons || !inspectionBasis.trim()}
-                  className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 transition-colors shadow-sm"
+                  className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 >
                   {submitting ? "Submitting..." : "Complete QA Inspection"}
                 </button>

@@ -82,7 +82,7 @@ export default function DeliveryDetailsModal({
         ) : detail ? (
           <>
             {/* Header Summary */}
-            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Delivery No.</div>
                 <div className="text-sm font-mono font-semibold mt-0.5">{detail.deliveryNumber}</div>
@@ -91,10 +91,12 @@ export default function DeliveryDetailsModal({
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
                 <div className="text-sm font-mono font-semibold mt-0.5">{detail.poNumber}</div>
               </div>
-              <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">PR Ref.</div>
-                <div className="text-sm font-mono font-semibold mt-0.5">{detail.prNumber || "—"}</div>
-              </div>
+              {detail.prNumber && (
+                <div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">PR Ref.</div>
+                  <div className="text-sm font-mono font-semibold mt-0.5">{detail.prNumber}</div>
+                </div>
+              )}
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
                 <div className="text-sm font-semibold mt-0.5 truncate" title={detail.supplierName}>{detail.supplierName}</div>
@@ -106,28 +108,38 @@ export default function DeliveryDetailsModal({
             </div>
 
             {/* Secondary details */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-              <div>
-                <div className="text-muted-foreground">Carrier / Truck</div>
-                <div className="font-medium mt-0.5">{detail.carrier || "Supplier Logistics"}</div>
+            {(detail.carrier || detail.trackingNumber || detail.estimatedArrival || detail.actualArrival) && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                {detail.carrier && (
+                  <div>
+                    <div className="text-muted-foreground">Carrier / Truck</div>
+                    <div className="font-medium mt-0.5">{detail.carrier}</div>
+                  </div>
+                )}
+                {detail.trackingNumber && (
+                  <div>
+                    <div className="text-muted-foreground">Tracking No.</div>
+                    <div className="font-mono font-medium mt-0.5">{detail.trackingNumber}</div>
+                  </div>
+                )}
+                {detail.estimatedArrival && (
+                  <div>
+                    <div className="text-muted-foreground">Estimated Arrival</div>
+                    <div className="font-medium mt-0.5">
+                      {new Date(detail.estimatedArrival).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+                {detail.actualArrival && (
+                  <div>
+                    <div className="text-muted-foreground">Actual Arrival</div>
+                    <div className="font-medium mt-0.5">
+                      {new Date(detail.actualArrival).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <div className="text-muted-foreground">Tracking No.</div>
-                <div className="font-mono font-medium mt-0.5">{detail.trackingNumber || "—"}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Estimated Arrival</div>
-                <div className="font-medium mt-0.5">
-                  {detail.estimatedArrival ? new Date(detail.estimatedArrival).toLocaleDateString() : "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Actual Arrival</div>
-                <div className="font-medium mt-0.5">
-                  {detail.actualArrival ? new Date(detail.actualArrival).toLocaleDateString() : "Today"}
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Line Items */}
             <div className="border-t border-border pt-4 space-y-3">
@@ -171,31 +183,26 @@ export default function DeliveryDetailsModal({
         ) : null}
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-border mt-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Truck className="w-4 h-4" />
-            <span>Arrived delivery — ready for GRN creation</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onCreateGrn(delivery.deliveryId);
-              }}
-              className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm"
-            >
-              <Package className="w-4 h-4" />
-              Create GRN for this Delivery
-            </button>
-          </div>
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              onClose();
+              onCreateGrn(delivery.deliveryId);
+            }}
+            className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Create GRN for this Delivery
+          </button>
         </div>
       </div>
     </ModalWrapper>

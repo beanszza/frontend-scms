@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { SupplyItem, Supplier, Recipe, FinishedProduct } from "@/components/resources-suppliers/types";
@@ -192,13 +191,32 @@ export default function ResourcesSuppliersPage() {
         description="Manage your foundation data - Supply, Suppliers, and Recipes"
       />
 
-      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="mb-8">
-        <TabsList>
-          <TabsTrigger value="supply">Supply List</TabsTrigger>
-          <TabsTrigger value="supplier">Supplier List</TabsTrigger>
-          <TabsTrigger value="recipe">Recipe / BOM</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Process Tabs */}
+      <div className="border-b border-border">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {[
+            { id: "supply", label: "SUPPLY LIST" },
+            { id: "supplier", label: "SUPPLIER LIST" },
+            { id: "recipe", label: "RECIPE / BOM" },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {activeTab === "supply" && (
         <SupplyTab

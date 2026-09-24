@@ -10,13 +10,13 @@ import DiscrepancyDetailsModal from "./DiscrepancyDetailsModal";
 import Pagination from "@/components/Pagination";
 import { Discrepancy } from "./types";
 
-type DiscrepancySubTab = "short" | "rejected" | "over" | "all";
+type DiscrepancySubTab = "short" | "rejected" | "over";
 
 export default function DiscrepancyTab() {
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeSubTab, setActiveSubTab] = useState<DiscrepancySubTab>("all");
+  const [activeSubTab, setActiveSubTab] = useState<DiscrepancySubTab>("short");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -101,7 +101,6 @@ export default function DiscrepancyTab() {
   };
 
   const tabs = [
-    { id: "all" as DiscrepancySubTab, label: "All Discrepancies", count: counts.all },
     { id: "short" as DiscrepancySubTab, label: "Partial / Short", count: counts.short },
     { id: "rejected" as DiscrepancySubTab, label: "Rejected", count: counts.rejected },
     { id: "over" as DiscrepancySubTab, label: "Over Supply", count: counts.over },

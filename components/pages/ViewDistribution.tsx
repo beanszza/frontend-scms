@@ -6,7 +6,6 @@ import { Plus, Search, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import Pagination from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
@@ -100,8 +99,8 @@ export default function DistributionPage() {
   return (
     <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
       <PageHeader
-        title="Distribution & Locations"
-        description="Manage stock transfers, logistics, and facility locations"
+        title="Stock Transfer"
+        description="Manage internal stock transfers, warehouse movements, and facility locations."
         actions={
           <>
             {isAuth && (
@@ -126,12 +125,31 @@ export default function DistributionPage() {
 
       <DistributionSummaryCards stats={stats} />
 
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(1); }} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="Stock Transfer">Stock Transfers</TabsTrigger>
-          <TabsTrigger value="Locations">Locations</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Process Tabs */}
+      <div className="border-b border-border">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {[
+            { id: "Stock Transfer", label: "STOCK TRANSFERS" },
+            { id: "Locations", label: "LOCATIONS" },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => { setActiveTab(tab.id as any); setPage(1); }}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {activeTab === "Stock Transfer" && (
         <>

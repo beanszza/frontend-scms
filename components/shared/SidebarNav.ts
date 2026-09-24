@@ -59,16 +59,7 @@ export const navGroups: NavGroup[] = [
       { name: "Goods Receiving",      href: "/goods-receiving",     icon: PackageCheck },
       { name: "Inventory",            href: "/inventory",           icon: Boxes },
       { name: "Production & Quality", href: "/production-quality",  icon: Building2 },
-      { name: "Distribution",         href: "/distribution",        icon: Truck },
-    ],
-  },
-  {
-    label: "Analytics",
-    items: [
-      { name: "Traceability",         href: "/traceability",        icon: GitBranch },
-      { name: "Cycle Counts",         href: "/cycle-counts",        icon: ClipboardList },
-      { name: "Valuation",            href: "/valuation",           icon: BarChart3 },
-      { name: "MRP Planning",         href: "/mrp",                 icon: Calculator },
+      { name: "Stock Transfer",       href: "/distribution",        icon: Truck },
     ],
   },
 ];
@@ -118,6 +109,12 @@ export const systems: SystemItem[] = [
 ];
 
 export const accounts: AccountItem[] = [
+  {
+    id: "head_cook",
+    name: "Head Cook",
+    role: "Head Cook",
+    email: "headcook@r3b2p.com",
+  },
   {
     id: "inventory_manager",
     name: "Inventory Manager",

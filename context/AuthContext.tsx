@@ -28,12 +28,15 @@ export type User = {
   apps: AppAccess[];
 };
 
+type AccountType = "inventory_manager" | "admin" | "head_cook";
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  activeAccount: "inventory_manager" | "admin";
+  activeAccount: AccountType;
   isAdmin: boolean;
-  switchAccount: (account: "inventory_manager" | "admin") => void;
+  isHeadCook: boolean;
+  switchAccount: (account: AccountType) => void;
   logout: () => Promise<void>;
 };
 
@@ -54,6 +57,18 @@ function getAccountProfile(accountType: string): User {
       apps: [],
     };
   }
+  if (accountType === "head_cook") {
+    return {
+      id: "scms-headcook",
+      username: "headcook",
+      firstName: "Head",
+      lastName: "Cook",
+      email: "headcook@r3b2p.com",
+      mustChangePassword: false,
+      roles: ["Head Cook"],
+      apps: [],
+    };
+  }
   return {
     id: "scms-user",
     username: "scmsuser",
@@ -61,18 +76,18 @@ function getAccountProfile(accountType: string): User {
     lastName: "Manager",
     email: "scmsuser@r3b2p.com",
     mustChangePassword: false,
-    roles: ["InventoryManager"],
+    roles: ["InventoryManager", "Inventory Manager"],
     apps: [],
   };
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [activeAccount, setActiveAccount] = useState<"inventory_manager" | "admin">("inventory_manager");
+  const [activeAccount, setActiveAccount] = useState<AccountType>("inventory_manager");
   const [isLoading, setIsLoading] = useState(true);
 
   const applyAccount = (acc: string) => {
-    const validAcc = acc === "admin" ? "admin" : "inventory_manager";
+    const validAcc: AccountType = acc === "admin" ? "admin" : acc === "head_cook" ? "head_cook" : "inventory_manager";
     setActiveAccount(validAcc);
     setUser(getAccountProfile(validAcc));
   };
@@ -81,14 +96,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const init = () => {
       // Auto-authenticate so direct deployment / standalone access works without external SSO redirect
       sessionStorage.setItem(SCMS_SESSION_KEY, "1");
-      const stored = typeof window !== "undefined" ? localStorage.getItem("activeAccount") || "inventory_manager" : "inventory_manager";
+      const stored = typeof window !== "undefined" ? (localStorage.getItem("activeAccount") as AccountType) || "inventory_manager" : "inventory_manager";
       applyAccount(stored);
       setIsLoading(false);
     };
     init();
 
     const handleStorageChange = () => {
-      const stored = localStorage.getItem("activeAccount") || "inventory_manager";
+      const stored = (localStorage.getItem("activeAccount") as AccountType) || "inventory_manager";
       applyAccount(stored);
     };
 
@@ -96,7 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const switchAccount = (account: "inventory_manager" | "admin") => {
+  const switchAccount = (account: AccountType) => {
     localStorage.setItem("activeAccount", account);
     applyAccount(account);
     window.dispatchEvent(new Event("storage"));
@@ -123,9 +138,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // }
 
   const isAdmin = user?.roles?.includes("Admin") || activeAccount === "admin";
+  const isHeadCook = user?.roles?.includes("Head Cook") || activeAccount === "head_cook" || user?.username === "headcook";
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, activeAccount, isAdmin, switchAccount, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, activeAccount, isAdmin, isHeadCook, switchAccount, logout }}>
       {children}
     </AuthContext.Provider>
   );

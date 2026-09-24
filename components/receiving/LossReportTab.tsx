@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Trash2, Search } from "lucide-react";
+import { Trash2, Search, MoreHorizontal, Eye, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -20,6 +20,7 @@ export default function LossReportTab() {
   const [selectedReport, setSelectedReport] = useState<LossReport | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLossReports = useCallback(async () => {
@@ -39,6 +40,18 @@ export default function LossReportTab() {
   useEffect(() => {
     fetchLossReports();
   }, [fetchLossReports]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-actions-dropdown]")) {
+        setActiveDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const handleAcknowledge = async (reportId: number) => {
     setActionLoadingId(reportId);
@@ -111,19 +124,6 @@ export default function LossReportTab() {
           </Button>
         </div>
       </div>
-
-      {error && (
-        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-foreground flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="text-foreground font-bold text-xs hover:underline ml-2"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
 
       {/* Full-width Search Bar */}
       <div className="mb-4 border border-border rounded-md overflow-hidden bg-card">
@@ -212,28 +212,42 @@ export default function LossReportTab() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {!isAck && (
+                    <td className="px-4 py-2.5 text-center whitespace-nowrap relative" data-actions-dropdown>
+                      <button
+                        type="button"
+                        onClick={() => setActiveDropdownId(activeDropdownId === r.lossReportId ? null : r.lossReportId)}
+                        className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
+                        title="Actions"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                      {activeDropdownId === r.lossReportId && (
+                        <div className="absolute right-6 top-2 z-[100] w-40 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left animate-in fade-in-50">
                           <button
                             type="button"
-                            onClick={() => handleAcknowledge(r.lossReportId)}
-                            disabled={actionLoadingId === r.lossReportId}
-                            className="rounded-xl bg-foreground px-3 py-1 text-xs font-semibold text-background hover:bg-foreground/85 disabled:opacity-40 transition-colors shadow-sm"
+                            onClick={() => {
+                              handleSelectReport(r);
+                              setActiveDropdownId(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                           >
-                            {actionLoadingId === r.lossReportId ? "…" : "Ack"}
+                            <Eye size={14} className="shrink-0" /> View Details
                           </button>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSelectReport(r)}
-                          className="rounded-xl border border-border bg-card px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted"
-                        >
-                          View
-                        </Button>
-                      </div>
+                          {!isAck && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleAcknowledge(r.lossReportId);
+                                setActiveDropdownId(null);
+                              }}
+                              disabled={actionLoadingId !== null}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                            >
+                              <Check size={14} className="shrink-0" /> Acknowledge
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -259,40 +273,51 @@ export default function LossReportTab() {
       {selectedReport && (
         <ModalWrapper
           open={modalOpen}
-          title={`Loss Report - ${selectedReport.lossReportNumber}`}
+          title={`Loss & Disposal Report — ${selectedReport.lossReportNumber}`}
           onClose={() => setModalOpen(false)}
           size="max-w-2xl"
         >
           <div className="space-y-5 text-foreground text-xs">
-            {/* Summary Box */}
-            <div className="bg-muted/20 border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-sm text-foreground">
-                  Authorized Write-Off
-                </div>
-                {selectedReport.isAcknowledged ? (
-                  <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-muted border border-border text-foreground">
-                    Acknowledged
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-muted/50 border border-border text-muted-foreground">
-                    Pending Admin Acknowledgement
-                  </span>
-                )}
+            {error && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center justify-between">
+                <span className="font-medium">{error}</span>
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="font-bold underline ml-2 shrink-0 cursor-pointer"
+                >
+                  Dismiss
+                </button>
               </div>
-              <p className="text-muted-foreground mt-1 text-xs">
-                This report certifies stock loss or shortage and adjusts the ledger balance.
-              </p>
-              {selectedReport.acknowledgedBy && (
-                <div className="text-[11px] text-muted-foreground mt-2 border-t border-border/60 pt-1.5">
-                  Acknowledged by <strong className="text-foreground">{selectedReport.acknowledgedBy}</strong>
-                  {selectedReport.acknowledgedAt && ` on ${new Date(selectedReport.acknowledgedAt).toLocaleString()}`}
+            )}
+
+            {/* Status Summary Banner */}
+            <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-sm text-foreground">
+                  Authorized Stock Write-Off
                 </div>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Certifies physical loss, damage, or rejection write-off and adjusts ledger balance.
+                </p>
+              </div>
+              {selectedReport.isAcknowledged ? (
+                <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-muted border border-border text-foreground">
+                  Acknowledged
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-muted/50 border border-border text-muted-foreground">
+                  Pending Admin Acknowledgement
+                </span>
               )}
             </div>
 
             {/* Traceability Grid */}
-            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Report No.</div>
+                <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.lossReportNumber}</div>
+              </div>
               <div>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Discrepancy</div>
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.discrepancyNumber || "Direct"}</div>
@@ -305,30 +330,29 @@ export default function LossReportTab() {
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.poNumber || "—"}</div>
               </div>
-              <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
-                <div className="font-medium text-xs mt-0.5">{selectedReport.supplierName || "—"}</div>
-              </div>
-              <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Authorised By</div>
-                <div className="font-medium text-xs mt-0.5">{selectedReport.authorisedBy || "—"}</div>
-              </div>
             </div>
 
             {/* Item & Loss Detail */}
             <div className="border border-border rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-muted-foreground">Item Description</div>
+                  <div className="text-muted-foreground text-[11px]">Item Description</div>
                   <div className="font-semibold text-sm">{selectedReport.itemName}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-muted-foreground">Quantity Written Off</div>
+                  <div className="text-muted-foreground text-[11px]">Quantity Written Off</div>
                   <div className="font-mono font-bold text-sm text-foreground">
                     {selectedReport.lostQuantity.toLocaleString()} {selectedReport.uomName || "Units"}
                   </div>
                 </div>
               </div>
+
+              {selectedReport.supplierName && selectedReport.supplierName !== "—" && (
+                <div className="border-t border-border pt-3">
+                  <div className="text-muted-foreground font-semibold mb-1">Supplier:</div>
+                  <div className="font-medium text-foreground">{selectedReport.supplierName}</div>
+                </div>
+              )}
 
               <div className="border-t border-border pt-3">
                 <div className="text-muted-foreground font-semibold mb-1">Reason for Loss / Disposal:</div>
@@ -347,26 +371,43 @@ export default function LossReportTab() {
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
-              <div>
-                {!selectedReport.isAcknowledged && (
-                  <button
-                    type="button"
-                    onClick={() => handleAcknowledge(selectedReport.lossReportId)}
-                    disabled={actionLoadingId === selectedReport.lossReportId}
-                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors"
-                  >
-                    {actionLoadingId === selectedReport.lossReportId ? "Acknowledging..." : "Acknowledge This Report"}
-                  </button>
-                )}
+            {/* Acknowledgement Info Box */}
+            <div className="border border-border rounded-xl p-3.5 bg-muted/10 space-y-1">
+              <div className="text-[11px] text-muted-foreground">
+                Authorised by: <strong className="text-foreground">{selectedReport.authorisedBy || "System Admin"}</strong>
               </div>
+              {selectedReport.acknowledgedBy ? (
+                <div className="text-[11px] text-muted-foreground">
+                  Acknowledged by: <strong className="text-foreground">{selectedReport.acknowledgedBy}</strong>
+                  {selectedReport.acknowledgedAt && ` on ${new Date(selectedReport.acknowledgedAt).toLocaleString()}`}
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted-foreground italic">
+                  Not yet acknowledged by Inventory Admin.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer - Lower right corner */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-4">
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors shadow-sm"
+                disabled={actionLoadingId !== null}
+                className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 Close
               </button>
+              {!selectedReport.isAcknowledged && (
+                <button
+                  type="button"
+                  onClick={() => handleAcknowledge(selectedReport.lossReportId)}
+                  disabled={actionLoadingId !== null}
+                  className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  {actionLoadingId === selectedReport.lossReportId ? "Acknowledging..." : "Acknowledge This Report"}
+                </button>
+              )}
             </div>
           </div>
         </ModalWrapper>

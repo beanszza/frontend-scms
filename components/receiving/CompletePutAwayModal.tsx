@@ -236,14 +236,16 @@ export default function CompletePutAwayModal({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
-                    Supplier
-                  </span>
-                  <span className="font-semibold text-foreground truncate block" title={task.supplierName}>
-                    {task.supplierName || "—"}
-                  </span>
-                </div>
+                {task.supplierName && task.supplierName !== "—" && (
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+                      Supplier
+                    </span>
+                    <span className="font-semibold text-foreground truncate block" title={task.supplierName}>
+                      {task.supplierName}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
                     Accepted Qty
@@ -355,7 +357,8 @@ export default function CompletePutAwayModal({
             <button
               type="button"
               onClick={handlePrintLabel}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Printer className="h-4 w-4" />
               Print Label &amp; QR
@@ -367,7 +370,8 @@ export default function CompletePutAwayModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+                disabled={submitting}
+                className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 Close
               </button>
@@ -376,7 +380,8 @@ export default function CompletePutAwayModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"
+                  disabled={submitting}
+                  className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>
@@ -384,7 +389,7 @@ export default function CompletePutAwayModal({
                   type="button"
                   onClick={handlePutToInventory}
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 >
                   <Box className="h-4 w-4" />
                   {submitting ? "Putting to Inventory…" : "Put to Inventory"}

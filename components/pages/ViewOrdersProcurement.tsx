@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, ShoppingCart, Truck } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PRTab } from "@/components/orders-procurement/pr/PRTab";
 import { POTab } from "@/components/orders-procurement/po/POTab";
@@ -31,44 +30,41 @@ export default function OrdersProcurementPage() {
 
       {/* 3 Main Process Tabs */}
       <div className="border-b border-border">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setMainTab("pr")}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               mainTab === "pr"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <FileText className="w-4 h-4" />
-            <span>Product Requisition</span>
+            <span>PURCHASE REQUISITION</span>
           </button>
 
           <button
             type="button"
             onClick={() => setMainTab("po")}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               mainTab === "po"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <ShoppingCart className="w-4 h-4" />
-            <span>Product Order</span>
+            <span>PURCHASE ORDER</span>
           </button>
 
           <button
             type="button"
             onClick={() => setMainTab("delivery")}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               mainTab === "delivery"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Truck className="w-4 h-4" />
-            <span>Delivery</span>
+            <span>DELIVERY</span>
           </button>
         </div>
       </div>

@@ -142,11 +142,11 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
 
   return (
     <div className="space-y-6 animate-page-in">
-      {/* Top Header: Supply page style */}
+      {/* Top Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Product Requisition List</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Raw materials and ingredients requisition workflow</p>
+          <h2 className="text-2xl font-bold text-foreground">Purchase Requisitions</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Manage raw material and ingredient purchase requisitions</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -176,20 +176,20 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
               onClick={() => setOpenCreateModal(true)}
               className="flex items-center justify-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm h-10"
             >
-              <Plus className="w-4 h-4" /> Create Product Requisition
+              <Plus className="w-4 h-4" /> Create Purchase Requisition
             </Button>
           )}
         </div>
       </div>
 
-      {/* Full-width Search Bar: Copied directly from Supply page */}
+      {/* Full-width Search Bar */}
       <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
         <div className="flex items-center justify-between gap-sm px-md py-sm bg-muted/20">
           <div className="flex items-center gap-sm flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by name, PR No (e.g. PR-2026-0001), Requester, or Department..."
+              placeholder="Search by PR No., Requester, or Department..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -218,7 +218,6 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
                   : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
-              <Inbox className="w-3.5 h-3.5" />
               <span>Requests</span>
               {counts.Requests > 0 && (
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${

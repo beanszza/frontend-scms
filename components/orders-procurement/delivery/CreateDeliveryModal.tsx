@@ -45,6 +45,7 @@ export function CreateDeliveryModal({
   const [loadingItems, setLoadingItems] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Form Fields
   const [paymentType, setPaymentType] = useState("Payable");
@@ -67,7 +68,7 @@ export function CreateDeliveryModal({
         setLoadingPOs(true);
         const [delivRes, poRes] = await Promise.allSettled([
           api.get("/api/scms/api/deliveries?page=1&pageSize=1000"),
-          api.get("/api/scms/api/PurchaseOrders?page=1&pageSize=1000"),
+          api.get("/api/scms/api/PurchaseOrders?page=1&pageSize=1000&eligibleForDelivery=true"),
         ]);
 
         // Calculate next unique Delivery Number
@@ -115,6 +116,13 @@ export function CreateDeliveryModal({
       }
     } else {
       setSelectedPoId(null);
+      setItems([]);
+      setExpectedArrivalDate("");
+      setScheduledAttachmentBase64("");
+      setAttachmentFileName("");
+      setPaymentType("Payable");
+      setError(null);
+      setFieldErrors({});
     }
 
     fetchInitialData();
@@ -200,6 +208,11 @@ export function CreateDeliveryModal({
 
   // Handle PO selection change with discard confirmation
   const handlePoSelectionChange = (newPoId: number | null) => {
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy.poId;
+      return copy;
+    });
     if (selectedPoId && newPoId !== selectedPoId) {
       // Prompt confirmation to discard current PO details
       setPendingPoId(newPoId);
@@ -214,6 +227,11 @@ export function CreateDeliveryModal({
     setPendingPoId(null);
     setConfirmPoChange(false);
     setError(null);
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy.poId;
+      return copy;
+    });
   };
 
   const cancelPoChange = () => {
@@ -279,8 +297,15 @@ export function CreateDeliveryModal({
     e.preventDefault();
     setError(null);
 
+    const errs: Record<string, string> = {};
     if (!selectedPoId) {
-      setError("Please select a Purchase Order first.");
+      errs.poId = "Purchase Order selection is required.";
+    }
+    if (!expectedArrivalDate) {
+      errs.expectedArrivalDate = "Expected arrival date and time is required.";
+    }
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
       return;
     }
 
@@ -377,21 +402,30 @@ export function CreateDeliveryModal({
                   className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0 font-mono font-medium"
                 />
               ) : (
-                <select
-                  value={selectedPoId ?? ""}
-                  onChange={(e) =>
-                    handlePoSelectionChange(Number(e.target.value) || null)
-                  }
-                  disabled={loadingPOs}
-                  className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="">Select Purchase Order...</option>
-                  {orderedPOs.map((p) => (
-                    <option key={p.poId} value={p.poId}>
-                      {p.poNumber}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={selectedPoId ?? ""}
+                    onChange={(e) =>
+                      handlePoSelectionChange(Number(e.target.value) || null)
+                    }
+                    disabled={loadingPOs}
+                    className={`w-full rounded-xl border ${
+                      fieldErrors.poId ? "!border-destructive focus:!ring-destructive" : "border-border"
+                    } bg-card px-4 py-2.5 text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
+                  >
+                    <option value="">Select Purchase Order...</option>
+                    {orderedPOs.map((p) => (
+                      <option key={p.poId} value={p.poId}>
+                        {p.poNumber}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.poId && (
+                    <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">
+                      {fieldErrors.poId}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -599,14 +633,32 @@ export function CreateDeliveryModal({
 
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                    Expected Arrival Date &amp; Time (ETA)
+                    Expected Arrival Date &amp; Time (ETA) <span className="text-destructive">*</span>
                   </label>
                   <Input
                     type="datetime-local"
                     value={expectedArrivalDate}
-                    onChange={(e) => setExpectedArrivalDate(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
+                    onChange={(e) => {
+                      setExpectedArrivalDate(e.target.value);
+                      if (fieldErrors.expectedArrivalDate) {
+                        setFieldErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.expectedArrivalDate;
+                          return copy;
+                        });
+                      }
+                    }}
+                    className={`w-full rounded-xl border ${
+                      fieldErrors.expectedArrivalDate
+                        ? "!border-destructive focus-visible:!ring-destructive"
+                        : "border-border"
+                    } bg-card px-4 py-2.5 text-sm text-foreground`}
                   />
+                  {fieldErrors.expectedArrivalDate && (
+                    <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">
+                      {fieldErrors.expectedArrivalDate}
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -124,7 +124,7 @@ export default function DiscrepancyDetailsModal({
         )}
 
         {/* TRACEABILITY BANNER */}
-        <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-6 gap-4">
+        <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           <div>
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Type</div>
             <div className="text-sm font-semibold mt-0.5">
@@ -143,14 +143,18 @@ export default function DiscrepancyDetailsModal({
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Order</div>
             <div className="text-sm font-semibold mt-0.5">{discrepancy.poNumber}</div>
           </div>
-          <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Product Requisition</div>
-            <div className="text-sm font-semibold mt-0.5">{discrepancy.prNumber || "—"}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
-            <div className="text-sm font-semibold mt-0.5 truncate" title={discrepancy.supplierName}>{discrepancy.supplierName || "—"}</div>
-          </div>
+          {discrepancy.prNumber && discrepancy.prNumber !== "—" && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Product Requisition</div>
+              <div className="text-sm font-semibold mt-0.5">{discrepancy.prNumber}</div>
+            </div>
+          )}
+          {discrepancy.supplierName && discrepancy.supplierName !== "—" && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Supplier</div>
+              <div className="text-sm font-semibold mt-0.5 truncate" title={discrepancy.supplierName}>{discrepancy.supplierName}</div>
+            </div>
+          )}
           <div>
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Status</div>
             <div className="mt-1">
@@ -216,12 +220,9 @@ export default function DiscrepancyDetailsModal({
               <div className="text-muted-foreground pt-1 italic">"{discrepancy.resolutionNotes}"</div>
             )}
           </div>
-        ) : (
-          /* ACTION SECTIONS FOR OPEN DISCREPANCY */
+        ) : activeForm !== "none" ? (
+          /* ACTION FORM FOR OPEN DISCREPANCY */
           <div className="border-t border-border pt-4 space-y-4">
-            <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
-              Discrepancy Resolution Options
-            </div>
 
             {/* FORM: CREATE LOSS REPORT */}
             {activeForm === "loss" && (
@@ -269,7 +270,8 @@ export default function DiscrepancyDetailsModal({
                   <button
                     type="button"
                     onClick={() => setActiveForm("none")}
-                    className="border border-border bg-card text-foreground rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-muted"
+                    disabled={submitting}
+                    className="border border-border bg-card text-foreground rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Cancel
                   </button>
@@ -277,7 +279,7 @@ export default function DiscrepancyDetailsModal({
                     type="button"
                     onClick={handleCreateLossReport}
                     disabled={submitting}
-                    className="bg-foreground text-background rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-foreground/85"
+                    className="bg-foreground text-background rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {submitting ? "Writing Off..." : "Confirm Loss Report"}
                   </button>
@@ -332,7 +334,8 @@ export default function DiscrepancyDetailsModal({
                   <button
                     type="button"
                     onClick={() => setActiveForm("none")}
-                    className="border border-border bg-card text-foreground rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-muted"
+                    disabled={submitting}
+                    className="border border-border bg-card text-foreground rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Cancel
                   </button>
@@ -340,113 +343,120 @@ export default function DiscrepancyDetailsModal({
                     type="button"
                     onClick={handleCreateRtv}
                     disabled={submitting}
-                    className="bg-foreground text-background rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-foreground/85"
+                    className="bg-foreground text-background rounded-lg px-4 py-1.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {submitting ? "Submitting..." : "Submit Return Request"}
                   </button>
                 </div>
               </div>
             )}
-
-            {/* ACTION BUTTONS (when no sub-form active) */}
-            {activeForm === "none" && (
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                {discrepancy.discrepancyType === "PartialShort" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleResolveDirect(
-                          "NewDelivery",
-                          "Supplier notified to deliver remaining shortage on next shipment."
-                        )
-                      }
-                      className="border border-border bg-card text-foreground rounded-xl px-4 py-2 text-xs font-semibold hover:bg-muted"
-                    >
-                      Wait for Next Delivery
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleResolveDirect(
-                          "CloseRemaining",
-                          "Accepted partial delivery. Remaining shortage is closed and not expected."
-                        )
-                      }
-                      className="border border-border bg-card text-foreground rounded-xl px-4 py-2 text-xs font-semibold hover:bg-muted"
-                    >
-                      Close Remaining (Accept Partial)
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveForm("loss")}
-                      className="bg-foreground text-background rounded-xl px-4 py-2 text-xs font-semibold hover:bg-foreground/85"
-                    >
-                      Create Loss Report (Write Off)
-                    </button>
-                  </>
-                )}
-
-                {discrepancy.discrepancyType === "Rejected" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setActiveForm("rtv")}
-                      className="bg-foreground text-background rounded-xl px-4 py-2 text-xs font-semibold hover:bg-foreground/85"
-                    >
-                      Request Return to Supplier (RTV)
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveForm("loss")}
-                      className="border border-border bg-card text-foreground rounded-xl px-4 py-2 text-xs font-semibold hover:bg-muted"
-                    >
-                      Create Loss Report (Dispose)
-                    </button>
-                  </>
-                )}
-
-                {discrepancy.discrepancyType === "OverSupply" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setActiveForm("rtv")}
-                      className="bg-foreground text-background rounded-xl px-4 py-2 text-xs font-semibold hover:bg-foreground/85"
-                    >
-                      Request Return Excess (RTV)
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleResolveDirect(
-                          "KeepWithCredit",
-                          "Accepted excess inventory; credit note or adjusted invoice applied."
-                        )
-                      }
-                      className="border border-border bg-card text-foreground rounded-xl px-4 py-2 text-xs font-semibold hover:bg-muted"
-                    >
-                      Keep (With Credit Note)
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
           </div>
-        )}
+        ) : null}
 
-        {/* CLOSE BUTTON */}
-        <div className="flex justify-end pt-4 border-t border-border mt-4">
+        {/* FOOTER ACTIONS - All buttons in lower right corner */}
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-border mt-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+            disabled={submitting}
+            className="rounded-xl border border-border bg-card text-foreground px-5 py-2.5 text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Close
           </button>
+
+          {!isResolved && activeForm === "none" && (
+            <>
+              {discrepancy.discrepancyType === "PartialShort" && (
+                <>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() =>
+                      handleResolveDirect(
+                        "NewDelivery",
+                        "Supplier notified to deliver remaining shortage on next shipment."
+                      )
+                    }
+                    className="rounded-xl border border-border bg-card text-foreground px-4 py-2.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Wait for Next Delivery
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() =>
+                      handleResolveDirect(
+                        "CloseRemaining",
+                        "Accepted partial delivery. Remaining shortage is closed and not expected."
+                      )
+                    }
+                    className="rounded-xl border border-border bg-card text-foreground px-4 py-2.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Close Remaining
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setActiveForm("loss")}
+                    className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    Create Loss Report (Write Off)
+                  </button>
+                </>
+              )}
+
+              {discrepancy.discrepancyType === "Rejected" && (
+                <>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setActiveForm("loss")}
+                    className="rounded-xl border border-border bg-card text-foreground px-4 py-2.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Create Loss Report (Dispose)
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setActiveForm("rtv")}
+                    className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    Request Return to Supplier (RTV)
+                  </button>
+                </>
+              )}
+
+              {discrepancy.discrepancyType === "OverSupply" && (
+                <>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() =>
+                      handleResolveDirect(
+                        "KeepWithCredit",
+                        "Accepted excess inventory; credit note or adjusted invoice applied."
+                      )
+                    }
+                    className="rounded-xl border border-border bg-card text-foreground px-4 py-2.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Keep (With Credit Note)
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setActiveForm("rtv")}
+                    className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    Request Return Excess (RTV)
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
     </ModalWrapper>

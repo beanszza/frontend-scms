@@ -10,6 +10,7 @@ import { PurchaseOrderPO } from "../types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 interface PODetailsModalProps {
   po: PurchaseOrderPO | null;
@@ -68,6 +69,16 @@ export function PODetailsModal({
       size="max-w-5xl"
     >
       <div className="space-y-6">
+        {/* Top Header Row with Status Badge & Document No */}
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={po.status} />
+            <span className="font-mono text-sm font-bold text-foreground">{po.poNumber}</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Supplier: <span className="font-medium text-foreground">{po.supplierName || "—"}</span>
+          </div>
+        </div>
         {/* Admin Notes / Return Reason */}
         {po.adminNotes && (
           <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">

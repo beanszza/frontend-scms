@@ -117,7 +117,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
               className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
               disabled={searching}
             >
-              <option value="">— Select a GRN to inspect —</option>
+              <option value="">Select a GRN to inspect</option>
               {grns.map((g) => (
                 <option key={g.grnId} value={g.grnId}>
                   {g.grnNumber} · {g.deliveryNumber || "No Delivery"} · {g.supplierName} · {new Date(g.receivedDate).toLocaleDateString()}
@@ -136,10 +136,12 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
                   <div className="text-muted-foreground font-semibold">Purchase Order</div>
                   <div className="font-mono mt-0.5">{selected.poNumber}</div>
                 </div>
-                <div>
-                  <div className="text-muted-foreground font-semibold">Delivery No.</div>
-                  <div className="font-mono mt-0.5">{selected.deliveryNumber || "—"}</div>
-                </div>
+                {selected.deliveryNumber && selected.deliveryNumber !== "—" && (
+                  <div>
+                    <div className="text-muted-foreground font-semibold">Delivery No.</div>
+                    <div className="font-mono mt-0.5">{selected.deliveryNumber}</div>
+                  </div>
+                )}
                 <div>
                   <div className="text-muted-foreground font-semibold">Supplier</div>
                   <div className="font-medium mt-0.5">{selected.supplierName}</div>
@@ -162,7 +164,8 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+            disabled={searching}
+            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>
@@ -170,7 +173,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
             type="button"
             onClick={handleStartInspection}
             disabled={!selected || searching}
-            className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {searching ? "Finding Inspection…" : "Start QA Inspection"}
           </button>

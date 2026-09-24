@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 import Pagination from "@/components/Pagination";
@@ -105,14 +104,33 @@ export default function ViewLots() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">All Lots</TabsTrigger>
-          <TabsTrigger value="Available">Available</TabsTrigger>
-          <TabsTrigger value="Quarantine">Quarantine</TabsTrigger>
-          <TabsTrigger value="OnHold">On Hold</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Lot Status Tabs */}
+      <div className="border-b border-border">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {[
+            { id: "all", label: "ALL LOTS" },
+            { id: "Available", label: "AVAILABLE" },
+            { id: "Quarantine", label: "QUARANTINE" },
+            { id: "OnHold", label: "ON HOLD" },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => { setActiveTab(tab.id); setPage(1); }}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <LotsTable items={lots} currentPage={page} pageSize={10} />
       <Pagination currentPage={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />

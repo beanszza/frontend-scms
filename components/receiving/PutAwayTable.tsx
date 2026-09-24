@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
+import { MoreHorizontal, Eye } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
 import { PutAwayTask } from "./types";
 
 interface PutAwayTableProps {
@@ -12,6 +12,7 @@ interface PutAwayTableProps {
 }
 
 export default function PutAwayTable({ tasks, loading, onSelectTask }: PutAwayTableProps) {
+  const [activeMenuId, setActiveMenuId] = React.useState<number | null>(null);
   if (loading) {
     return (
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm p-12 text-center text-xs text-muted-foreground animate-pulse">
@@ -72,18 +73,29 @@ export default function PutAwayTable({ tasks, loading, onSelectTask }: PutAwayTa
                   <td className="px-3 py-2.5 text-center whitespace-nowrap">
                     <StatusBadge status={task.status} />
                   </td>
-                  <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                    <Button
-                      size="sm"
-                      onClick={() => onSelectTask(task)}
-                      className={`rounded-xl px-3 py-1 text-xs font-semibold transition-colors mx-auto ${
-                        isPending
-                          ? "bg-foreground text-background hover:bg-foreground/85 shadow-sm"
-                          : "border border-border bg-card text-foreground hover:bg-muted"
-                      }`}
+                  <td className="px-3 py-2.5 text-center whitespace-nowrap relative">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMenuId(activeMenuId === task.putAwayId ? null : task.putAwayId)}
+                      className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors focus:outline-none"
+                      title="Actions"
                     >
-                      {isPending ? "Put Away" : "View"}
-                    </Button>
+                      <MoreHorizontal size={18} />
+                    </button>
+                    {activeMenuId === task.putAwayId && (
+                      <div className="absolute right-6 top-2 z-[100] w-36 rounded-xl border border-border bg-card shadow-xl py-1.5 text-left">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectTask(task);
+                            setActiveMenuId(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Eye size={14} className="shrink-0" /> {isPending ? "Put Away" : "View Task"}
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );

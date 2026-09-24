@@ -11,7 +11,7 @@ import { StockIn } from "./types";
 import CreateStockInModal from "./CreateStockInModal";
 import StockInDetailsModal from "./StockInDetailsModal";
 
-type SubTab = "draft" | "pending" | "approved" | "rejected";
+type SubTab = "pending" | "approved" | "committed" | "draft" | "rejected";
 
 export default function StockInTab() {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("pending");
@@ -52,6 +52,7 @@ export default function StockInTab() {
       draft: stockIns.filter((s) => s.status === "Draft").length,
       pending: stockIns.filter((s) => s.status === "PendingApproval" || s.status === "Pending").length,
       approved: stockIns.filter((s) => s.status === "Approved").length,
+      committed: stockIns.filter((s) => s.status === "Committed").length,
       rejected: stockIns.filter((s) => s.status === "Rejected").length,
     };
   }, [stockIns]);
@@ -62,6 +63,7 @@ export default function StockInTab() {
       if (activeSubTab === "draft") return s.status === "Draft";
       if (activeSubTab === "pending") return s.status === "PendingApproval" || s.status === "Pending";
       if (activeSubTab === "approved") return s.status === "Approved";
+      if (activeSubTab === "committed") return s.status === "Committed";
       if (activeSubTab === "rejected") return s.status === "Rejected";
       return true;
     });
@@ -77,7 +79,8 @@ export default function StockInTab() {
         s.grnNumber?.toLowerCase().includes(q) ||
         s.supplierName?.toLowerCase().includes(q) ||
         s.createdBy?.toLowerCase().includes(q) ||
-        s.approvedBy?.toLowerCase().includes(q)
+        s.approvedBy?.toLowerCase().includes(q) ||
+        s.committedBy?.toLowerCase().includes(q)
       );
     });
   }, [tabFiltered, search]);
@@ -141,6 +144,30 @@ export default function StockInTab() {
               }`}
             >
               {counts.approved}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSubTab("committed");
+              setPage(1);
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
+              activeSubTab === "committed"
+                ? "bg-foreground text-background"
+                : "bg-muted/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span>Committed</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                activeSubTab === "committed"
+                  ? "bg-background text-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {counts.committed}
             </span>
           </button>
 

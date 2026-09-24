@@ -1,4 +1,6 @@
-import ViewTraceability from "@/components/pages/ViewTraceability";
+import { notFound } from "next/navigation";
+
 export default function TraceabilityPage() {
-  return <ViewTraceability />;
+  notFound();
 }
+

@@ -143,7 +143,17 @@ export function Sidebar() {
 
         {/* ── Nav Content ── */}
         <SidebarContent className="px-2 py-3 overflow-y-auto flex-1 custom-scrollbar">
-          {navGroups.map((group) => (
+          {(activeAccount === "head_cook"
+            ? navGroups
+                .map((group) => ({
+                  ...group,
+                  items: group.items.filter(
+                    (item) => item.href === "/inventory" || item.href === "/production-quality"
+                  ),
+                }))
+                .filter((group) => group.items.length > 0)
+            : navGroups
+          ).map((group) => (
             <SidebarGroup key={group.label} className="p-0 mb-1">
               <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 mb-1">
                 {group.label}
@@ -180,24 +190,26 @@ export function Sidebar() {
 
         {/* ── Footer ── */}
         <SidebarFooter className="px-2 py-2 border-t border-border/60 space-y-1">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isSettingsActive}
-                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
-                  isSettingsActive
-                    ? "bg-foreground text-background"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`}
-              >
-                <Link href={settingsNavItem.href} onClick={handleNavClick}>
-                  <SettingsIcon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{settingsNavItem.name}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          {activeAccount !== "head_cook" && (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isSettingsActive}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
+                    isSettingsActive
+                      ? "bg-foreground text-background"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  }`}
+                >
+                  <Link href={settingsNavItem.href} onClick={handleNavClick}>
+                    <SettingsIcon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{settingsNavItem.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
 
           <div className="pt-1 border-t border-border/60">
             <SidebarProfileFooter

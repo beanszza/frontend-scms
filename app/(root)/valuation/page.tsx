@@ -1,4 +1,6 @@
-import ViewValuation from "@/components/pages/ViewValuation";
+import { notFound } from "next/navigation";
+
 export default function ValuationPage() {
-  return <ViewValuation />;
+  notFound();
 }
+
