@@ -463,6 +463,7 @@ export default function ProductionRequestTab({
                 </label>
                 <Input
                   type="date"
+                  min={new Date().toISOString().split("T")[0]}
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
                   className="h-9 text-xs cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto"

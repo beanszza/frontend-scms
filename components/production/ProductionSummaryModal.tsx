@@ -131,7 +131,7 @@ export default function ProductionSummaryModal({
                   {report.materialsUsed.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-3 px-3 text-center text-muted-foreground">
-                        Standard BOM recipe ingredients consumed
+                        Standard Bill of Materials recipe ingredients consumed
                       </td>
                     </tr>
                   ) : (
@@ -194,7 +194,7 @@ export default function ProductionSummaryModal({
           {/* Section 3: QA Results */}
           <div className="space-y-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-foreground" /> QA Evaluation & Sensory Checklist
+              <ShieldCheck size={13} className="text-foreground" /> Quality Assurance Evaluation & Sensory Checklist
             </h4>
             <div className="p-4 rounded-xl border border-border bg-muted/10 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs text-center">
               <div className="p-2 rounded-lg border border-border bg-card">

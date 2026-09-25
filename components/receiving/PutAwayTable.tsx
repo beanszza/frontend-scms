@@ -27,8 +27,8 @@ export default function PutAwayTable({ tasks, loading, onSelectTask }: PutAwayTa
         <thead>
           <tr className="border-b border-border bg-muted/30">
             <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">TASK NO.</th>
-            <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">GRN NO.</th>
-            <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO NO.</th>
+            <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">GOODS RECEIPT NOTE NO.</th>
+            <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE ORDER NO.</th>
             <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
             <th className="px-3 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ITEM NAME</th>
             <th className="px-3 py-3 text-right font-bold text-muted-foreground tracking-wider whitespace-nowrap">ACCEPTED QTY</th>

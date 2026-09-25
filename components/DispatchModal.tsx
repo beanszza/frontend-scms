@@ -93,7 +93,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
     if (hasError || dispatchDateError === "Past date is not allowed." || driverNameError === "No numbers and special characters are allowed." || trackingNumberError === "No special characters or spaces are allowed.") {
       return;
     }
-    
+
     onConfirm(transfer.id, { dispatchDate, driverName, trackingNumber, receiptImages: selectedFiles });
   };
 
@@ -126,7 +126,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="w-[90vw] max-w-[90vw] sm:max-w-[80vw] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl text-foreground" onClick={e => e.stopPropagation()}>
-        
+
         <div className="flex items-center justify-between border-b border-border pb-3 mb-4 flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold text-foreground">Dispatch Transfer</h2>
@@ -149,10 +149,11 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Dispatch Date <span className="text-muted-foreground">*</span></label>
-            <input 
-              type="date" 
-              className={`w-full px-3 py-2 text-sm rounded-lg border ${dispatchDateError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
-              value={dispatchDate} 
+            <input
+              type="date"
+              min={new Date().toISOString().split("T")[0]}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${dispatchDateError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
+              value={dispatchDate}
               onChange={e => {
                 const val = e.target.value;
                 setDispatchDate(val);
@@ -162,7 +163,7 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
                 } else {
                   setDispatchDateError("");
                 }
-              }} 
+              }}
             />
             {dispatchDateError && <p className="mt-1 text-xs text-destructive">{dispatchDateError}</p>}
           </div>
@@ -170,23 +171,23 @@ export default function DispatchModal({ transfer, onClose, onConfirm }: Dispatch
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Driver Name</label>
-              <input 
-                type="text" 
-                placeholder="Driver name" 
-                className={`w-full px-3 py-2 text-sm rounded-lg border ${driverNameError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
-                value={driverName} 
-                onChange={handleDriverNameChange} 
+              <input
+                type="text"
+                placeholder="Driver name"
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${driverNameError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
+                value={driverName}
+                onChange={handleDriverNameChange}
               />
               {driverNameError && <p className="mt-1 text-xs text-destructive">{driverNameError}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Tracking/Vehicle Number</label>
-              <input 
-                type="text" 
-                placeholder="e.g., ABC1234" 
-                className={`w-full px-3 py-2 text-sm rounded-lg border ${trackingNumberError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`} 
-                value={trackingNumber} 
-                onChange={handleTrackingNumberChange} 
+              <input
+                type="text"
+                placeholder="e.g., ABC1234"
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${trackingNumberError ? '!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive' : 'border-border'} bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
+                value={trackingNumber}
+                onChange={handleTrackingNumberChange}
               />
               {trackingNumberError && <p className="mt-1 text-xs text-destructive">{trackingNumberError}</p>}
             </div>

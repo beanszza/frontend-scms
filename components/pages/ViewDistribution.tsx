@@ -167,7 +167,7 @@ export default function DistributionPage() {
               </div>
               <div className="flex items-center gap-sm shrink-0">
                 <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-                  <SelectTrigger className="w-[140px] h-8 text-body-sm bg-transparent border-input">
+                  <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>

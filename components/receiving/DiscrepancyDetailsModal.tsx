@@ -5,6 +5,7 @@ import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import api from "@/lib/api";
 import { Discrepancy } from "./types";
+import { HR_EMPLOYEES } from "@/lib/employees";
 
 interface DiscrepancyDetailsModalProps {
   discrepancy: Discrepancy | null;
@@ -136,7 +137,7 @@ export default function DiscrepancyDetailsModal({
             </div>
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source GRN</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Goods Receipt Note</div>
             <div className="text-sm font-semibold mt-0.5">{discrepancy.grnNumber}</div>
           </div>
           <div>
@@ -170,7 +171,7 @@ export default function DiscrepancyDetailsModal({
             <div className="font-semibold text-sm text-foreground mt-0.5">{discrepancy.itemName}</div>
           </div>
           <div>
-            <div className="text-muted-foreground">PO Ordered Qty</div>
+            <div className="text-muted-foreground">Purchase Order Quantity</div>
             <div className="font-mono font-medium mt-0.5">{discrepancy.orderedQuantity.toLocaleString()}</div>
           </div>
           <div>
@@ -207,8 +208,8 @@ export default function DiscrepancyDetailsModal({
               </div>
             </div>
             {discrepancy.lossReportNumber && (
-              <div className="pt-2 text-foreground font-mono">
-                Loss Report: <strong>{discrepancy.lossReportNumber}</strong>
+              <div className="pt-2 text-foreground">
+                <strong>Loss report created</strong>
               </div>
             )}
             {discrepancy.rtvNumber && (
@@ -228,7 +229,7 @@ export default function DiscrepancyDetailsModal({
             {activeForm === "loss" && (
               <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
                 <div className="font-semibold text-xs text-foreground uppercase tracking-wide">
-                  Generate Loss Report (LR-YYYY-NNNN)
+                  Generate Loss Report
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Goods will be permanently written off via Stock Ledger disposal. Quantity removed from inventory.
@@ -247,12 +248,15 @@ export default function DiscrepancyDetailsModal({
                   </div>
                   <div>
                     <label className="font-semibold block mb-1">Authorised By *</label>
-                    <input
-                      type="text"
+                    <select
                       value={lossAuthorisedBy}
                       onChange={(e) => setLossAuthorisedBy(e.target.value)}
                       className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-foreground focus:outline-none"
-                    />
+                    >
+                      {HR_EMPLOYEES.map((employee) => (
+                        <option key={employee} value={employee}>{employee}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="font-semibold block mb-1">Additional Notes</label>
@@ -291,7 +295,7 @@ export default function DiscrepancyDetailsModal({
             {activeForm === "rtv" && (
               <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
                 <div className="font-semibold text-xs text-foreground uppercase tracking-wide">
-                  Request Return to Supplier (RTV-YYYY-NNNN)
+                  Request Return to Supplier
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Creates an official return shipment request submitted for administrator approval prior to dispatch.
@@ -302,7 +306,7 @@ export default function DiscrepancyDetailsModal({
                     <label className="font-semibold block mb-1">Reason for Return</label>
                     <input
                       type="text"
-                      placeholder="e.g. Failed incoming QA specifications / Rejected lot"
+                      placeholder="e.g. Failed incoming Quality Assurance specifications / Rejected lot"
                       value={rtvReason}
                       onChange={(e) => setRtvReason(e.target.value)}
                       className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-foreground focus:outline-none"
@@ -402,7 +406,7 @@ export default function DiscrepancyDetailsModal({
                     onClick={() => setActiveForm("loss")}
                     className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
-                    Create Loss Report (Write Off)
+                    Create Loss Report
                   </button>
                 </>
               )}
@@ -415,7 +419,7 @@ export default function DiscrepancyDetailsModal({
                     onClick={() => setActiveForm("loss")}
                     className="rounded-xl border border-border bg-card text-foreground px-4 py-2.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Create Loss Report (Dispose)
+                    Create Loss Report
                   </button>
 
                   <button
@@ -424,7 +428,7 @@ export default function DiscrepancyDetailsModal({
                     onClick={() => setActiveForm("rtv")}
                     className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
-                    Request Return to Supplier (RTV)
+                    Request Return to Supplier
                   </button>
                 </>
               )}
@@ -451,7 +455,7 @@ export default function DiscrepancyDetailsModal({
                     onClick={() => setActiveForm("rtv")}
                     className="rounded-xl bg-foreground text-background px-4 py-2.5 text-xs font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
-                    Request Return Excess (RTV)
+                    Request Return to Supplier
                   </button>
                 </>
               )}

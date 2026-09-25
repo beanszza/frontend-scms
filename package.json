@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3003 --experimental-https --experimental-https-cert ./localhost.pem --experimental-https-key ./localhost-key.pem",
+    "dev": "next dev --port 3003 --experimental-https --experimental-https-cert ./certificates/localhost.pem --experimental-https-key ./certificates/localhost-key.pem",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -34,6 +34,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.31.0",
     "next": "16.2.6",
     "next-auth": "^4.24.15",

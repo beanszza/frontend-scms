@@ -3,14 +3,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Plus, 
-  Search, 
-  RefreshCw, 
+import {
+  Plus,
+  Search,
+  RefreshCw,
   Inbox,
-  Filter,
   FileText
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -42,6 +48,7 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [search, setSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -102,6 +109,9 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
         if (pr.status !== activeTab) return false;
       }
 
+      // Department filter
+      if (deptFilter && pr.department !== deptFilter) return false;
+
       // Search filter
       if (search.trim()) {
         const s = search.toLowerCase();
@@ -115,7 +125,7 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
 
       return true;
     });
-  }, [requisitions, activeTab, search]);
+  }, [requisitions, activeTab, search, deptFilter]);
 
   // Paginated List
   const totalCount = filteredList.length;
@@ -182,21 +192,45 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
         </div>
       </div>
 
-      {/* Full-width Search Bar */}
-      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center justify-between gap-sm px-md py-sm bg-muted/20">
-          <div className="flex items-center gap-sm flex-1">
+      {/* Filters Bar */}
+      <div className="mb-6 border border-border rounded-xl overflow-hidden bg-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-muted/20">
+          <div className="flex items-center gap-3 flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by PR No., Requester, or Department..."
+              placeholder="Search by Purchase Requisition No., Requester, or Department..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"
+              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-sm flex-1 text-foreground placeholder:text-muted-foreground"
             />
+          </div>
+
+          <div className="flex items-center gap-3 pl-4 border-l border-border/50">
+            <div className="flex items-center">
+              <Select
+                value={deptFilter === "" ? "all" : deptFilter}
+                onValueChange={(val) => {
+                  setDeptFilter(val === "all" ? "" : val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="Inventory">Inventory</SelectItem>
+                  <SelectItem value="Production">Production</SelectItem>
+                  <SelectItem value="Warehouse">Warehouse</SelectItem>
+                  <SelectItem value="Quality Assurance">Quality Assurance</SelectItem>
+                  <SelectItem value="Administration">Administration</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -248,7 +282,7 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
-                <span>{tab}</span>
+                <span>{tab === "Converted to PO" ? "Converted to Purchase Order" : tab}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-medium ${
                     isSelected ? "bg-background text-foreground" : "bg-muted text-muted-foreground"

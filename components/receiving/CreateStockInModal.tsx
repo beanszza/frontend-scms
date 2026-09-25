@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Save } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { GRN, StockIn } from "./types";
@@ -34,6 +36,11 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    submitForApproval: boolean;
+  }>({ open: false, submitForApproval: false });
 
   useEffect(() => {
     if (!open) return;
@@ -112,15 +119,15 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
 
       setLines(draftedLines);
     } catch {
-      setError("Failed to load GRN items and stock data.");
+      setError("Failed to load Goods Receipt Note items and stock data.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (submitForApproval: boolean) => {
+  const handleTrySubmit = (submitForApproval: boolean) => {
     if (!selectedGrnId || lines.length === 0) {
-      setError("Please select a valid GRN with item lines.");
+      setError("Please select a valid Goods Receipt Note with item lines.");
       return;
     }
 
@@ -136,6 +143,10 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
       return;
     }
 
+    setConfirmModal({ open: true, submitForApproval });
+  };
+
+  const executeSubmit = async (submitForApproval: boolean) => {
     setSubmitting(true);
     setError(null);
 
@@ -171,6 +182,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
       );
     } finally {
       setSubmitting(false);
+      setConfirmModal({ open: false, submitForApproval: false });
     }
   };
 
@@ -198,7 +210,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
         {/* GRN Selection */}
         <div className="space-y-2">
           <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Select GRN
+            Select Goods Receipt Note
           </label>
           <div>
             <select
@@ -210,7 +222,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
               className="w-52 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
             >
               <option value="" disabled>
-                Select GRN
+                Select Goods Receipt Note
               </option>
               {grns.map((g) => (
                 <option key={g.grnId} value={g.grnId}>
@@ -223,7 +235,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
 
         {loading && (
           <div className="py-10 text-center text-xs text-muted-foreground animate-pulse">
-            Loading GRN items…
+            Loading Goods Receipt Note items…
           </div>
         )}
 
@@ -241,7 +253,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     <th className="px-4 py-3">Supply Name</th>
-                    <th className="px-3 py-3 text-center">UOM</th>
+                    <th className="px-3 py-3 text-center">Unit of Measure</th>
                     <th className="px-3 py-3 text-right">Stock to Put In</th>
                     <th className="px-3 py-3 text-right">Current Stock</th>
                     <th className="px-3 py-3">Lot No.</th>
@@ -249,7 +261,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {lines.map((line) => (
+                  {lines.map((line, lineIndex) => (
                     <tr key={line.itemId} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">
                         {line.itemName}
@@ -266,8 +278,20 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                       <td className="px-3 py-3 font-mono text-xs text-foreground">
                         {line.lotCode}
                       </td>
-                      <td className="px-3 py-3 text-center text-muted-foreground">
-                        {line.expiryDate || "—"}
+                      <td className="px-3 py-2">
+                        <input
+                          type="date"
+                          value={line.expiryDate || ""}
+                          min={new Date().toISOString().split("T")[0]}
+                          onChange={(e) => {
+                            setLines((current) =>
+                              current.map((entry, index) =>
+                                index === lineIndex ? { ...entry, expiryDate: e.target.value } : entry
+                              )
+                            );
+                          }}
+                          className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-foreground focus:outline-none"
+                        />
                       </td>
                     </tr>
                   ))}
@@ -302,7 +326,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
           <button
             type="button"
             disabled={lines.length === 0 || submitting}
-            onClick={() => handleSubmit(false)}
+            onClick={() => handleTrySubmit(false)}
             className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? "Saving…" : "Save as Draft"}
@@ -310,13 +334,78 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
           <button
             type="button"
             disabled={lines.length === 0 || submitting}
-            onClick={() => handleSubmit(true)}
+            onClick={() => handleTrySubmit(true)}
             className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {submitting ? "Submitting…" : "Submit for Approval"}
           </button>
         </div>
       </div>
+
+      {/* Review Modal Portal */}
+      {confirmModal.open &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-background rounded-2xl shadow-xl w-full max-w-[500px] border border-border overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Save className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      Review Stock-In
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      You are about to {confirmModal.submitForApproval ? "submit this Stock-In for approval" : "save this Stock-In as draft"}.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 rounded-xl p-4 mb-6 space-y-2 border border-border">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Goods Receipt Note Source:</span>
+                    <span className="font-semibold text-foreground">
+                      {grns.find((g) => g.grnId === Number(selectedGrnId))?.grnNumber || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Total Lines:</span>
+                    <span className="font-mono text-foreground font-semibold">
+                      {lines.length} items
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Action:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                      {confirmModal.submitForApproval ? "Submit for Approval" : "Save as Draft"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmModal({ open: false, submitForApproval: false })}
+                    disabled={submitting}
+                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => executeSubmit(confirmModal.submitForApproval)}
+                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {submitting ? "Processing..." : "Confirm"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </ModalWrapper>
   );
 }

@@ -18,6 +18,7 @@ import QrScannerModal from "./QrScannerModal";
 import { CreatePRModal } from "@/components/orders-procurement/pr/CreatePRForm";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { toast } from "sonner";
+import { HR_EMPLOYEES } from "@/lib/employees";
 
 interface ProductionTrackingTabProps {
   initialSelectedBatchId?: number | null;
@@ -101,12 +102,12 @@ export default function ProductionTrackingTab({
   const stageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 6: QA Form State
-  const [qaAppearance, setQaAppearance] = useState<"Pass" | "Fail">("Pass");
-  const [qaAroma, setQaAroma] = useState<"Pass" | "Fail">("Pass");
-  const [qaTexture, setQaTexture] = useState<"Pass" | "Fail">("Pass");
-  const [qaTaste, setQaTaste] = useState<"Pass" | "Fail">("Pass");
-  const [qaConsistency, setQaConsistency] = useState<"Pass" | "Fail">("Pass");
-  const [qaInspector, setQaInspector] = useState(isHeadCook ? "Head Cook Elena" : "Inspector Ramos");
+  const [qaAppearance, setQaAppearance] = useState<boolean>(true);
+  const [qaAroma, setQaAroma] = useState<boolean>(true);
+  const [qaTexture, setQaTexture] = useState<boolean>(true);
+  const [qaTaste, setQaTaste] = useState<boolean>(true);
+  const [qaConsistency, setQaConsistency] = useState<boolean>(true);
+  const [qaInspector, setQaInspector] = useState(isHeadCook ? "Head Cook" : "Inventory Manager");
   const [qaNotes, setQaNotes] = useState("");
   const [qaRejectReason, setQaRejectReason] = useState("");
   const [showRejectPrompt, setShowRejectPrompt] = useState(false);
@@ -254,16 +255,16 @@ export default function ProductionTrackingTab({
   const handleQAApprove = () => {
     if (!selectedBatch) return;
     productionStorage.submitQA(selectedBatch.batchId, {
-      overallAppearance: qaAppearance,
-      aroma: qaAroma,
-      texture: qaTexture,
-      tasteTest: qaTaste,
-      consistency: qaConsistency,
+      overallAppearance: qaAppearance ? "Pass" : "Fail",
+      aroma: qaAroma ? "Pass" : "Fail",
+      texture: qaTexture ? "Pass" : "Fail",
+      tasteTest: qaTaste ? "Pass" : "Fail",
+      consistency: qaConsistency ? "Pass" : "Fail",
       inspector: qaInspector,
       notes: qaNotes.trim() || "Passed all sensory checks",
       decision: "Approved",
     });
-    toast.success("QA Inspection Passed! Batch unlocked for Packaging.");
+    toast.success("Quality Assurance Inspection Passed! Batch unlocked for Packaging.");
     refreshData();
   };
 
@@ -275,11 +276,11 @@ export default function ProductionTrackingTab({
     }
 
     productionStorage.submitQA(selectedBatch.batchId, {
-      overallAppearance: qaAppearance,
-      aroma: qaAroma,
-      texture: qaTexture,
-      tasteTest: qaTaste,
-      consistency: qaConsistency,
+      overallAppearance: qaAppearance ? "Pass" : "Fail",
+      aroma: qaAroma ? "Pass" : "Fail",
+      texture: qaTexture ? "Pass" : "Fail",
+      tasteTest: qaTaste ? "Pass" : "Fail",
+      consistency: qaConsistency ? "Pass" : "Fail",
       inspector: qaInspector,
       notes: qaNotes.trim(),
       decision: "Rejected",
@@ -558,7 +559,7 @@ export default function ProductionTrackingTab({
                         onClick={() => setIsPROpen(true)}
                         className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-xl shadow-xs cursor-pointer"
                       >
-                        Create PR
+                        Create Purchase Requisition
                       </Button>
                     )}
 
@@ -873,11 +874,11 @@ export default function ProductionTrackingTab({
               <div className="flex items-center min-w-max gap-1.5 text-xs">
                 {[
                   "1. Request",
-                  "2. BOM Selection",
+                  "2. Bill of Materials Selection",
                   "3. Material Request",
                   "4. Materials Issued",
                   "5. Cooking Stages",
-                  "6. QA Review",
+                  "6. Quality Assurance Review",
                   "7. Packaging",
                   "8. Stock In",
                 ].map((stepLabel, idx) => {
@@ -925,7 +926,7 @@ export default function ProductionTrackingTab({
                     }}
                     className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
                   >
-                    Select BOM Recipe
+                    Select Bill of Materials Recipe
                   </Button>
                 </div>
               )}
@@ -935,7 +936,7 @@ export default function ProductionTrackingTab({
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-base font-bold text-foreground">
-                      Step 2: Select BOM Recipe & Generate Material Request
+                      Step 2: Select Bill of Materials Recipe & Generate Material Request
                     </h4>
                     <p className="text-sm text-muted-foreground mt-0.5">
                       Select the standard recipe formula. Required quantities are calculated based on target yield: {selectedBatch.targetYield} PCS.
@@ -952,7 +953,7 @@ export default function ProductionTrackingTab({
                         onValueChange={(val) => setSelectedBomId(parseInt(val, 10))}
                       >
                         <SelectTrigger className="h-10 text-sm w-full bg-card border-border px-3 font-medium">
-                          <SelectValue placeholder="Choose BOM Recipe" />
+                          <SelectValue placeholder="Choose Bill of Materials Recipe" />
                         </SelectTrigger>
                         <SelectContent className="bg-card border border-border shadow-lg">
                           {AVAILABLE_BOMS.map((b) => (
@@ -971,6 +972,7 @@ export default function ProductionTrackingTab({
                       <div className="w-full">
                         <Input
                           type="date"
+                          min={new Date().toISOString().split("T")[0]}
                           value={neededDate}
                           onChange={(e) => setNeededDate(e.target.value)}
                           className="h-10 text-sm w-full bg-card border-border px-3 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto"
@@ -982,7 +984,7 @@ export default function ProductionTrackingTab({
                   {/* BOM Ingredients Preview Table */}
                   <div className="border border-border rounded-xl overflow-hidden mt-3">
                     <div className="p-3.5 bg-muted/30 border-b border-border text-sm font-bold text-foreground">
-                      Ingredients in Selected BOM Formula
+                      Ingredients in Selected Bill of Materials Formula
                     </div>
                     <table className="w-full text-sm text-left">
                       <thead className="bg-muted/20 text-muted-foreground uppercase text-xs border-b border-border">
@@ -1328,14 +1330,14 @@ export default function ProductionTrackingTab({
                 <div className="space-y-4">
                   <div className="border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-foreground">
-                      Step 6: Quality Assurance (QA) Food Sensory Checklist
+                      Step 6: Quality Assurance Food Sensory Checklist
                     </h4>
                     <p className="text-xs text-muted-foreground">
                       Perform taste test and sensory checklist. Rejection will automatically log a Loss Report in the Loss tab.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                  <div className="space-y-2 mt-4">
                     {[
                       { label: "Overall Appearance", val: qaAppearance, set: setQaAppearance },
                       { label: "Aroma", val: qaAroma, set: setQaAroma },
@@ -1343,48 +1345,32 @@ export default function ProductionTrackingTab({
                       { label: "Taste Test", val: qaTaste, set: setQaTaste },
                       { label: "Consistency", val: qaConsistency, set: setQaConsistency },
                     ].map((item) => (
-                      <div key={item.label} className="p-3 rounded-lg border border-border bg-card space-y-2 text-xs">
-                        <span className="font-semibold text-foreground block">{item.label}</span>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => item.set("Pass")}
-                            className={`w-full h-7 text-xs font-bold ${
-                              item.val === "Pass"
-                                ? "bg-foreground text-background"
-                                : "bg-muted text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Pass
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => item.set("Fail")}
-                            className={`w-full h-7 text-xs font-bold ${
-                              item.val === "Fail"
-                                ? "bg-foreground text-background"
-                                : "bg-muted text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Fail
-                          </Button>
-                        </div>
-                      </div>
+                      <label key={item.label} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card cursor-pointer hover:bg-muted/50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={item.val}
+                          onChange={(e) => item.set(e.target.checked)}
+                          className="w-4 h-4 text-foreground border-border rounded focus:ring-foreground accent-foreground"
+                        />
+                        <span className="font-semibold text-xs text-foreground select-none">{item.label}</span>
+                      </label>
                     ))}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <div>
                       <label className="text-xs font-semibold text-foreground mb-1 block">
-                        QA Inspector Name <span className="text-foreground">*</span>
+                        Quality Assurance Inspector Name <span className="text-foreground">*</span>
                       </label>
-                      <Input
+                      <select
                         value={qaInspector}
                         onChange={(e) => setQaInspector(e.target.value)}
-                        className="h-9 text-xs"
-                      />
+                        className="h-9 w-full rounded-md border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                      >
+                        {HR_EMPLOYEES.map((employee) => (
+                          <option key={employee} value={employee}>{employee}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-foreground mb-1 block">
@@ -1411,7 +1397,7 @@ export default function ProductionTrackingTab({
                       onClick={handleQAApprove}
                       className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
                     >
-                      Approve QA
+                      Approve Quality Assurance
                     </Button>
                   </div>
 
@@ -1607,6 +1593,7 @@ export default function ProductionTrackingTab({
                           </label>
                           <Input
                             type="date"
+                            min={new Date().toISOString().split("T")[0]}
                             value={expiryDate}
                             onChange={(e) => setExpiryDate(e.target.value)}
                             className="h-9 text-xs"

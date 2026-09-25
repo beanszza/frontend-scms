@@ -225,7 +225,7 @@ export default function ConfigurationTab() {
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[150px] h-8 text-xs bg-transparent border-input">
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -239,7 +239,7 @@ export default function ConfigurationTab() {
             </Select>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[125px] h-8 text-xs bg-transparent border-input">
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>

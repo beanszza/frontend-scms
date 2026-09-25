@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import api from "@/lib/api";
 import { PurchaseRequisition, PRItem } from "../types";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmModal from "@/components/ConfirmModal";
+import { HR_EMPLOYEES } from "@/lib/employees";
 
 export interface CreatePRModalProps {
   open: boolean;
@@ -88,6 +90,7 @@ export function CreatePRModal({
   // Purpose & Notes
   const [purpose, setPurpose] = useState(initialData?.purpose || "");
   const [notes, setNotes] = useState(initialData?.notes || "");
+  const [itemSearch, setItemSearch] = useState("");
 
   // Validation & Modal State
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -408,7 +411,7 @@ export function CreatePRModal({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                PR Number <span className="text-[10px] text-muted-foreground font-normal">(Auto-generated)</span>
+                Purchase Requisition Number <span className="text-[10px] text-muted-foreground font-normal">(Auto-generated)</span>
               </label>
               <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 font-mono text-xs text-muted-foreground">
                 {prNumber || "PR-XXXX-XXXX"}
@@ -430,8 +433,7 @@ export function CreatePRModal({
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Requested By <span className="text-destructive">*</span>
               </label>
-              <Input
-                type="text"
+              <select
                 value={requestedBy}
                 onChange={(e) => {
                   setRequestedBy(e.target.value);
@@ -441,11 +443,18 @@ export function CreatePRModal({
                     return c;
                   });
                 }}
-                placeholder="Enter requester's name..."
                 className={`w-full rounded-xl border ${
                   errors.requestedBy ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
                 } bg-card px-4 py-2.5 text-sm text-foreground shadow-none focus-visible:ring-1 focus-visible:ring-ring`}
-              />
+              >
+                <option value="" disabled>Select requester...</option>
+                {requestedBy && !HR_EMPLOYEES.includes(requestedBy as (typeof HR_EMPLOYEES)[number]) && (
+                  <option value={requestedBy}>{requestedBy}</option>
+                )}
+                {HR_EMPLOYEES.map(emp => (
+                  <option key={emp} value={emp}>{emp}</option>
+                ))}
+              </select>
               {errors.requestedBy && (
                 <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.requestedBy}</p>
               )}
@@ -557,6 +566,7 @@ export function CreatePRModal({
               <div className="relative">
                 <Input
                   type="date"
+                  min={new Date().toISOString().split("T")[0]}
                   value={requiredDate}
                   onChange={(e) => {
                     setRequiredDate(e.target.value);
@@ -589,12 +599,24 @@ export function CreatePRModal({
 
           {/* Supplies & Ingredients Table */}
           <div className="space-y-2 pt-2">
-            <label className="block text-xs font-semibold text-foreground">
-              Requested Supplies &amp; Ingredients <span className="text-destructive">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-foreground">
+                Requested Supplies &amp; Ingredients <span className="text-destructive">*</span>
+              </label>
+              <div className="relative w-48">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search added items..."
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  className="h-7 text-xs pl-7 rounded-lg border-border bg-card focus-visible:ring-1"
+                />
+              </div>
+            </div>
 
             {errors.items && (
-              <p className="text-xs font-medium text-destructive animate-in fade-in-50">{errors.items}</p>
+              <p className="text-xs font-medium text-destructive animate-in fade-in-50 mb-2">{errors.items}</p>
             )}
 
             <div className="border border-border rounded-xl overflow-hidden bg-card">
@@ -603,7 +625,7 @@ export function CreatePRModal({
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                     <th className="px-3.5 py-2.5 text-left font-bold w-1/3">SUPPLY NAME</th>
                     <th className="px-3.5 py-2.5 text-left font-bold">SUPPLY NO.</th>
-                    <th className="px-3.5 py-2.5 text-left font-bold">UOM</th>
+                    <th className="px-3.5 py-2.5 text-left font-bold">Unit of Measure</th>
                     <th className="px-3.5 py-2.5 text-right font-bold">ACTUAL INVENTORY</th>
                     <th className="px-3.5 py-2.5 text-right font-bold w-36">QUANTITY (TO ORDER)</th>
                     <th className="px-3.5 py-2.5 text-center font-bold w-10"></th>
@@ -617,75 +639,82 @@ export function CreatePRModal({
                       </td>
                     </tr>
                   ) : (
-                    items.map((item, idx) => {
-                      const qtyErrorKey = `item_qty_${idx}`;
-                      const hasQtyError = !!errors[qtyErrorKey];
+                    items
+                      .map((item, originalIndex) => ({ item, originalIndex }))
+                      .filter(({ item }) =>
+                        !itemSearch ||
+                        item.itemName?.toLowerCase().includes(itemSearch.toLowerCase()) ||
+                        item.itemCode?.toLowerCase().includes(itemSearch.toLowerCase())
+                      )
+                      .map(({ item, originalIndex: idx }) => {
+                        const qtyErrorKey = `item_qty_${idx}`;
+                        const hasQtyError = !!errors[qtyErrorKey];
 
-                      return (
-                        <tr key={idx} className="hover:bg-muted/10 transition-colors">
-                          <td className="px-3.5 py-2">
-                            <select
-                              value={item.itemId}
-                              onChange={(e) => handleSelectSupply(idx, parseInt(e.target.value))}
-                              className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-ring"
-                            >
-                              {suppliesList.map((sup) => (
-                                <option key={sup.itemId} value={sup.itemId}>
-                                  {sup.itemName}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-3.5 py-2 font-mono text-muted-foreground">
-                            {item.itemCode || `SPL-${item.itemId}`}
-                          </td>
-                          <td className="px-3.5 py-2 text-muted-foreground">
-                            {item.uomName || "pcs"}
-                          </td>
-                          <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
-                            {Number(item.actualInventory || 0).toLocaleString()}
-                          </td>
-                          <td className="px-3.5 py-2 text-right">
-                            <div className="flex flex-col items-end">
-                              <Input
-                                type="number"
-                                step="any"
-                                min="0.001"
-                                value={item.requestedQuantity || ""}
-                                onChange={(e) => {
-                                  handleQuantityChange(idx, e.target.value);
-                                  if (errors[qtyErrorKey]) {
-                                    setErrors((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[qtyErrorKey];
-                                      return copy;
-                                    });
-                                  }
-                                }}
-                                className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
-                                  hasQtyError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                                }`}
-                              />
-                              {hasQtyError && (
-                                <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
-                                  {errors[qtyErrorKey]}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3.5 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(idx)}
-                              className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors cursor-pointer"
-                              title="Remove"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                        return (
+                          <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                            <td className="px-3.5 py-2">
+                              <select
+                                value={item.itemId}
+                                onChange={(e) => handleSelectSupply(idx, parseInt(e.target.value))}
+                                className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-ring"
+                              >
+                                {suppliesList.map((sup) => (
+                                  <option key={sup.itemId} value={sup.itemId}>
+                                    {sup.itemName}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3.5 py-2 font-mono text-muted-foreground">
+                              {item.itemCode || `SPL-${item.itemId}`}
+                            </td>
+                            <td className="px-3.5 py-2 text-muted-foreground">
+                              {item.uomName || "pcs"}
+                            </td>
+                            <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
+                              {Number(item.actualInventory || 0).toLocaleString()}
+                            </td>
+                            <td className="px-3.5 py-2 text-right">
+                              <div className="flex flex-col items-end">
+                                <Input
+                                  type="number"
+                                  step="any"
+                                  min="0.001"
+                                  value={item.requestedQuantity || ""}
+                                  onChange={(e) => {
+                                    handleQuantityChange(idx, e.target.value);
+                                    if (errors[qtyErrorKey]) {
+                                      setErrors((prev) => {
+                                        const copy = { ...prev };
+                                        delete copy[qtyErrorKey];
+                                        return copy;
+                                      });
+                                    }
+                                  }}
+                                  className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
+                                    hasQtyError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                                  }`}
+                                />
+                                {hasQtyError && (
+                                  <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
+                                    {errors[qtyErrorKey]}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(idx)}
+                                className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors cursor-pointer"
+                                title="Remove"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>
@@ -799,23 +828,79 @@ export function CreatePRModal({
         </div>
       </ModalWrapper>
 
-      {/* Action Confirmation Modal */}
-      {confirmModal && (
+      {/* Action Confirmation Modal (for Cancel) */}
+      {confirmModal && confirmModal.action === "cancel" && (
         <ConfirmModal
           message={confirmModal.message}
           onConfirm={() => {
-            const action = confirmModal.action;
             setConfirmModal(null);
-            if (action === "cancel") {
-              onClose();
-            } else if (action === "draft") {
-              executeSave(false);
-            } else if (action === "submit") {
-              executeSave(true);
-            }
+            onClose();
           }}
           onCancel={() => setConfirmModal(null)}
         />
+      )}
+
+      {/* Review Modal for Submit/Draft */}
+      {confirmModal && confirmModal.action !== "cancel" && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div
+            style={{ width: "100%", maxWidth: "672px" }}
+            className="w-full rounded-2xl border border-border bg-card shadow-2xl p-6 flex flex-col shrink-0"
+          >
+            <h3 className="text-xl font-bold text-foreground">Review Purchase Requisition</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Please review the details below before {confirmModal.action === "submit" ? "submitting for approval" : "saving as draft"}.
+            </p>
+
+            <div className="space-y-4 text-sm text-foreground">
+              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
+                <div><span className="text-muted-foreground block text-xs mb-1">Department</span> <span className="font-semibold">{department}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Requested By</span> <span className="font-semibold">{requestedBy}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Request Type</span> <span className="font-semibold">{requestType}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Priority</span> <span className="font-semibold">{priority}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Required Date</span> <span className="font-semibold">{requiredDate}</span></div>
+              </div>
+
+              <div className="bg-muted/20 p-4 rounded-xl border border-border">
+                <span className="text-muted-foreground block text-xs mb-1">Purpose</span>
+                <span className="font-medium leading-relaxed">{purpose}</span>
+              </div>
+
+              <div className="mt-4 border border-border rounded-xl overflow-hidden bg-card">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 border-b border-border">
+                    <tr>
+                      <th className="px-3 py-2.5 text-left font-bold text-muted-foreground">ITEM NAME</th>
+                      <th className="px-3 py-2.5 text-left font-bold text-muted-foreground">Unit of Measure</th>
+                      <th className="px-3 py-2.5 text-right font-bold text-muted-foreground">QUANTITY</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {items.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-muted/10">
+                        <td className="px-3 py-2.5 font-medium">{item.itemName || suppliesList.find(s => s.itemId === item.itemId)?.itemName}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{item.uomName || suppliesList.find(s => s.itemId === item.itemId)?.uomName}</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-semibold">{item.requestedQuantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="outline" onClick={() => setConfirmModal(null)} className="rounded-xl px-6">Back to Edit</Button>
+              <Button onClick={() => {
+                const act = confirmModal.action;
+                setConfirmModal(null);
+                executeSave(act === "submit");
+              }} className="rounded-xl px-6 shadow-sm">
+                Confirm &amp; {confirmModal.action === "submit" ? "Submit" : "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

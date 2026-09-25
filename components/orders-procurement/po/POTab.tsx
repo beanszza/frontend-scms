@@ -7,6 +7,13 @@ import {
   RefreshCw,
   Inbox,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -67,8 +74,15 @@ export function POTab() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+
+  // Extract unique suppliers from orders for the filter
+  const uniqueSuppliers = useMemo(() => {
+    const suppliers = new Set(orders.map((po) => po.supplierName).filter(Boolean));
+    return Array.from(suppliers).sort();
+  }, [orders]);
 
   const [selectedPO, setSelectedPO] = useState<PurchaseOrderPO | null>(null);
   const [actionModal, setActionModal] = useState<{ po: PurchaseOrderPO; type: POActionType } | null>(null);
@@ -118,6 +132,9 @@ export function POTab() {
         if (po.status !== activeTab) return false;
       }
 
+      // Supplier filter
+      if (supplierFilter && po.supplierName !== supplierFilter) return false;
+
       if (search.trim()) {
         const s = search.toLowerCase();
         return (
@@ -129,7 +146,7 @@ export function POTab() {
       }
       return true;
     });
-  }, [orders, activeTab, search]);
+  }, [orders, activeTab, search, supplierFilter]);
 
   const totalCount = filteredList.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -185,18 +202,42 @@ export function POTab() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center gap-sm px-md py-sm bg-muted/20">
-          <div className="flex items-center gap-sm flex-1">
+      {/* Filters Bar */}
+      <div className="mb-6 border border-border rounded-xl overflow-hidden bg-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-muted/20">
+          <div className="flex items-center gap-3 flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by PO No., PR Ref., Supplier, or Requested By..."
+              placeholder="Search by Purchase Order No., Purchase Requisition Ref., Supplier, or Requested By..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"
+              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-sm flex-1 text-foreground placeholder:text-muted-foreground"
             />
+          </div>
+
+          <div className="flex items-center gap-3 pl-4 border-l border-border/50">
+            <div className="flex items-center">
+              <Select
+                value={supplierFilter === "" ? "all" : supplierFilter}
+                onValueChange={(val) => {
+                  setSupplierFilter(val === "all" ? "" : val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                  <SelectValue placeholder="All Suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Suppliers</SelectItem>
+                  {uniqueSuppliers.map((sup) => (
+                    <SelectItem key={sup} value={sup}>
+                      {sup}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>

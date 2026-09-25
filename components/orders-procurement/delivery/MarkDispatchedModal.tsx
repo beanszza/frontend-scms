@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertCircle, Upload, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export function MarkDispatchedModal({
   );
   const [dispatchAttachmentBase64, setDispatchAttachmentBase64] = useState("");
   const [attachmentFileName, setAttachmentFileName] = useState("");
+  const [confirmModal, setConfirmModal] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +73,7 @@ export function MarkDispatchedModal({
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError(null);
 
     if (!dispatchedDate) {
@@ -129,7 +130,7 @@ export function MarkDispatchedModal({
       onClose={onClose}
       size="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); setConfirmModal(true); }} className="space-y-4">
         {error && (
           <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -144,7 +145,7 @@ export function MarkDispatchedModal({
             <span className="font-mono font-bold text-foreground">{delivery.deliveryNumber}</span>
           </div>
           <div>
-            <span className="text-muted-foreground block text-[11px]">PO Reference:</span>
+            <span className="text-muted-foreground block text-[11px]">Purchase Order Reference:</span>
             <span className="font-mono font-medium text-foreground">{delivery.poNumber}</span>
           </div>
           <div className="col-span-2 sm:col-span-1">
@@ -299,6 +300,64 @@ export function MarkDispatchedModal({
           </Button>
         </div>
       </form>
+
+      {/* Review Modal for Submission */}
+      {confirmModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div
+            style={{ width: "100%", maxWidth: "500px" }}
+            className="w-full rounded-2xl border border-border bg-card shadow-2xl p-6 flex flex-col shrink-0"
+          >
+            <h3 className="text-xl font-bold text-foreground">Confirm Dispatch</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Please review the dispatch details for {delivery.deliveryNumber} before proceeding.
+            </p>
+
+            <div className="space-y-4 text-sm text-foreground mb-8">
+              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Carrier</span>
+                  <span className="font-medium">{finalCarrier}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Date & Time</span>
+                  <span className="font-medium">{new Date(dispatchedDate).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Driver</span>
+                  <span className="font-medium">{driverName || "—"}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Vehicle</span>
+                  <span className="font-medium">{vehiclePlateNumber || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmModal(false)}
+                className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setConfirmModal(false);
+                  handleSubmit();
+                }}
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85"
+                disabled={submitting}
+              >
+                {submitting ? "Dispatching..." : "Confirm Dispatch"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </ModalWrapper>
   );
 }

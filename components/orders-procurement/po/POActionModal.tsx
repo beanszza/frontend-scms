@@ -31,7 +31,7 @@ const ACTION_CONFIG: Record<
   approve: {
     title: "Approve Purchase Order",
     icon: <CheckCircle2 className="w-5 h-5 text-foreground" />,
-    description: "Approving this PO will move it to Approved status. The requester can then mark it as Ordered.",
+    description: "Approving this Purchase Order will move it to Approved status. The requester can then mark it as Ordered.",
     requiresNotes: false,
     notesLabel: "",
     notesPlaceholder: "",
@@ -41,7 +41,7 @@ const ACTION_CONFIG: Record<
   reject: {
     title: "Reject Purchase Order",
     icon: <XCircle className="w-5 h-5 text-foreground" />,
-    description: "Rejecting this PO will close it. Please provide a reason.",
+    description: "Rejecting this Purchase Order will close it. Please provide a reason.",
     requiresNotes: true,
     notesLabel: "Rejection Reason",
     notesPlaceholder: "State the reason for rejection (required)...",
@@ -51,7 +51,7 @@ const ACTION_CONFIG: Record<
   return: {
     title: "Return for Revision",
     icon: <RotateCcw className="w-5 h-5 text-foreground" />,
-    description: "Returning this PO will allow the requester to revise and resubmit. Please provide your notes.",
+    description: "Returning this Purchase Order will allow the requester to revise and resubmit. Please provide your notes.",
     requiresNotes: true,
     notesLabel: "Revision Notes",
     notesPlaceholder: "Describe what needs to be revised (required)...",
@@ -61,7 +61,7 @@ const ACTION_CONFIG: Record<
   cancel: {
     title: "Cancel Purchase Order",
     icon: <AlertCircle className="w-5 h-5 text-foreground shrink-0" />,
-    description: "Are you sure you want to cancel this purchase order? This action cannot be undone. This PO number will be permanently marked as cancelled and cannot be reused.",
+    description: "Are you sure you want to cancel this Purchase Order? This action cannot be undone. This Purchase Order number will be permanently marked as cancelled and cannot be reused.",
     requiresNotes: true,
     notesLabel: "Cancellation Reason & Notes",
     notesPlaceholder: "Please provide the reason for cancelling this purchase order (required)...",
@@ -71,7 +71,7 @@ const ACTION_CONFIG: Record<
   order: {
     title: "Mark as Ordered",
     icon: <ShoppingBag className="w-5 h-5 text-foreground" />,
-    description: "Marking as Ordered confirms the PO has been sent to the supplier. The status will change to Ordered.",
+    description: "Marking as Ordered confirms the Purchase Order has been sent to the supplier. The status will change to Ordered.",
     requiresNotes: false,
     notesLabel: "",
     notesPlaceholder: "",
@@ -114,7 +114,7 @@ export function POActionModal({ actionType, poNumber, onClose, onConfirm }: POAc
           <span className="shrink-0 mt-0.5">{config.icon}</span>
           <div className="space-y-1">
             <p className="text-xs font-semibold text-foreground">
-              PO: <span className="font-mono">{poNumber}</span>
+              Purchase Order: <span className="font-mono">{poNumber}</span>
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">{config.description}</p>
           </div>

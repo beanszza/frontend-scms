@@ -34,7 +34,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
         const eligible = all.filter((g) => g.status === "Received");
         setGrns(eligible);
       })
-      .catch(() => setError("Unable to load GRNs. Please refresh and try again."))
+      .catch(() => setError("Unable to load Goods Receipt Notes. Please refresh and try again."))
       .finally(() => setLoading(false));
   }, [open]);
 
@@ -57,7 +57,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
 
       if (!match) {
         setError(
-          `No pending QA inspection found for GRN ${selected.grnNumber}. It may have already been inspected or the inspection was not created yet. Please refresh the GRN list.`
+          `No pending Quality Assurance inspection found for Goods Receipt Note ${selected.grnNumber}. It may have already been inspected or the inspection was not created yet. Please refresh the Goods Receipt Note list.`
         );
         return;
       }
@@ -65,14 +65,14 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
       onStartInspection(match);
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to find QA inspection.");
+      setError(err.response?.data?.message || err.message || "Failed to find Quality Assurance inspection.");
     } finally {
       setSearching(false);
     }
   };
 
   return (
-    <ModalWrapper open={open} title="Add QA Inspection" onClose={onClose} size="max-w-2xl">
+    <ModalWrapper open={open} title="Add Quality Assurance Inspection" onClose={onClose} size="max-w-2xl">
       <div className="space-y-6 text-foreground">
         {error && (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
@@ -84,9 +84,9 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
         <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-4">
           <Plus className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-foreground">Select a Posted GRN to Inspect</p>
+            <p className="text-sm font-semibold text-foreground">Select a Posted Goods Receipt Note to Inspect</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Only GRNs with status <strong>Received</strong> (posted, pending QA) are shown below. Select the GRN you want to run quality inspection on.
+              Only Goods Receipt Notes with status <strong>Received</strong> (posted, pending Quality Assurance) are shown below. Select the Goods Receipt Note you want to inspect.
             </p>
           </div>
         </div>
@@ -94,19 +94,19 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
         {/* GRN Selection */}
         {loading ? (
           <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">
-            Loading eligible GRNs…
+            Loading eligible Goods Receipt Notes…
           </div>
         ) : grns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border rounded-2xl bg-muted/10">
             <Package className="w-10 h-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-semibold text-muted-foreground">No GRNs awaiting QA</p>
+            <p className="text-sm font-semibold text-muted-foreground">No Goods Receipt Notes awaiting Quality Assurance</p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              Create and post a GRN first. Once posted, it will appear here for QA inspection.
+              Create and post a Goods Receipt Note first. Once posted, it will appear here for Quality Assurance inspection.
             </p>
           </div>
         ) : (
           <div className="space-y-2">
-            <label className="text-xs font-semibold block">GRN Number *</label>
+            <label className="text-xs font-semibold block">Goods Receipt Note Number *</label>
             <select
               value={selected?.grnId || ""}
               onChange={(e) => {
@@ -117,7 +117,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
               className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
               disabled={searching}
             >
-              <option value="">Select a GRN to inspect</option>
+              <option value="">Select a Goods Receipt Note to inspect</option>
               {grns.map((g) => (
                 <option key={g.grnId} value={g.grnId}>
                   {g.grnNumber} · {g.deliveryNumber || "No Delivery"} · {g.supplierName} · {new Date(g.receivedDate).toLocaleDateString()}
@@ -129,7 +129,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
             {selected && (
               <div className="mt-3 bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <div className="text-muted-foreground font-semibold">GRN No.</div>
+                  <div className="text-muted-foreground font-semibold">Goods Receipt Note No.</div>
                   <div className="font-mono font-bold mt-0.5">{selected.grnNumber}</div>
                 </div>
                 <div>
@@ -175,7 +175,7 @@ export default function AddQaModal({ open, onClose, onStartInspection }: AddQaMo
             disabled={!selected || searching}
             className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {searching ? "Finding Inspection…" : "Start QA Inspection"}
+            {searching ? "Finding Inspection…" : "Start Quality Assurance Inspection"}
           </button>
         </div>
       </div>

@@ -67,7 +67,7 @@ export function PRTable({
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PR NUMBER</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE REQUISITION NUMBER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUEST DATE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUESTED BY</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DEPARTMENT</th>
@@ -133,7 +133,7 @@ export function PRTable({
                 // Create PO (Approved)
                 if (isApproved && onCreatePo) {
                   actions.push({
-                    label: "Create PO",
+                    label: "Create Purchase Order",
                     icon: <ShoppingBag className="w-4 h-4 text-foreground" />,
                     onClick: () => {
                       setOpenDropdownPrId(null);

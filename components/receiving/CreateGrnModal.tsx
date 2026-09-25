@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronDown, ChevronUp, Plus, Trash2, ClipboardCheck } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
-import ConfirmModal from "@/components/ConfirmModal";
 import api from "@/lib/api";
 import { ArrivedDelivery, GRN, QAInspection } from "./types";
+import { HR_EMPLOYEES } from "@/lib/employees";
 
 interface Props {
   open: boolean;
@@ -50,7 +51,7 @@ interface QaItemRow {
 
 const rawMaterialChecks = [
   { id: "identity", label: "Material identity and approved specification match" },
-  { id: "quantity", label: "Quantity, UOM, and pack size verified" },
+  { id: "quantity", label: "Quantity, unit of measure, and pack size verified" },
   { id: "condition", label: "Freshness, appearance, packaging, and physical condition acceptable" },
   { id: "traceability", label: "Lot, label, manufacture date, and expiry checked" },
   { id: "safety", label: "Cleanliness, contamination, allergen, and foreign matter check passed" },
@@ -59,7 +60,7 @@ const rawMaterialChecks = [
 
 const toolAndSupplyChecks = [
   { id: "identity", label: "Item identity, model, size, and approved specification match" },
-  { id: "quantity", label: "Quantity, UOM, and pack count verified" },
+  { id: "quantity", label: "Quantity, unit of measure, and pack count verified" },
   { id: "condition", label: "Item is undamaged, clean, and fit for use" },
   { id: "packaging", label: "Packaging and seals are intact where applicable" },
   { id: "safety", label: "Safety, hygiene, and contact-use requirements checked" },
@@ -80,7 +81,7 @@ const defectReasons = [
 
 const receivingChecks = [
   ["physicalQuantityVerified", "Physical quantity verified"],
-  ["itemsMatchPurchaseOrder", "Items match the PO"],
+  ["itemsMatchPurchaseOrder", "Items match the Purchase Order"],
   ["supplierDocumentsChecked", "Supplier documents checked"],
   ["packagingConditionChecked", "Packaging / condition checked"],
 ] as const;
@@ -651,9 +652,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
         if (!hasAccepted || !hasRejected) return false;
         if (Number(i.acceptedQuantity) + Number(i.rejectedQuantity) !== Number(i.deliveredQuantity)) return false;
         if (Number(i.rejectedQuantity) > 0 && !i.defectReason.trim()) return false;
-        const availableChecks = getQaChecks(i);
-        const allChecked = availableChecks.every((c) => i.checks[c.id]);
-        return allChecked;
+        return true;
       })
   );
 
@@ -677,7 +676,10 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
           rejectedQuantity: Number(i.rejectedQuantity),
           concessionQuantity: Number(i.concessionQuantity),
           defectReason: i.defectReason.trim() || undefined,
-          notes: i.notes.trim() || undefined,
+          notes: [
+            `[QA CHECKS: ${getQaChecks(i).filter((check) => i.checks[check.id]).map((check) => check.id).join(", ") || "none recorded"}]`,
+            i.notes.trim(),
+          ].filter(Boolean).join(" "),
         })),
       };
 
@@ -692,135 +694,119 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
       onSuccess(finalGrn);
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to complete GRN QA.");
+      setError(err.response?.data?.message || err.message || "Failed to complete Goods Receipt Note Quality Assurance.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Printable Report Generation (Summary PDF)
-  const handlePrintGrnReport = () => {
+  // Export Report Generation (PDF)
+  const handleExportGrnReport = async () => {
     if (!isQaDone) return;
 
-    const style = document.createElement("style");
-    style.id = "__grn-report-print-style";
-    style.media = "print";
-    style.innerHTML = `
-      @media print {
-        body > *:not(#grn-report-print-root) { display: none !important; }
-        #grn-report-print-root { display: block !important; position: fixed; inset: 0; background: white; z-index: 99999; padding: 28px; color: black; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
-        th { background: #f4f4f5; font-weight: 700; font-size: 10px; text-transform: uppercase; }
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const grnNo = activeGrn?.grnNumber || previewGrnNo;
+      const now = new Date().toLocaleString("en-PH");
+
+      const doc = new jsPDF({ format: "a4", orientation: "portrait" });
+
+      doc.setFontSize(18);
+      doc.text("GOODS RECEIPT & QUALITY ASSURANCE REPORT", 14, 22);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text("Commissary Central Receiving & Quality Control", 14, 28);
+
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      doc.text(grnNo, 196, 22, { align: "right" });
+
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Printed: ${now}`, 196, 28, { align: "right" });
+
+      // Info box
+      doc.setDrawColor(200);
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, 35, 182, 20, "FD");
+
+      doc.setFontSize(9);
+      doc.setTextColor(0);
+      doc.text(`Supplier: ${selected?.supplierName || "—"}`, 18, 42);
+      doc.text(`Purchase Order: ${selected?.poNumber || "—"}`, 18, 49);
+
+      doc.text(`Delivery No: ${selected?.deliveryNumber || "—"}`, 105, 42);
+      doc.text(`Inspector: ${inspectorName || "—"}`, 105, 49);
+
+      // Table
+      const tableData = qaItems.map((item) => {
+        const source = items.find((s) => s.itemId === item.itemId);
+        const expiry = source?.batches[0]?.expiryDate || "—";
+        const isRejected = Number(item.rejectedQuantity) > 0;
+        return [
+          item.itemName,
+          source?.declared ?? item.deliveredQuantity,
+          item.deliveredQuantity,
+          item.acceptedQuantity,
+          item.rejectedQuantity,
+          expiry,
+          isRejected ? `[REJECTED: ${item.defectReason || "Defect"}] ${item.notes || ""}` : `[PASSED] ${item.notes || ""}`
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 65,
+        head: [["Item Description", "Declared", "Received", "Accepted", "Rejected", "Expiry", "Quality Assurance Status & Notes"]],
+        body: tableData,
+        theme: "grid",
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [244, 244, 245], textColor: 0, fontStyle: "bold" },
+      });
+
+      let finalY = (doc as any).lastAutoTable.finalY + 15;
+
+      if (qaOverallNotes) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(14, finalY, 182, 20, "FD");
+        doc.text("Inspector Notes:", 18, finalY + 7);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(qaOverallNotes, 174);
+        doc.text(lines, 18, finalY + 14);
+        finalY += 30;
       }
-    `;
-    document.head.appendChild(style);
 
-    let printRoot = document.getElementById("grn-report-print-root");
-    if (!printRoot) {
-      printRoot = document.createElement("div");
-      printRoot.id = "grn-report-print-root";
-      document.body.appendChild(printRoot);
+      // Signatures
+      finalY += 20;
+      doc.setFontSize(9);
+      doc.text("Received & Counted By:", 14, finalY);
+      doc.line(14, finalY + 15, 64, finalY + 15);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("Warehouse Receiving Officer", 14, finalY + 20);
+
+      doc.setFontSize(9);
+      doc.setTextColor(0);
+      doc.text("Quality Inspected By:", 75, finalY);
+      doc.line(75, finalY + 15, 125, finalY + 15);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(inspectorName || "Quality Assurance Specialist", 75, finalY + 20);
+
+      doc.setFontSize(9);
+      doc.setTextColor(0);
+      doc.text("Acknowledged / Noted:", 136, finalY);
+      doc.line(136, finalY + 15, 196, finalY + 15);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("Commissary Supervisor", 136, finalY + 20);
+
+      doc.save(`${grnNo}.pdf`);
+    } catch (err) {
+      console.error("Failed to generate PDF:", err);
     }
-
-    const grnNo = activeGrn?.grnNumber || previewGrnNo;
-    const now = new Date().toLocaleString("en-PH");
-
-    printRoot.innerHTML = `
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px">
-          <div>
-            <h1 style="font-size:20px;font-weight:900;margin:0;letter-spacing:-0.5px">GOODS RECEIPT &amp; QA REPORT</h1>
-            <p style="font-size:11px;color:#555;margin:4px 0 0 0">Commissary Central Receiving &amp; Quality Control</p>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:16px;font-weight:800;color:#000">${grnNo}</div>
-            <div style="font-size:10px;color:#666">Printed: ${now}</div>
-            <div style="display:inline-block;background:#e2e8f0;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-top:4px">QA COMPLETED</div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;background:#f8fafc;padding:12px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:16px;font-size:11px">
-          <div><strong>Supplier:</strong> ${selected?.supplierName || "—"}</div>
-          <div><strong>PO Number:</strong> ${selected?.poNumber || "—"}</div>
-          <div><strong>Delivery No:</strong> ${selected?.deliveryNumber || "—"}</div>
-          <div><strong>Inspector:</strong> ${inspectorName || "—"}</div>
-        </div>
-
-        <h3 style="font-size:12px;font-weight:800;text-transform:uppercase;margin:16px 0 8px 0;border-bottom:1px solid #ccc;padding-bottom:4px">
-          Received Items &amp; Quality Inspection Verdict
-        </h3>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Item Description</th>
-              <th style="text-align:right">Declared</th>
-              <th style="text-align:right">Received</th>
-              <th style="text-align:right">Accepted</th>
-              <th style="text-align:right">Rejected</th>
-              <th style="text-align:center">Expiry</th>
-              <th>QA Status &amp; Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${qaItems
-              .map((item) => {
-                const source = items.find((s) => s.itemId === item.itemId);
-                const expiry = source?.batches[0]?.expiryDate || "—";
-                const isRejected = Number(item.rejectedQuantity) > 0;
-                return `
-                  <tr>
-                    <td><strong>${item.itemName}</strong></td>
-                    <td style="text-align:right">${source?.declared ?? item.deliveredQuantity}</td>
-                    <td style="text-align:right"><strong>${item.deliveredQuantity}</strong></td>
-                    <td style="text-align:right;font-weight:bold">${item.acceptedQuantity}</td>
-                    <td style="text-align:right;font-weight:bold;color:${isRejected ? "#dc2626" : "#000"}">${item.rejectedQuantity}</td>
-                    <td style="text-align:center">${expiry}</td>
-                    <td>
-                      ${isRejected ? `<span style="font-weight:bold">[REJECTED: ${item.defectReason || "Defect"}]</span> ` : `<span style="font-weight:bold">[PASSED]</span> `}
-                      ${item.notes || ""}
-                    </td>
-                  </tr>
-                `;
-              })
-              .join("")}
-          </tbody>
-        </table>
-
-        ${
-          qaOverallNotes
-            ? `<div style="background:#f8fafc;padding:10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:20px">
-                <div><strong>Inspector Notes:</strong> ${qaOverallNotes}</div>
-              </div>`
-            : ""
-        }
-
-        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:24px;margin-top:40px;padding-top:16px;border-top:1px solid #ccc">
-          <div>
-            <div style="font-size:10px;text-transform:uppercase;color:#666">Received &amp; Counted By:</div>
-            <div style="margin-top:35px;border-bottom:1px solid #000;width:80%"></div>
-            <div style="font-size:9px;color:#555;margin-top:4px">Warehouse Receiving Officer</div>
-          </div>
-          <div>
-            <div style="font-size:10px;text-transform:uppercase;color:#666">Quality Inspected By:</div>
-            <div style="margin-top:35px;border-bottom:1px solid #000;width:80%"></div>
-            <div style="font-size:9px;color:#555;margin-top:4px">${inspectorName || "QA Specialist"}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:10px;text-transform:uppercase;color:#666">Acknowledged / Noted:</div>
-            <div style="margin-top:35px;border-bottom:1px solid #000;width:80%;margin-left:auto"></div>
-            <div style="font-size:9px;color:#555;margin-top:4px">Commissary Supervisor</div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    window.print();
-    setTimeout(() => {
-      style.remove();
-      printRoot?.remove();
-    }, 1000);
   };
 
   const renderItemTableSection = (groupItems: ItemRow[], title: string) => {
@@ -892,6 +878,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                         <div className="flex flex-col items-center">
                           <input
                             type="date"
+                            min={new Date().toISOString().split("T")[0]}
                             value={item.batches[0].expiryDate}
                             onChange={(e) => updateBatchExpiry(itemIndex, 0, e.target.value)}
                             className={`rounded-xl border ${
@@ -975,6 +962,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                             <div className="flex flex-col items-center">
                               <input
                                 type="date"
+                                min={new Date().toISOString().split("T")[0]}
                                 value={batch.expiryDate}
                                 onChange={(e) => updateBatchExpiry(itemIndex, batchIndex, e.target.value)}
                                 className={`rounded-xl border ${
@@ -1020,7 +1008,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
         open={open}
         title={
           step === 1
-            ? "Create Goods Receipt Note (GRN)"
+            ? "Create Goods Receipt Note"
             : `Quality Assurance Inspection — ${activeGrn?.grnNumber || previewGrnNo}`
         }
         onClose={onClose}
@@ -1046,7 +1034,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
             </div>
 
             <div className="text-xs font-medium text-muted-foreground">
-              Assigned GRN: <span className="font-mono font-bold text-foreground">{previewGrnNo}</span>
+              Assigned Goods Receipt Note: <span className="font-mono font-bold text-foreground">{previewGrnNo}</span>
             </div>
           </div>
 
@@ -1229,31 +1217,34 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                     onClick={executeProceedToQa}
                     className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
-                    {submitting ? "Proceeding…" : "Proceed to QA"}
+                    {submitting ? "Proceeding…" : "Proceed to Quality Assurance"}
                   </button>
                 </div>
               </div>
             </>
           )}
 
-          {/* ================= STEP 2: EMBEDDED QA INSPECTION ================= */}
+          {/* ================= STEP 2: EMBEDDED QUALITY ASSURANCE INSPECTION ================= */}
           {step === 2 && (
             <>
-              {/* QA Inspector Header */}
+              {/* Quality Assurance Inspector Header */}
               <div className="grid sm:grid-cols-2 gap-3 pb-2">
                 <label className="block space-y-1">
                   <span className="text-xs font-semibold text-foreground">Inspector Name <span className="text-destructive">*</span></span>
-                  <input
-                    type="text"
+                  <select
                     value={inspectorName}
                     onChange={(e) => setInspectorName(e.target.value)}
-                    placeholder="Enter name of quality inspector"
                     className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-                  />
+                  >
+                    <option value="" disabled>Select inspector...</option>
+                    {HR_EMPLOYEES.map(emp => (
+                      <option key={emp} value={emp}>{emp}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
-              {/* Item QA Inspection Accordion List */}
+              {/* Item Quality Assurance Inspection Accordion List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
@@ -1433,7 +1424,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
 
               {/* Overall QA Notes moved to end */}
               <label className="block space-y-1.5 pt-2">
-                <span className="text-xs font-semibold text-foreground">Overall QA Notes</span>
+                <span className="text-xs font-semibold text-foreground">Overall Quality Assurance Notes</span>
                 <textarea
                   value={qaOverallNotes}
                   onChange={(e) => setQaOverallNotes(e.target.value)}
@@ -1458,10 +1449,10 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                   <button
                     type="button"
                     disabled={!isQaDone || submitting}
-                    onClick={handlePrintGrnReport}
+                    onClick={handleExportGrnReport}
                     className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Print GRN Report
+                    Export Goods Receipt Note
                   </button>
                   <button
                     type="button"
@@ -1469,7 +1460,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                     onClick={() => setConfirmFinishGrnOpen(true)}
                     className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
-                    {submitting ? "Finishing GRN…" : "Finish GRN"}
+                    {submitting ? "Finishing Goods Receipt Note…" : "Finish Goods Receipt Note"}
                   </button>
                 </div>
               </div>
@@ -1544,15 +1535,64 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
 
 
       {/* Confirmation before Finish GRN */}
-      {confirmFinishGrnOpen && (
-        <ConfirmModal
-          message={`Are you sure you want to complete QA inspection and finalize ${activeGrn?.grnNumber || previewGrnNo}?`}
-          onConfirm={() => {
-            setConfirmFinishGrnOpen(false);
-            executeFinishGrn();
-          }}
-          onCancel={() => setConfirmFinishGrnOpen(false)}
-        />
+      {confirmFinishGrnOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-background rounded-2xl shadow-xl w-full max-w-[500px] border border-border overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    Complete Quality Assurance & Goods Receipt Note
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    You are about to finalize this Goods Receipt Note.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-muted/30 rounded-xl p-4 mb-6 space-y-2 border border-border">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Goods Receipt Note #:</span>
+                  <span className="font-semibold text-foreground">
+                    {activeGrn?.grnNumber || previewGrnNo || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Action:</span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                    Finalize & Save
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmFinishGrnOpen(false)}
+                  disabled={submitting}
+                  className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => {
+                    setConfirmFinishGrnOpen(false);
+                    executeFinishGrn();
+                  }}
+                  className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {submitting ? "Processing..." : "Confirm & Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

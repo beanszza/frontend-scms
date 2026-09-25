@@ -3,7 +3,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Filter, Search, Calendar, Upload, RotateCcw } from "lucide-react";
+import { Search, Calendar, Upload, RotateCcw } from "lucide-react";
 
 interface ReportFilterBarProps {
   filterMode: "all" | "specific" | "range";
@@ -50,7 +50,7 @@ export default function ReportFilterBar({
         {/* Filter Mode Selector & Supplier Filter */}
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
-            <Filter size={14} className="text-foreground" /> Filter By:
+            Filter By:
           </span>
           <div className="flex p-1 bg-muted rounded-xl border border-border text-xs font-semibold">
             <button
@@ -93,7 +93,7 @@ export default function ReportFilterBar({
             <select
               value={selectedSupplierFilter}
               onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-medium border border-border rounded-xl bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
+              className="h-10 min-w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
             >
               <option value="all">All Suppliers ({allSuppliers.length})</option>
               {allSuppliers.map((s: any, idx: number) => (

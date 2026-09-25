@@ -285,7 +285,7 @@ export default function SupplyDetailsModal({
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border text-muted-foreground text-[11px]">
-                      <th className="px-3 py-2 text-left">PO NUMBER</th>
+                      <th className="px-3 py-2 text-left">PURCHASE ORDER NUMBER</th>
                       <th className="px-3 py-2 text-left">DATE</th>
                       <th className="px-3 py-2 text-left">STATUS</th>
                       <th className="px-3 py-2 text-right">QTY</th>

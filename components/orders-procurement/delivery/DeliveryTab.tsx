@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus, Search, RefreshCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -32,8 +39,14 @@ export function DeliveryTab() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+
+  const uniqueSuppliers = useMemo(() => {
+    const suppliers = new Set(deliveries.map((d) => d.supplierName).filter(Boolean));
+    return Array.from(suppliers).sort();
+  }, [deliveries]);
 
   // Modals state
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -82,6 +95,10 @@ export function DeliveryTab() {
         return false;
       }
 
+      if (supplierFilter && d.supplierName !== supplierFilter) {
+        return false;
+      }
+
       if (search.trim()) {
         const s = search.toLowerCase();
         return (
@@ -97,7 +114,7 @@ export function DeliveryTab() {
       }
       return true;
     });
-  }, [deliveries, activeTab, search]);
+  }, [deliveries, activeTab, search, supplierFilter]);
 
   const totalCount = filteredDeliveries.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -144,21 +161,45 @@ export function DeliveryTab() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center gap-sm px-md py-sm bg-muted/20">
-          <div className="flex items-center gap-sm flex-1">
+      {/* Filters Bar */}
+      <div className="mb-6 border border-border rounded-xl overflow-hidden bg-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-muted/20">
+          <div className="flex items-center gap-3 flex-1">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
-              placeholder="Search by Delivery No., PO No., Supplier, Carrier, Driver, or Tracking No..."
+              placeholder="Search by Delivery No., Purchase Order No., Supplier, Carrier, Driver, or Tracking No..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"
+              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-sm flex-1 text-foreground placeholder:text-muted-foreground"
             />
+          </div>
+
+          <div className="flex items-center gap-3 pl-4 border-l border-border/50">
+            <div className="flex items-center">
+              <Select
+                value={supplierFilter === "" ? "all" : supplierFilter}
+                onValueChange={(val) => {
+                  setSupplierFilter(val === "all" ? "" : val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                  <SelectValue placeholder="All Suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Suppliers</SelectItem>
+                  {uniqueSuppliers.map((sup) => (
+                    <SelectItem key={sup} value={sup}>
+                      {sup}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -256,7 +297,7 @@ export function DeliveryTab() {
             setSelectedDelivery(null);
             setCancelDelivery(d);
           }}
-          onCreateGrn={(d) => handleCreateGrn(d)}
+          onGrnCreated={fetchDeliveries}
         />
       )}
 

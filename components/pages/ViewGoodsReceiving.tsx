@@ -96,7 +96,7 @@ export default function ViewGoodsReceiving() {
   }, []);
 
   const tabs: { id: MainTabId; label: string; badgeCount?: number }[] = [
-    { id: "grn", label: "GRN / RECEIVE", badgeCount: counts.grn },
+    { id: "grn", label: "GOODS RECEIPT NOTE / RECEIVE", badgeCount: counts.grn },
     { id: "discrepancies", label: "DISCREPANCIES", badgeCount: counts.discrepancies },
     { id: "stockin", label: "STOCK IN", badgeCount: counts.stockin },
     { id: "rtv", label: "SUPPLIER RETURNS", badgeCount: counts.rtv },
@@ -107,7 +107,7 @@ export default function ViewGoodsReceiving() {
     <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
       <PageHeader
         title="Goods Receiving & Inbound Logistics"
-        description="End-to-end receipt verification: PO physical counts & QA inspection, automated discrepancy logging, and stock-in approval into inventory."
+        description="End-to-end receipt verification: Purchase Order physical counts & Quality Assurance inspection, automated discrepancy logging, and stock-in approval into inventory."
       />
 
       {/* Process Tabs */}

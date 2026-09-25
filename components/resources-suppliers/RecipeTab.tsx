@@ -3,13 +3,13 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, FileText } from "lucide-react";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { Recipe } from "./types";
 
 import RecipeTable from "./RecipeTable";
+import ResourceStatusTabs from "./ResourceStatusTabs";
 
 interface RecipeTabProps {
   recipes: Recipe[];
@@ -36,6 +36,12 @@ export default function RecipeTab({
   onAddNew,
   onEdit,
 }: RecipeTabProps) {
+  const statusCounts = {
+    all: recipes.length,
+    active: recipes.filter((recipe) => recipe.isActive).length,
+    inactive: recipes.filter((recipe) => !recipe.isActive).length,
+  };
+
   const filteredRecipes = recipes.filter((recipe) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
@@ -96,26 +102,17 @@ export default function RecipeTab({
               className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"
             />
           </div>
-          <div className="flex items-center gap-sm shrink-0">
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                onStatusFilterChange(val);
-                onPageChange(1);
-              }}
-            >
-              <SelectTrigger className="w-[140px] h-8 text-body-sm bg-transparent border-input">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
+
+      <ResourceStatusTabs
+        value={statusFilter}
+        counts={statusCounts}
+        onChange={(status) => {
+          onStatusFilterChange(status);
+          onPageChange(1);
+        }}
+      />
 
       <RecipeTable
         recipes={paginatedRecipes}

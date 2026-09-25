@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { AlertCircle, Upload, Check, Trash2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { AlertCircle, Upload, Check, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
@@ -40,6 +41,8 @@ export function CreateDeliveryModal({
   const [selectedPoId, setSelectedPoId] = useState<number | null>(initialPo?.poId ?? null);
   const [pendingPoId, setPendingPoId] = useState<number | null>(null);
   const [confirmPoChange, setConfirmPoChange] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
 
   const [loadingPOs, setLoadingPOs] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
@@ -52,7 +55,7 @@ export function CreateDeliveryModal({
   const [plannedDispatchDate, setPlannedDispatchDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
-  const [expectedArrivalDate, setExpectedArrivalDate] = useState("");
+
   const [scheduledAttachmentBase64, setScheduledAttachmentBase64] = useState("");
   const [attachmentFileName, setAttachmentFileName] = useState("");
 
@@ -109,15 +112,9 @@ export function CreateDeliveryModal({
       if (initialPo.paymentType === "Paid" || initialPo.paymentType === "Payable") {
         setPaymentType(initialPo.paymentType);
       }
-      if (initialPo.expectedArrivalDate) {
-        setExpectedArrivalDate(
-          new Date(initialPo.expectedArrivalDate).toISOString().slice(0, 16)
-        );
-      }
     } else {
       setSelectedPoId(null);
       setItems([]);
-      setExpectedArrivalDate("");
       setScheduledAttachmentBase64("");
       setAttachmentFileName("");
       setPaymentType("Payable");
@@ -293,16 +290,12 @@ export function CreateDeliveryModal({
   const hasErrors = Object.keys(validationErrors).length > 0;
 
   // Form Submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError(null);
 
     const errs: Record<string, string> = {};
     if (!selectedPoId) {
       errs.poId = "Purchase Order selection is required.";
-    }
-    if (!expectedArrivalDate) {
-      errs.expectedArrivalDate = "Expected arrival date and time is required.";
     }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
@@ -337,7 +330,7 @@ export function CreateDeliveryModal({
         poId: selectedPoId,
         paymentType,
         scheduledDate: plannedDispatchDate ? new Date(plannedDispatchDate).toISOString() : new Date().toISOString(),
-        expectedArrivalDate: expectedArrivalDate ? new Date(expectedArrivalDate).toISOString() : null,
+        expectedArrivalDate: null,
         scheduledAttachmentBase64: scheduledAttachmentBase64 || null,
         attachmentUrl: scheduledAttachmentBase64 || null,
         carrier: null,
@@ -368,7 +361,7 @@ export function CreateDeliveryModal({
         onClose={onClose}
         size="max-w-4xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={(e) => { e.preventDefault(); setConfirmModal(true); }} className="space-y-5">
           {error && (
             <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -445,13 +438,13 @@ export function CreateDeliveryModal({
                     <span className="font-semibold text-foreground">{currentPO.supplierName || "—"}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">PO Status / Date:</span>
+                    <span className="text-muted-foreground block text-[11px]">Purchase Order Status / Date:</span>
                     <span className="font-medium text-foreground">
                       {currentPO.status} {currentPO.orderDate ? `• ${new Date(currentPO.orderDate).toLocaleDateString()}` : ""}
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">Total PO Amount:</span>
+                    <span className="text-muted-foreground block text-[11px]">Total Purchase Order Amount:</span>
                     <span className="font-semibold text-foreground">
                       {currentPO.totalAmount ? `₱${Number(currentPO.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "—"}
                     </span>
@@ -465,7 +458,7 @@ export function CreateDeliveryModal({
                   <label className="block text-xs font-semibold text-foreground">
                     Purchase Order Items Reference
                   </label>
-                  <span className="text-[11px] text-muted-foreground">Read-only PO reference</span>
+                  <span className="text-[11px] text-muted-foreground">Read-only Purchase Order reference</span>
                 </div>
 
                 {loadingItems ? (
@@ -484,8 +477,8 @@ export function CreateDeliveryModal({
                           <th className="px-3 py-2.5 w-10 text-center">#</th>
                           <th className="px-3 py-2.5">Supply</th>
                           <th className="px-3 py-2.5">Supply No</th>
-                          <th className="px-3 py-2.5">UOM</th>
-                          <th className="px-3 py-2.5 text-right">PO Quantity</th>
+                          <th className="px-3 py-2.5">Unit of Measure</th>
+                          <th className="px-3 py-2.5 text-right">Purchase Order Quantity</th>
                           <th className="px-3 py-2.5 text-right">Previously Received</th>
                           <th className="px-3 py-2.5 text-right">Already Scheduled</th>
                           <th className="px-3 py-2.5 text-right font-semibold text-foreground">Available to Schedule</th>
@@ -514,13 +507,25 @@ export function CreateDeliveryModal({
 
               {/* Table 2: Actual Order Quantity */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-foreground">
-                    Order Quantities <span className="text-destructive">*</span>
-                  </label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Specify quantity being ordered for this shipment
-                  </span>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground">
+                      Order Quantities <span className="text-destructive">*</span>
+                    </label>
+                    <span className="text-[11px] text-muted-foreground">
+                      Specify quantity being ordered for this shipment
+                    </span>
+                  </div>
+                  <div className="relative w-56">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search items..."
+                      value={itemSearch}
+                      onChange={(e) => setItemSearch(e.target.value)}
+                      className="h-8 text-xs pl-8 rounded-lg border-border bg-card focus-visible:ring-1"
+                    />
+                  </div>
                 </div>
 
                 {items.length > 0 && (
@@ -529,14 +534,20 @@ export function CreateDeliveryModal({
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-xs">
                           <th className="px-3.5 py-2.5">Ingredient / Supply</th>
-                          <th className="px-3.5 py-2.5">UOM</th>
-                          <th className="px-3.5 py-2.5 text-right">PO Quantity</th>
+                          <th className="px-3.5 py-2.5">Unit of Measure</th>
+                          <th className="px-3.5 py-2.5 text-right">Purchase Order Quantity</th>
                           <th className="px-3.5 py-2.5 text-right font-medium">Left to Order</th>
                           <th className="px-3.5 py-2.5 text-right w-44 font-semibold text-foreground">Quantity to Order</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {items.map((item) => {
+                        {items
+                          .filter((item) =>
+                            !itemSearch ||
+                            item.itemName.toLowerCase().includes(itemSearch.toLowerCase()) ||
+                            item.itemCode.toLowerCase().includes(itemSearch.toLowerCase())
+                          )
+                          .map((item) => {
                           const isExhausted = item.availableToSchedule <= 0;
                           const err = validationErrors[item.poItemId];
 
@@ -603,8 +614,8 @@ export function CreateDeliveryModal({
                 )}
               </div>
 
-              {/* Row 3: Payment Type, Planned Dispatch Date (Date only), Expected Arrival Date (3 Columns) */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {/* Row 3: Payment Type, Planned Dispatch Date (Date only) (2 Columns) */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-foreground">
                     Payment Type <span className="text-destructive">*</span>
@@ -625,41 +636,14 @@ export function CreateDeliveryModal({
                   </label>
                   <Input
                     type="date"
+                    min={new Date().toISOString().split("T")[0]}
                     value={plannedDispatchDate}
                     onChange={(e) => setPlannedDispatchDate(e.target.value)}
                     className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
                   />
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                    Expected Arrival Date &amp; Time (ETA) <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={expectedArrivalDate}
-                    onChange={(e) => {
-                      setExpectedArrivalDate(e.target.value);
-                      if (fieldErrors.expectedArrivalDate) {
-                        setFieldErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.expectedArrivalDate;
-                          return copy;
-                        });
-                      }
-                    }}
-                    className={`w-full rounded-xl border ${
-                      fieldErrors.expectedArrivalDate
-                        ? "!border-destructive focus-visible:!ring-destructive"
-                        : "border-border"
-                    } bg-card px-4 py-2.5 text-sm text-foreground`}
-                  />
-                  {fieldErrors.expectedArrivalDate && (
-                    <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">
-                      {fieldErrors.expectedArrivalDate}
-                    </p>
-                  )}
-                </div>
+
               </div>
 
               {/* Row 4: Proof of Receipt / Attachment */}
@@ -740,10 +724,72 @@ export function CreateDeliveryModal({
       {/* Discard Confirmation when changing selected PO */}
       {confirmPoChange && (
         <ConfirmModal
-          message="Changing the Purchase Order will discard any entered delivery quantities and dates for the current PO. Do you wish to continue?"
+          message="Changing the Purchase Order will discard any entered delivery quantities and dates for the current Purchase Order. Do you wish to continue?"
           onConfirm={applyPoChange}
           onCancel={cancelPoChange}
         />
+      )}
+
+      {/* Review Modal for Submission */}
+      {confirmModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div
+            style={{ width: "100%", maxWidth: "672px" }}
+            className="w-full rounded-2xl border border-border bg-card shadow-2xl p-6 flex flex-col shrink-0"
+          >
+            <h3 className="text-xl font-bold text-foreground">Review Delivery Schedule</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Please review the details below before scheduling this delivery.
+            </p>
+
+            <div className="space-y-4 text-sm text-foreground">
+              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Delivery No</span>
+                  <span className="font-medium">{deliveryNumber}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Purchase Order</span>
+                  <span className="font-medium">{currentPO?.poNumber || "—"}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Supplier</span>
+                  <span className="font-medium">{currentPO?.supplierName || "—"}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Dispatch Date</span>
+                  <span className="font-medium">{plannedDispatchDate || "—"}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground mb-1">Total Items</span>
+                  <span className="font-medium">{items.filter(i => i.orderQuantity > 0).length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmModal(false)}
+                className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setConfirmModal(false);
+                  handleSubmit();
+                }}
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85"
+                disabled={submitting}
+              >
+                {submitting ? "Submitting..." : "Confirm Schedule"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -144,7 +144,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
           // Get the base unit for the product item
           const prodItem = items.find(i => i.itemId === products.find(p => p.productId.toString() === finishedProduct)?.itemId);
           setYieldUnit(prodItem?.uomName || "units");
-          
+
           // Map ingredients to display shape
           const computedIngredients = variant.ingredients
             .filter(ing => ing.itemId !== prodItem?.itemId)
@@ -215,7 +215,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     setIsSubmitting(true);
     try {
       const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
-      
+
       await api.post("/api/scms/api/ProductionBatches", {
         recipeId: Number(selectedVariantId),
         productId: Number(finishedProduct),
@@ -405,6 +405,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               </label>
               <input
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
                 value={scheduleDate}
                 max="2100-12-31"
                 onChange={(e) => {

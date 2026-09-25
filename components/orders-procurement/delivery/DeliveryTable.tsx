@@ -58,7 +58,7 @@ export function DeliveryTable({
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DELIVERY NO.</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO REF.</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE ORDER REF.</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">CARRIER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">EXPECTED DATE</th>
@@ -118,7 +118,7 @@ export function DeliveryTable({
                 }
                 if (isArrived && !delivery.grnNumber && onCreateGrn) {
                   actions.push({
-                    label: "Create GRN",
+                    label: "Create Goods Receipt Note",
                     icon: <Receipt className="w-4 h-4 text-foreground" />,
                     onClick: () => {
                       setOpenDropdownId(null);

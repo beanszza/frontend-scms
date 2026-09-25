@@ -63,7 +63,7 @@ export function PRStatusBadge({ status, className = "" }: PRStatusBadgeProps) {
       return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-foreground/15 text-foreground border border-border ${className}`}>
           <ArrowRightCircle className="w-3.5 h-3.5" />
-          Converted to PO
+          Converted to Purchase Order
         </span>
       );
     case "Cancelled":

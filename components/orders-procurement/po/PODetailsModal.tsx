@@ -95,7 +95,7 @@ export function PODetailsModal({
           {/* Row 1: PO Number & PR Reference */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">PO Number</label>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Purchase Order Number</label>
               <Input
                 readOnly
                 value={po.poNumber}
@@ -103,7 +103,7 @@ export function PODetailsModal({
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">PR Reference</label>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Purchase Requisition Reference</label>
               <Input
                 readOnly
                 value={po.prNumber || "— (No PR reference)"}
@@ -166,7 +166,7 @@ export function PODetailsModal({
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">PO Status</label>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Purchase Order Status</label>
               <Input
                 readOnly
                 value={po.status}
@@ -190,7 +190,7 @@ export function PODetailsModal({
               <thead className="border-b border-border bg-muted/40 uppercase text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-semibold">ITEM NAME</th>
-                  <th className="px-4 py-3 font-semibold">UOM</th>
+                  <th className="px-4 py-3 font-semibold">Unit of Measure</th>
                   <th className="px-4 py-3 text-right font-semibold">QTY TO ORDER</th>
                   <th className="px-4 py-3 text-right font-semibold">UNIT PRICE</th>
                   <th className="px-4 py-3 text-right font-semibold">TOTAL PRICE</th>
@@ -289,7 +289,7 @@ export function PODetailsModal({
               onClick={() => onCancel(po)}
               className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
             >
-              Cancel PO
+              Cancel Purchase Order
             </Button>
           )}
 

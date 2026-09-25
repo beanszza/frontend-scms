@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   ChevronRight,
   ChevronLeft,
@@ -70,6 +71,8 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
   const [nextPoNumber, setNextPoNumber] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [itemSearch, setItemSearch] = useState("");
+  const [confirmModal, setConfirmModal] = useState<"Draft" | "Pending Approval" | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -81,6 +84,8 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
       setEta("");
       setNotes("");
       setErrors({});
+      setItemSearch("");
+      setConfirmModal(null);
       fetchApprovedPRs();
       fetchNextPoNumber();
     }
@@ -334,7 +339,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                   <span className="w-4 h-4 flex items-center justify-center">{s}</span>
                 )}
                 <span className="hidden sm:inline">
-                  {["Select PR", "Select Supplier", "Order Details"][s - 1]}
+                  {["Select Purchase Requisition", "Select Supplier", "Order Details"][s - 1]}
                 </span>
               </div>
               {s < 3 && <ChevronRight className="w-4 h-4 text-muted-foreground mx-1 shrink-0" />}
@@ -346,13 +351,13 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
         {step === 1 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
-              Select an <strong>Approved</strong> Purchase Requisition to base this PO on. A PR is required to create a Purchase Order.
+              Select an <strong>Approved</strong> Purchase Requisition to base this Purchase Order on. A Purchase Requisition is required to create a Purchase Order.
             </p>
 
             <div className="flex items-center gap-2 border border-border rounded-xl px-3 py-2 bg-card">
               <Search className="w-4 h-4 text-muted-foreground shrink-0" />
               <Input
-                placeholder="Search PR number, requester, or department..."
+                placeholder="Search Purchase Requisition number, requester, or department..."
                 value={prSearch}
                 onChange={(e) => setPrSearch(e.target.value)}
                 className="border-0 shadow-none focus-visible:ring-0 bg-transparent text-xs p-0 text-foreground placeholder:text-muted-foreground"
@@ -438,7 +443,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             {selectedPR && (
               <div className="p-3.5 rounded-xl border border-border bg-muted/30">
                 <p className="text-xs font-semibold text-foreground mb-0.5">
-                  PR Reference: <span className="font-mono">{selectedPR.prNumber}</span>
+                  Purchase Requisition Reference: <span className="font-mono">{selectedPR.prNumber}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {selectedPR.items?.length || 0} items · Dept: {selectedPR.department || "Inventory"} ·
@@ -455,7 +460,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             )}
 
             <p className="text-xs text-muted-foreground">
-              Choose a supplier. Only suppliers who can supply at least one item from this PR are shown.
+              Choose a supplier. Only suppliers who can supply at least one item from this Purchase Requisition are shown.
             </p>
 
             <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
@@ -465,7 +470,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                 </div>
               ) : eligibleSuppliers.length === 0 ? (
                 <div className="py-10 text-center text-xs text-muted-foreground">
-                  No eligible suppliers found for the selected PR items.
+                  No eligible suppliers found for the selected Purchase Requisition items.
                 </div>
               ) : (
                 eligibleSuppliers.map((s) => (
@@ -509,7 +514,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-xl border border-border bg-muted/30">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">PO Number to Generate</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Purchase Order Number to Generate</p>
                   <span className="text-[9px] font-semibold text-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
                     Auto-Assigned
                   </span>
@@ -519,7 +524,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                 </p>
               </div>
               <div className="p-3 rounded-xl border border-border bg-muted/30">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">PR Reference</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Purchase Requisition Reference</p>
                 <p className="text-xs font-mono font-bold text-foreground">{selectedPR?.prNumber || "—"}</p>
               </div>
               <div className="p-3 rounded-xl border border-border bg-muted/30">
@@ -612,14 +617,14 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                 {/* PR Items Reference Table (read-only) */}
                 <div className="pt-2 border-t border-border">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                    PR Requested Items Reference
+                    Purchase Requisition Items Reference
                   </p>
                   <div className="overflow-x-auto rounded-lg border border-border">
                     <table className="w-full text-xs">
                       <thead className="bg-muted/50 border-b border-border">
                         <tr>
                           <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Item</th>
-                          <th className="px-3 py-2 text-left font-semibold text-muted-foreground">UOM</th>
+                          <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Unit of Measure</th>
                           <th className="px-3 py-2 text-right font-semibold text-muted-foreground whitespace-nowrap">Requested</th>
                           <th className="px-3 py-2 text-right font-semibold text-muted-foreground whitespace-nowrap">Already Ordered</th>
                           <th className="px-3 py-2 text-right font-semibold text-muted-foreground whitespace-nowrap">Remaining</th>
@@ -656,12 +661,28 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             ) : errors.items ? (
               <div className="py-6 text-center text-xs text-foreground font-medium">{errors.items}</div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="w-full text-xs">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Order Quantities &amp; Pricing <span className="text-destructive">*</span>
+                  </label>
+                  <div className="relative w-48">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search items..."
+                      value={itemSearch}
+                      onChange={(e) => setItemSearch(e.target.value)}
+                      className="h-7 text-xs pl-7 rounded-lg border-border bg-card focus-visible:ring-1"
+                    />
+                  </div>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-xs">
                   <thead className="border-b border-border bg-muted/40">
                     <tr>
                       <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider">ITEM</th>
-                      <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider">UOM</th>
+                      <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider">Unit of Measure</th>
                       <th className="px-4 py-3 text-right font-bold text-muted-foreground tracking-wider whitespace-nowrap">
                         ORDER QTY <span className="text-foreground">*</span>
                       </th>
@@ -674,9 +695,15 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {itemRows.map((row, idx) => {
-                      const qty = parseInt(row.orderQty, 10) || 0;
-                      const qtyLeft = row.remaining - qty;
+                    {itemRows
+                      .map((row, originalIndex) => ({ row, originalIndex }))
+                      .filter(({ row }) =>
+                        !itemSearch ||
+                        row.itemName?.toLowerCase().includes(itemSearch.toLowerCase())
+                      )
+                      .map(({ row, originalIndex: idx }) => {
+                        const qty = parseInt(row.orderQty, 10) || 0;
+                        const qtyLeft = row.remaining - qty;
                       const isOverQty = qty > row.remaining;
                       const isFullyOrdered = row.remaining <= 0;
 
@@ -756,6 +783,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                   </tbody>
                 </table>
               </div>
+              </div>
             )}
 
             {/* ETA + Total */}
@@ -768,12 +796,12 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                 <div className="relative">
                   <input
                     type="date"
+                    min={new Date().toISOString().split("T")[0]}
                     value={eta}
                     onChange={(e) => {
                       setEta(e.target.value);
                       setErrors((p) => ({ ...p, eta: "" }));
                     }}
-                    min={new Date().toISOString().split("T")[0]}
                     className={`w-full rounded-xl border ${
                       errors.eta ? "border-red-500" : "border-border"
                     } bg-card px-3 py-2 text-xs text-foreground shadow-none focus:outline-none focus:ring-1 focus:ring-foreground/30`}
@@ -807,7 +835,9 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                 type="button"
                 variant="outline"
                 disabled={submitting}
-                onClick={() => handleSubmit("Draft")}
+                onClick={() => {
+                  if (validate()) setConfirmModal("Draft");
+                }}
                 className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
                 {submitting ? "Saving..." : "Save as Draft"}
@@ -815,7 +845,9 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
               <Button
                 type="button"
                 disabled={submitting}
-                onClick={() => handleSubmit("Pending Approval")}
+                onClick={() => {
+                  if (validate()) setConfirmModal("Pending Approval");
+                }}
                 className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
               >
                 {submitting ? "Submitting..." : "Submit for Approval"}
@@ -824,6 +856,63 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
           </div>
         )}
       </div>
+
+      {/* Review Modal for Submit/Draft */}
+      {confirmModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div
+            style={{ width: "100%", maxWidth: "672px" }}
+            className="w-full rounded-2xl border border-border bg-card shadow-2xl p-6 flex flex-col shrink-0"
+          >
+            <h3 className="text-xl font-bold text-foreground">Review Purchase Order</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Please review the details below before {confirmModal === "Pending Approval" ? "submitting for approval" : "saving as draft"}.
+            </p>
+
+            <div className="space-y-4 text-sm text-foreground">
+              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
+                <div><span className="text-muted-foreground block text-xs mb-1">Purchase Requisition Reference</span> <span className="font-semibold">{selectedPR?.prNumber}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Supplier</span> <span className="font-semibold">{selectedSupplier?.supplierName}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Expected Arrival</span> <span className="font-semibold">{eta}</span></div>
+                <div><span className="text-muted-foreground block text-xs mb-1">Total Amount</span> <span className="font-semibold">{fmtCurrency(totalAmount)}</span></div>
+              </div>
+
+              <div className="mt-4 border border-border rounded-xl overflow-hidden bg-card">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 border-b border-border">
+                    <tr>
+                      <th className="px-3 py-2.5 text-left font-bold text-muted-foreground">ITEM NAME</th>
+                      <th className="px-3 py-2.5 text-right font-bold text-muted-foreground">ORDER QTY</th>
+                      <th className="px-3 py-2.5 text-right font-bold text-muted-foreground">TOTAL PRICE</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {itemRows.filter(row => parseInt(row.orderQty, 10) > 0).map((row, idx) => (
+                      <tr key={idx} className="hover:bg-muted/10">
+                        <td className="px-3 py-2.5 font-medium">{row.itemName}</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-semibold">{row.orderQty} {row.uomName}</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-semibold">{fmtCurrency(parseFloat(row.totalPrice) || 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="outline" onClick={() => setConfirmModal(null)} className="rounded-xl px-6">Back to Edit</Button>
+              <Button onClick={() => {
+                const act = confirmModal;
+                setConfirmModal(null);
+                handleSubmit(act);
+              }} className="rounded-xl px-6 shadow-sm">
+                Confirm &amp; {confirmModal === "Pending Approval" ? "Submit" : "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </ModalWrapper>
   );
 }

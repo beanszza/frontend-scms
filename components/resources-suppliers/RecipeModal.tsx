@@ -18,7 +18,7 @@ interface RecipeModalProps {
     recipeName: string;
     productId: number;
     outputQuantity: number;
-    ingredients: { itemId: number; standardQuantity: number }[];
+    ingredients: { itemId: number; uomId: number; standardQuantity: number }[];
     notes: string;
     isActive: boolean;
   }) => void;
@@ -114,7 +114,7 @@ export default function RecipeModal({
       recipeName: recipeName.trim(),
       productId: Number(productId),
       outputQuantity: Number(outputQuantity),
-      ingredients: ingredients.map((i) => ({ itemId: i.itemId, standardQuantity: Number(i.quantity) })),
+      ingredients: ingredients.map((i) => ({ itemId: i.itemId, uomId: i.uomId, standardQuantity: Number(i.quantity) })),
       notes: notes.trim(),
       isActive: recipeActive,
     });

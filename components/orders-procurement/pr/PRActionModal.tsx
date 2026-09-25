@@ -101,7 +101,7 @@ export function PRActionModal({
 
           {/* PR Number / ID Subtitle */}
           <p className="text-xs font-mono font-semibold text-muted-foreground mb-3">
-            PR No: {prNumber}
+            Purchase Requisition No: {prNumber}
           </p>
 
           {/* Message / Description */}

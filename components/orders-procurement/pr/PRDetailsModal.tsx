@@ -87,7 +87,7 @@ export function PRDetailsModal({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                PR Number
+                Purchase Requisition Number
               </label>
               <Input
                 type="text"
@@ -212,7 +212,7 @@ export function PRDetailsModal({
                 <tr>
                   <th className="px-4 py-3 font-semibold">SUPPLY NAME</th>
                   <th className="px-4 py-3 font-semibold">SUPPLY NO.</th>
-                  <th className="px-4 py-3 font-semibold">UOM</th>
+                  <th className="px-4 py-3 font-semibold">Unit of Measure</th>
                   <th className="px-4 py-3 text-right font-semibold">ACTUAL INVENTORY</th>
                   <th className="px-4 py-3 text-right font-semibold">QUANTITY (TO ORDER)</th>
                 </tr>
@@ -337,7 +337,7 @@ export function PRDetailsModal({
                 onClick={() => onCreatePo(pr)}
                 className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
               >
-                Create PO
+                Create Purchase Order
               </Button>
             )}
           </div>

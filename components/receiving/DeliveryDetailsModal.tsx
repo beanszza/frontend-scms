@@ -93,7 +93,7 @@ export default function DeliveryDetailsModal({
               </div>
               {detail.prNumber && (
                 <div>
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">PR Ref.</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Purchase Requisition Ref.</div>
                   <div className="text-sm font-mono font-semibold mt-0.5">{detail.prNumber}</div>
                 </div>
               )}
@@ -152,7 +152,7 @@ export default function DeliveryDetailsModal({
                     <tr>
                       <th className="p-3">Item Name</th>
                       <th className="p-3 text-right">Declared Qty</th>
-                      <th className="p-3">UOM</th>
+                      <th className="p-3">Unit of Measure</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -201,7 +201,7 @@ export default function DeliveryDetailsModal({
             }}
             className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create GRN for this Delivery
+            Create Goods Receipt Note for this Delivery
           </button>
         </div>
       </div>

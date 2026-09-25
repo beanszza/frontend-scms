@@ -103,7 +103,7 @@ export default function CreateTransferModal({
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">Transfer Date <span className="text-muted-foreground">*</span></label>
-            <Input type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} className="rounded-xl border border-border bg-card text-foreground text-sm" />
+            <Input type="date" min={new Date().toISOString().split("T")[0]} value={transferDate} onChange={(e) => setTransferDate(e.target.value)} className="rounded-xl border border-border bg-card text-foreground text-sm" />
           </div>
         </div>
 

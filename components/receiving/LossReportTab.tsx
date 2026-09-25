@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Trash2, Search, MoreHorizontal, Eye, Check } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -14,6 +21,7 @@ export default function LossReportTab() {
   const [lossReports, setLossReports] = useState<LossReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("All");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -73,25 +81,43 @@ export default function LossReportTab() {
     }
   };
 
+  // Unique Suppliers
+  const uniqueSuppliers = useMemo(() => {
+    const set = new Set<string>();
+    lossReports.forEach((r) => {
+      if (r.supplierName) set.add(r.supplierName);
+    });
+    return Array.from(set).sort();
+  }, [lossReports]);
+
   // Filter
   const filtered = useMemo(() => {
-    if (!search.trim()) return lossReports;
-    const s = search.toLowerCase();
-    return lossReports.filter((r) => {
-      return (
-        r.lossReportNumber?.toLowerCase().includes(s) ||
-        r.discrepancyNumber?.toLowerCase().includes(s) ||
-        r.grnNumber?.toLowerCase().includes(s) ||
-        r.poNumber?.toLowerCase().includes(s) ||
-        r.prNumber?.toLowerCase().includes(s) ||
-        r.supplierName?.toLowerCase().includes(s) ||
-        r.itemName?.toLowerCase().includes(s) ||
-        r.reason?.toLowerCase().includes(s) ||
-        r.authorisedBy?.toLowerCase().includes(s) ||
-        r.acknowledgedBy?.toLowerCase().includes(s)
-      );
-    });
-  }, [lossReports, search]);
+    let filteredList = lossReports;
+
+    if (supplierFilter !== "All") {
+      filteredList = filteredList.filter((r) => r.supplierName === supplierFilter);
+    }
+
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      filteredList = filteredList.filter((r) => {
+        return (
+          r.lossReportNumber?.toLowerCase().includes(s) ||
+          r.discrepancyNumber?.toLowerCase().includes(s) ||
+          r.grnNumber?.toLowerCase().includes(s) ||
+          r.poNumber?.toLowerCase().includes(s) ||
+          r.prNumber?.toLowerCase().includes(s) ||
+          r.supplierName?.toLowerCase().includes(s) ||
+          r.itemName?.toLowerCase().includes(s) ||
+          r.reason?.toLowerCase().includes(s) ||
+          r.authorisedBy?.toLowerCase().includes(s) ||
+          r.acknowledgedBy?.toLowerCase().includes(s)
+        );
+      });
+    }
+
+    return filteredList;
+  }, [lossReports, search, supplierFilter]);
 
   const totalCount = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -125,22 +151,20 @@ export default function LossReportTab() {
         </div>
       </div>
 
-      {/* Full-width Search Bar */}
-      <div className="mb-4 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/20">
-          <div className="flex items-center gap-2 flex-1">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-            <Input
-              type="text"
-              placeholder="Search loss reports by Report#, Item, or Supplier..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+      {/* Search & Filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center border border-border rounded-md bg-card px-2 py-2">
+        <div className="flex flex-1 items-center gap-2 px-2 bg-muted/20 h-full rounded-md">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Input
+            type="text"
+            placeholder="Search loss reports by Report#, Item, or Supplier..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
+          />
           {search && (
             <button
               type="button"
@@ -148,11 +172,36 @@ export default function LossReportTab() {
                 setSearch("");
                 setPage(1);
               }}
-              className="text-xs text-muted-foreground hover:text-foreground font-medium"
+              className="text-xs text-muted-foreground hover:text-foreground font-medium pr-2"
             >
               Clear
             </button>
           )}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <Select
+              value={supplierFilter}
+              onValueChange={(val) => {
+                setSupplierFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent align="end" className="text-xs z-[9999]">
+                <SelectItem value="All">All Suppliers</SelectItem>
+                {uniqueSuppliers.map((supp) => (
+                  <SelectItem key={supp} value={supp}>
+                    {supp}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -323,7 +372,7 @@ export default function LossReportTab() {
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.discrepancyNumber || "Direct"}</div>
               </div>
               <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source GRN</div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Goods Receipt Note</div>
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedReport.grnNumber || "—"}</div>
               </div>
               <div>

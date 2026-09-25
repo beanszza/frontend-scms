@@ -159,7 +159,7 @@ export default function StockInDetailsModal({ stockIn, open, onClose, onSuccess 
           </div>
           <div style="text-align:right;">
             <div style="font-family:monospace;font-size:11px;font-weight:800;">${stockIn.stockInNumber}</div>
-            <div style="font-size:9px;color:#777;">GRN: ${stockIn.grnNumber}</div>
+            <div style="font-size:9px;color:#777;">Goods Receipt Note: ${stockIn.grnNumber}</div>
           </div>
         </div>
 
@@ -175,7 +175,7 @@ export default function StockInDetailsModal({ stockIn, open, onClose, onSuccess 
             <div style="font-size:11px;font-weight:700;">${stockIn.supplierName || "—"}</div>
           </div>
           <div style="flex:1;">
-            <div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;">Quantity & UOM</div>
+            <div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;">Quantity & Unit of Measure</div>
             <div style="font-size:12px;font-weight:800;color:#000;">${line.quantityToStock} ${line.purchaseUomName}</div>
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function StockInDetailsModal({ stockIn, open, onClose, onSuccess 
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">GRN Reference</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Goods Receipt Note Reference</span>
               <span className="font-semibold text-foreground">{stockIn.grnNumber}</span>
             </div>
             {stockIn.supplierName && stockIn.supplierName !== "—" && (
@@ -401,7 +401,7 @@ export default function StockInDetailsModal({ stockIn, open, onClose, onSuccess 
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-3">Supply Name</th>
-                  <th className="px-3 py-3 text-center">UOM</th>
+                  <th className="px-3 py-3 text-center">Unit of Measure</th>
                   <th className="px-3 py-3 text-right">Stocked Qty</th>
                   <th className="px-3 py-3 text-right">Current Stock</th>
                   <th className="px-4 py-3">Lot No.</th>

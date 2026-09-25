@@ -30,8 +30,8 @@ export default function QaTable({ inspections, loading, onSelectInspection, pend
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">{pendingView ? "GRN NO." : "INSPECTION NO."}</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">{pendingView ? "SUPPLIER" : "GRN NO."}</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">{pendingView ? "GOODS RECEIPT NOTE NO." : "INSPECTION NO."}</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">{pendingView ? "SUPPLIER" : "GOODS RECEIPT NOTE NO."}</th>
             {!pendingView && <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>}
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DATE</th>
             {!pendingView && <>

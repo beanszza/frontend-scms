@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, RefreshCw, Boxes, Clock, CheckCircle2, ListFilter } from "lucide-react";
+import { Search, RefreshCw, Boxes, Clock, CheckCircle2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -16,6 +23,7 @@ export default function PutAwayTab() {
   const [tasks, setTasks] = useState<PutAwayTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("All");
   const [activeSubTab, setActiveSubTab] = useState<PutAwaySubTab>("pending");
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -58,12 +66,24 @@ export default function PutAwayTab() {
     };
   }, [tasks]);
 
-  // Filtered by subtab and search
+  // Unique Suppliers
+  const uniqueSuppliers = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => {
+      if (t.supplierName) set.add(t.supplierName);
+    });
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  // Filtered by subtab, search, and supplier
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       // Subtab filter
       if (activeSubTab === "pending" && t.status !== "Pending") return false;
       if (activeSubTab === "completed" && t.status !== "Completed") return false;
+
+      // Supplier filter
+      if (supplierFilter !== "All" && t.supplierName !== supplierFilter) return false;
 
       // Search filter
       if (search.trim()) {
@@ -80,7 +100,7 @@ export default function PutAwayTab() {
       }
       return true;
     });
-  }, [tasks, activeSubTab, search]);
+  }, [tasks, activeSubTab, search, supplierFilter]);
 
   // Paginated list
   const totalCount = filteredTasks.length;
@@ -101,7 +121,7 @@ export default function PutAwayTab() {
       setSelectedTask(pending[0]);
       setModalOpen(true);
     } else {
-      alert("No pending put-away tasks. Incoming lots from QA inspections will appear here.");
+      alert("No pending put-away tasks. Incoming lots from Quality Assurance inspections will appear here.");
     }
   };
 
@@ -142,22 +162,20 @@ export default function PutAwayTab() {
         </div>
       </div>
 
-      {/* Full-width Search Bar: Identical to PR/PO */}
-      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/20">
-          <div className="flex items-center gap-2 flex-1">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-            <Input
-              type="text"
-              placeholder="Search put away tasks by Task#, GRN#, PO#, PR#, Item, or Lot#..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+      {/* Search & Filters */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center border border-border rounded-md bg-card px-2 py-2">
+        <div className="flex flex-1 items-center gap-2 px-2 bg-muted/20 h-full rounded-md">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Input
+            type="text"
+            placeholder="Search by task, Goods Receipt Note, Purchase Order, Purchase Requisition, item, or lot..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
+          />
           {search && (
             <button
               type="button"
@@ -165,11 +183,36 @@ export default function PutAwayTab() {
                 setSearch("");
                 setPage(1);
               }}
-              className="text-xs text-muted-foreground hover:text-foreground font-medium"
+              className="text-xs text-muted-foreground hover:text-foreground font-medium pr-2"
             >
               Clear
             </button>
           )}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <Select
+              value={supplierFilter}
+              onValueChange={(val) => {
+                setSupplierFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent align="end" className="text-xs z-[9999]">
+                <SelectItem value="All">All Suppliers</SelectItem>
+                {uniqueSuppliers.map((supp) => (
+                  <SelectItem key={supp} value={supp}>
+                    {supp}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

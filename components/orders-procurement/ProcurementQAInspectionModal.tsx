@@ -7,6 +7,7 @@ import { Check, Upload, Loader2 } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { Order } from "./types";
 import api from "@/lib/api";
+import { HR_EMPLOYEES } from "@/lib/employees";
 
 interface ProcurementQAInspectionModalProps {
   order: Order | null;
@@ -64,14 +65,14 @@ export default function ProcurementQAInspectionModal({
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to submit QA Inspection.");
+      alert("Failed to submit Quality Assurance Inspection.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <ModalWrapper open={!!order} title={`QA Inspection - Order ${order.id}`} onClose={onClose} size="max-w-3xl">
+    <ModalWrapper open={!!order} title={`Quality Assurance Inspection - Order ${order.id}`} onClose={onClose} size="max-w-3xl">
       <div className="space-y-4">
         <div className="p-3 bg-muted/30 border border-border rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div><span className="text-muted-foreground">Item:</span> <span className="font-bold text-foreground">{order.item}</span></div>
@@ -111,7 +112,16 @@ export default function ProcurementQAInspectionModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">Inspected By <span className="text-muted-foreground">*</span></label>
-            <Input type="text" value={inspectedBy} onChange={(e) => { setInspectedBy(e.target.value); setInspectedByError(""); }} placeholder="e.g. Inspector Name" className="rounded-xl border border-border bg-card text-sm text-foreground" />
+            <select
+              value={inspectedBy}
+              onChange={(e) => { setInspectedBy(e.target.value); setInspectedByError(""); }}
+              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+            >
+              <option value="" disabled>Select inspector...</option>
+              {HR_EMPLOYEES.map((employee) => (
+                <option key={employee} value={employee}>{employee}</option>
+              ))}
+            </select>
             {inspectedByError && <p className="mt-1 text-xs text-red-500">{inspectedByError}</p>}
           </div>
           <div>
@@ -138,7 +148,7 @@ export default function ProcurementQAInspectionModal({
           </Button>
           <Button type="button" onClick={handleComplete} disabled={isSaving} className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors flex items-center gap-2">
             {isSaving && <Loader2 className="animate-spin h-4 w-4" />}
-            Submit QA Inspection ({result})
+            Submit Quality Assurance Inspection ({result})
           </Button>
         </div>
       </div>

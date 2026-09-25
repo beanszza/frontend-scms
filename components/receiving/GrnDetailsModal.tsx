@@ -33,10 +33,10 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
         onClose();
         onPosted();
       } else {
-        setError(res.data?.message || "Failed to post GRN.");
+        setError(res.data?.message || "Failed to post Goods Receipt Note.");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to post GRN.");
+      setError(err.response?.data?.message || err.message || "Failed to post Goods Receipt Note.");
     } finally {
       setLoading(false);
     }
@@ -52,162 +52,130 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
         onUpdated();
         onClose();
       } else {
-        setError(res.data?.message || "Failed to cancel GRN.");
+        setError(res.data?.message || "Failed to cancel Goods Receipt Note.");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to cancel GRN.");
+      setError(err.response?.data?.message || err.message || "Failed to cancel Goods Receipt Note.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePrint = () => {
-    // Inject print styles to display only GRN content
-    const style = document.createElement("style");
-    style.id = "__grn-print-style";
-    style.media = "print";
-    style.innerHTML = `
-      @media print {
-        body > *:not(#grn-print-root) { display: none !important; }
-        #grn-print-root { display: block !important; position: fixed; inset: 0; background: white; z-index: 99999; padding: 32px; color: black; font-family: sans-serif; }
-        .grn-print-only { display: block !important; }
-        .no-print { display: none !important; }
+  const handleExport = async () => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const receivedDate = new Date(grn.receivedDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+      const printedAt = new Date().toLocaleString("en-PH");
+
+      const doc = new jsPDF({ format: "a4", orientation: "portrait" });
+
+      doc.setFontSize(18);
+      doc.text("GOODS RECEIPT NOTE", 14, 22);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text("Commissary / Warehouse Inbound Document", 14, 28);
+
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      doc.text(grn.grnNumber, 196, 22, { align: "right" });
+
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Status: ${grn.status}`, 196, 28, { align: "right" });
+      doc.text(`Exported: ${printedAt}`, 196, 33, { align: "right" });
+
+      // Info box
+      doc.setDrawColor(200);
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, 40, 182, 35, "FD");
+
+      doc.setFontSize(9);
+      doc.setTextColor(0);
+      doc.text(`Supplier: ${grn.supplierName}`, 18, 47);
+      doc.text(`Purchase Order Number: ${grn.poNumber}`, 18, 54);
+      doc.text(`Purchase Requisition Reference: ${grn.prNumber || "—"}`, 18, 61);
+      doc.text(`Delivery No.: ${grn.deliveryNumber || "—"}`, 18, 68);
+
+      doc.text(`Received Date: ${receivedDate}`, 105, 47);
+      doc.text(`Receiving Bay: ${grn.receivingBay || "Main Receiving Bay"}`, 105, 54);
+      doc.text(`Supplier DR #: ${grn.supplierDrNumber || "N/A"}`, 105, 61);
+      doc.text(`Supplier Invoice #: ${grn.supplierInvoiceNumber || "N/A"}`, 105, 68);
+
+      // Table
+      const tableData = grn.items.map((item) => {
+        const variance = item.varianceType === "Short"
+          ? `Short (${item.varianceQuantity})`
+          : item.varianceType === "Over"
+            ? `Over (+${item.varianceQuantity})`
+            : "Match";
+
+        const expiry = item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "—";
+
+        return [
+          item.itemName,
+          item.purchaseUomName,
+          item.orderedQuantity,
+          item.deliveredQuantity,
+          variance,
+          item.supplierLotCode || "—",
+          expiry
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 85,
+        head: [["Item Name", "Unit of Measure", "Purchase Order Quantity", "Delivered Quantity", "Variance", "Supplier Lot #", "Expiry Date"]],
+        body: tableData,
+        theme: "grid",
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [244, 244, 245], textColor: 0, fontStyle: "bold" },
+      });
+
+      let finalY = (doc as any).lastAutoTable.finalY + 15;
+
+      if (grn.notes) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(14, finalY, 182, 15, "FD");
+        doc.text(`Notes: ${grn.notes}`, 18, finalY + 9);
+        finalY += 25;
       }
-    `;
-    document.head.appendChild(style);
 
-    // Create a temporary print div
-    let printRoot = document.getElementById("grn-print-root");
-    if (!printRoot) {
-      printRoot = document.createElement("div");
-      printRoot.id = "grn-print-root";
-      document.body.appendChild(printRoot);
+      // Signatures
+      finalY += 20;
+      doc.setFontSize(9);
+      doc.text("Received By / Signature:", 14, finalY);
+      doc.line(14, finalY + 15, 64, finalY + 15);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(grn.receivedBy, 14, finalY + 20);
+
+      doc.setFontSize(9);
+      doc.setTextColor(0);
+      doc.text("Quality Assurance Officer / Signature:", 75, finalY);
+      doc.line(75, finalY + 15, 125, finalY + 15);
+
+      doc.setFontSize(9);
+      doc.setTextColor(0);
+      doc.text("Authorized By / Signature:", 136, finalY);
+      doc.line(136, finalY + 15, 196, finalY + 15);
+
+      if (grn.postedBy) {
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text(grn.postedBy, 136, finalY + 20);
+      }
+
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`This document is a system-generated Goods Receipt Note: ${grn.grnNumber} · ${receivedDate}`, 105, finalY + 40, { align: "center" });
+
+      doc.save(`${grn.grnNumber}.pdf`);
+    } catch (err) {
+      console.error("Failed to generate PDF:", err);
     }
-
-    const receivedDate = new Date(grn.receivedDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
-    const printedAt = new Date().toLocaleString("en-PH");
-
-    printRoot.innerHTML = `
-      <div style="max-width:800px;margin:0 auto;font-size:12px;color:#111">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:20px">
-          <div>
-            <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px">GOODS RECEIPT NOTE</div>
-            <div style="font-size:11px;color:#555;margin-top:4px">Commissary / Warehouse Inbound Document</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:18px;font-weight:700;font-family:monospace">${grn.grnNumber}</div>
-            <div style="font-size:11px;color:#555">Status: <strong>${grn.status}</strong></div>
-            <div style="font-size:11px;color:#555">Printed: ${printedAt}</div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Supplier</div>
-            <div style="font-weight:600">${grn.supplierName}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Purchase Order</div>
-            <div style="font-family:monospace;font-weight:600">${grn.poNumber}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">PR Reference</div>
-            <div style="font-family:monospace">${grn.prNumber || "—"}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Delivery No.</div>
-            <div style="font-family:monospace">${grn.deliveryNumber || "—"}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Received Date</div>
-            <div>${receivedDate}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Receiving Bay</div>
-            <div>${grn.receivingBay || "Main Receiving Bay"}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Supplier DR #</div>
-            <div style="font-family:monospace">${grn.supplierDrNumber || "N/A"}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Supplier Invoice #</div>
-            <div style="font-family:monospace">${grn.supplierInvoiceNumber || "N/A"}</div>
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Received By</div>
-            <div>${grn.receivedBy}</div>
-          </div>
-          ${grn.postedBy ? `<div>
-            <div style="font-size:10px;font-weight:600;color:#777;text-transform:uppercase;margin-bottom:4px">Posted By</div>
-            <div>${grn.postedBy}</div>
-          </div>` : ""}
-        </div>
-
-        ${grn.notes ? `<div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:10px;margin-bottom:20px;font-size:11px">
-          <strong>Notes:</strong> ${grn.notes}
-        </div>` : ""}
-
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#777;margin-bottom:8px;letter-spacing:1px">Received Line Items</div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px">
-          <thead>
-            <tr style="background:#f0f0f0;border-bottom:1px solid #ccc">
-              <th style="text-align:left;padding:8px 10px;font-weight:700">Item Name</th>
-              <th style="text-align:left;padding:8px 10px;font-weight:700">UOM</th>
-              <th style="text-align:right;padding:8px 10px;font-weight:700">PO Ordered</th>
-              <th style="text-align:right;padding:8px 10px;font-weight:700">Delivered Qty</th>
-              <th style="text-align:center;padding:8px 10px;font-weight:700">Variance</th>
-              <th style="text-align:left;padding:8px 10px;font-weight:700">Supplier Lot #</th>
-              <th style="text-align:left;padding:8px 10px;font-weight:700">Expiry Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${grn.items.map((item, i) => `
-              <tr style="border-bottom:1px solid #eee;background:${i % 2 === 0 ? "#fff" : "#fafafa"}">
-                <td style="padding:8px 10px;font-weight:500">${item.itemName}</td>
-                <td style="padding:8px 10px;color:#555">${item.purchaseUomName}</td>
-                <td style="padding:8px 10px;text-align:right;font-family:monospace">${item.orderedQuantity.toLocaleString()}</td>
-                <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:700">${item.deliveredQuantity.toLocaleString()}</td>
-                <td style="padding:8px 10px;text-align:center;font-family:monospace">
-                  ${item.varianceType === "Short" ? `Short (${item.varianceQuantity})` : item.varianceType === "Over" ? `Over (+${item.varianceQuantity})` : "Match"}
-                </td>
-                <td style="padding:8px 10px;font-family:monospace;color:#555">${item.supplierLotCode || "—"}</td>
-                <td style="padding:8px 10px;color:#555">${item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "—"}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-
-        <div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
-          <div style="border-top:1px solid #999;padding-top:8px;text-align:center;font-size:11px">
-            <div style="color:#777">Received By / Signature</div>
-            <div style="margin-top:4px;font-weight:600">${grn.receivedBy}</div>
-          </div>
-          <div style="border-top:1px solid #999;padding-top:8px;text-align:center;font-size:11px">
-            <div style="color:#777">QA Officer / Signature</div>
-            <div style="margin-top:4px">&nbsp;</div>
-          </div>
-          <div style="border-top:1px solid #999;padding-top:8px;text-align:center;font-size:11px">
-            <div style="color:#777">Authorized By / Signature</div>
-            <div style="margin-top:4px">&nbsp;</div>
-          </div>
-        </div>
-
-        <div style="margin-top:24px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px">
-          This document is a system-generated Goods Receipt Note. GRN: ${grn.grnNumber} · ${receivedDate}
-        </div>
-      </div>
-    `;
-
-    window.print();
-
-    // Cleanup after print dialog
-    setTimeout(() => {
-      const el = document.getElementById("grn-print-root");
-      if (el) el.remove();
-      const styleEl = document.getElementById("__grn-print-style");
-      if (styleEl) styleEl.remove();
-    }, 1000);
   };
 
   return (
@@ -234,11 +202,11 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
           {/* Reference Numbers Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">PR Number</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Purchase Requisition Number</span>
               <span className="font-mono font-semibold text-foreground">{grn.prNumber || "—"}</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Purchase Order</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Purchase Order Number</span>
               <span className="font-mono font-semibold text-foreground">{grn.poNumber}</span>
             </div>
             <div>
@@ -326,7 +294,7 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
             <div className="flex items-center gap-2.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">QA Inspection Completed</div>
+                <div className="font-semibold text-foreground">Quality Assurance Inspection Completed</div>
                 <div className="text-muted-foreground text-[11px] mt-0.5">
                   Accepted items have been queued for warehouse Put Away. View assigned storage locations in the Put Away tab.
                 </div>
@@ -345,8 +313,8 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
               <thead className="bg-muted/30 uppercase text-muted-foreground font-bold tracking-wider text-[11px] border-b border-border">
                 <tr>
                   <th className="px-4 py-3">Item Name</th>
-                  <th className="px-3 py-3 text-center">UOM</th>
-                  <th className="px-3 py-3 text-right">PO Ordered</th>
+                  <th className="px-3 py-3 text-center">Unit of Measure</th>
+                  <th className="px-3 py-3 text-right">Purchase Order Ordered</th>
                   <th className="px-3 py-3 text-right">Delivered Qty</th>
                   <th className="px-3 py-3 text-center">Variance</th>
                   <th className="px-4 py-3">Supplier Lot #</th>
@@ -411,11 +379,11 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
           {/* Print button without logo */}
           <button
             type="button"
-            onClick={handlePrint}
+            onClick={handleExport}
             disabled={loading}
             className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Print GRN
+            Export Goods Receipt Note
           </button>
 
           <button
@@ -435,7 +403,7 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
               disabled={loading}
               className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Posting…" : "Post GRN"}
+              {loading ? "Posting…" : "Post Goods Receipt Note"}
             </button>
           )}
         </div>

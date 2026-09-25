@@ -3,7 +3,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Filter, Search, Calendar, RotateCcw, Upload } from "lucide-react";
+import { Search, Calendar, RotateCcw, Upload } from "lucide-react";
 
 interface AuditLogsFilterBarProps {
   filterMode: "all" | "specific" | "range";
@@ -40,7 +40,7 @@ export default function AuditLogsFilterBar({
         {/* Filter Mode Selector */}
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
-            <Filter size={14} className="text-foreground" /> Filter History:
+            Filter History:
           </span>
           <div className="flex p-1 bg-muted rounded-xl border border-border text-xs font-semibold">
             <button

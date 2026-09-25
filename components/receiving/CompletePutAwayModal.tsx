@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { Printer, Box, Check, MapPin, Calendar, Tag, Building2, Layers } from "lucide-react";
+import { Printer, Box, Check, MapPin, Calendar, Tag, Building2, Layers, ClipboardCheck } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { PutAwayTask } from "./types";
@@ -35,6 +36,8 @@ export default function CompletePutAwayModal({
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [confirmModal, setConfirmModal] = useState(false);
 
   useEffect(() => {
     if (open && task) {
@@ -118,7 +121,7 @@ export default function CompletePutAwayModal({
           </div>
           <div style="text-align:right">
             <div style="font-family:monospace;font-weight:800;font-size:14px">${task.putAwayNumber}</div>
-            <div style="font-size:10px;color:#666">GRN: ${task.grnNumber}</div>
+            <div style="font-size:10px;color:#666">Goods Receipt Note: ${task.grnNumber}</div>
           </div>
         </div>
 
@@ -149,7 +152,7 @@ export default function CompletePutAwayModal({
             <strong>${locName}</strong>
           </div>
           <div>
-            <span style="font-size:9px;color:#666;font-weight:700;text-transform:uppercase;display:block">PO Number</span>
+            <span style="font-size:9px;color:#666;font-weight:700;text-transform:uppercase;display:block">Purchase Order Number</span>
             <span style="font-family:monospace">${task.poNumber || "—"}</span>
           </div>
         </div>
@@ -167,6 +170,10 @@ export default function CompletePutAwayModal({
       style.remove();
       printRoot?.remove();
     }, 1000);
+  };
+
+  const handleTryPutToInventory = () => {
+    setConfirmModal(true);
   };
 
   const handlePutToInventory = async () => {
@@ -192,6 +199,7 @@ export default function CompletePutAwayModal({
       setError(err.response?.data?.message || err.message || "Failed to complete Put Away.");
     } finally {
       setSubmitting(false);
+      setConfirmModal(false);
     }
   };
 
@@ -256,7 +264,7 @@ export default function CompletePutAwayModal({
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
-                    Source GRN
+                    Source Goods Receipt Note
                   </span>
                   <span className="font-mono font-semibold text-foreground">
                     {task.grnNumber}
@@ -295,6 +303,7 @@ export default function CompletePutAwayModal({
                 <span className="font-semibold text-foreground">Expiry Date</span>
                 <input
                   type="date"
+                  min={new Date().toISOString().split("T")[0]}
                   readOnly={isCompleted}
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
@@ -387,7 +396,7 @@ export default function CompletePutAwayModal({
                 </button>
                 <button
                   type="button"
-                  onClick={handlePutToInventory}
+                  onClick={handleTryPutToInventory}
                   disabled={submitting}
                   className="inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 >
@@ -399,6 +408,71 @@ export default function CompletePutAwayModal({
           </div>
         </div>
       </div>
+
+      {/* Review Modal Portal */}
+      {confirmModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-background rounded-2xl shadow-xl w-full max-w-[500px] border border-border overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <ClipboardCheck className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      Complete Put Away
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      You are about to put this item into inventory.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 rounded-xl p-4 mb-6 space-y-2 border border-border">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Put Away #:</span>
+                    <span className="font-semibold text-foreground">
+                      {task.putAwayNumber || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="font-mono text-foreground font-semibold">
+                      {locations.find((l) => l.locationId === destinationLocationId)?.locationName || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Action:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                      Finalize & Put to Inventory
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmModal(false)}
+                    disabled={submitting}
+                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handlePutToInventory}
+                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {submitting ? "Processing..." : "Confirm & Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </ModalWrapper>
   );
 }

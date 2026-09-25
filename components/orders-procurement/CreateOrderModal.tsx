@@ -296,6 +296,7 @@ export default function CreateOrderModal({
             </label>
             <Input
               type="date"
+              min={new Date().toISOString().split("T")[0]}
               value={eta}
               onChange={(e) => { setEta(e.target.value); setEtaError(""); }}
               className="rounded-xl border border-border bg-card text-foreground text-sm"
@@ -313,12 +314,12 @@ export default function CreateOrderModal({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-foreground">Receipt / PO Attachment {!editingOrder && "*"}</label>
+          <label className="mb-1.5 block text-xs font-semibold text-foreground">Receipt / Purchase Order Attachment {!editingOrder && "*"}</label>
           <div className="border border-dashed border-border rounded-xl p-4 text-center hover:bg-muted/30 transition-colors relative">
             <Input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => { setReceiptFile(e.target.files?.[0] || null); setReceiptError(""); }} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
             <div className="flex flex-col items-center pointer-events-none">
               <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-              <span className="text-xs font-medium text-foreground">{receiptFile ? receiptFile.name : "Upload receipt / PO document"}</span>
+              <span className="text-xs font-medium text-foreground">{receiptFile ? receiptFile.name : "Upload receipt / Purchase Order document"}</span>
             </div>
           </div>
           {receiptError && <p className="mt-1 text-xs text-red-500">{receiptError}</p>}

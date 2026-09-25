@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronDown, ChevronRight, ClipboardCheck } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { QAInspection } from "./types";
@@ -31,7 +32,7 @@ interface ItemRow {
 
 const rawMaterialChecks = [
   { id: "identity", label: "Material identity and approved specification match" },
-  { id: "quantity", label: "Quantity, UOM, and pack size verified" },
+  { id: "quantity", label: "Quantity, unit of measure, and pack size verified" },
   { id: "condition", label: "Freshness, appearance, packaging, and physical condition acceptable" },
   { id: "traceability", label: "Lot, label, manufacture date, and expiry checked" },
   { id: "safety", label: "Cleanliness, contamination, allergen, and foreign matter check passed" },
@@ -40,7 +41,7 @@ const rawMaterialChecks = [
 
 const toolAndSupplyChecks = [
   { id: "identity", label: "Item identity, model, size, and approved specification match" },
-  { id: "quantity", label: "Quantity, UOM, and pack count verified" },
+  { id: "quantity", label: "Quantity, unit of measure, and pack count verified" },
   { id: "condition", label: "Item is undamaged, clean, and fit for use" },
   { id: "packaging", label: "Packaging and seals are intact where applicable" },
   { id: "safety", label: "Safety, hygiene, and contact-use requirements checked" },
@@ -54,6 +55,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState(false);
 
   const isReadOnly = inspection?.status !== "Pending";
 
@@ -131,28 +133,23 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
   const mismatch = items.some(
     (i) => Number(i.acceptedQuantity) + Number(i.rejectedQuantity) !== Number(i.deliveredQuantity)
   );
-  const missingChecks = items.some((item) => getChecks(item).some((check) => !item.checks[check.id]));
   const missingDefectReasons = items.some(
     (item) => Number(item.rejectedQuantity) > 0 && !item.defectReason.trim()
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (mismatch) {
       setError("Every item's Accepted + Rejected quantity must equal Delivered quantity.");
-      return;
-    }
-    if (missingChecks) {
-      setError("Complete every quality check for every received item before completing QA.");
       return;
     }
     if (missingDefectReasons) {
       setError("Select a defect reason for every item with rejected quantity.");
       return;
     }
-    if (!inspectionBasis.trim()) {
-      setError("Record the specification, COA, certificate, or other inspection basis used for this decision.");
-      return;
-    }
+    setConfirmModal(true);
+  };
+
+  const executeSubmit = async () => {
 
     setSubmitting(true);
     setError(null);
@@ -169,27 +166,35 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
         concessionQuantity: Number(i.concessionQuantity),
         defectReason: i.defectReason.trim() || undefined,
         notes: [
-          `[QA CHECKS: ${getChecks(i).filter((check) => i.checks[check.id]).map((check) => check.id).join(", ")}]`,
+          `[QA CHECKS: ${getChecks(i).filter((check) => i.checks[check.id]).map((check) => check.id).join(", ") || "none recorded"}]`,
           i.notes.trim(),
         ].filter(Boolean).join(" ") || undefined,
       })),
     };
 
+    const inspectionNotes = [
+      inspectionBasis.trim() ? `QA BASIS: ${inspectionBasis.trim()}` : "",
+      overallNotes.trim(),
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     try {
       const res = await api.post(`/api/QualityInspections/${inspection.inspectionId}/complete`, {
         ...payload,
-        overallNotes: [`QA BASIS: ${inspectionBasis.trim()}`, overallNotes.trim()].filter(Boolean).join("\n"),
+        overallNotes: inspectionNotes || undefined,
       });
       if (res.data?.success) {
         onSuccess();
         onClose();
       } else {
-        setError(res.data?.message || "Failed to complete QA inspection.");
+        setError(res.data?.message || "Failed to complete Quality Assurance inspection.");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to complete QA inspection.");
+      setError(err.response?.data?.message || err.message || "Failed to complete Quality Assurance inspection.");
     } finally {
       setSubmitting(false);
+      setConfirmModal(false);
     }
   };
 
@@ -225,7 +230,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
             <div className="text-sm font-semibold mt-0.5">{inspection.inspectionNumber}</div>
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Reference GRN</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Goods Receipt Note Reference</div>
             <div className="text-sm font-semibold mt-0.5">{inspection.referenceNumber || inspection.grnNumber}</div>
           </div>
           {inspection.poNumber && inspection.poNumber !== "—" && (
@@ -317,7 +322,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
         {/* INSPECTION BASIS */}
         <div className="space-y-1">
           <label className="text-xs font-semibold text-foreground uppercase tracking-wide block">
-            Inspection Basis {!isReadOnly && "*"}
+            Inspection Basis {!isReadOnly && "(Optional)"}
           </label>
           {isReadOnly ? (
             <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground">
@@ -337,7 +342,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
         {/* OVERALL NOTES */}
         <div className="space-y-1">
           <label className="text-xs font-semibold text-foreground uppercase tracking-wide block">
-            Overall QA Comments / Inspection Summary
+            Overall Quality Assurance Comments / Inspection Summary
           </label>
           {isReadOnly ? (
             <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground">
@@ -386,16 +391,82 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={submitting || mismatch || missingChecks || missingDefectReasons || !inspectionBasis.trim()}
+                  disabled={submitting || mismatch || missingDefectReasons}
                   className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 >
-                  {submitting ? "Submitting..." : "Complete QA Inspection"}
+                  {submitting ? "Submitting..." : "Complete Quality Assurance Inspection"}
                 </button>
               </>
             )}
           </div>
         </div>
       </div>
+
+
+      {/* Review Modal Portal */}
+      {confirmModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-background rounded-2xl shadow-xl w-full max-w-[500px] border border-border overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <ClipboardCheck className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      Complete Quality Assurance Inspection
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      You are about to finalize this Quality Assurance Inspection.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 rounded-xl p-4 mb-6 space-y-2 border border-border">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Inspection #:</span>
+                    <span className="font-semibold text-foreground">
+                      {inspection?.inspectionNumber || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Total Items:</span>
+                    <span className="font-mono text-foreground font-semibold">
+                      {items.length} item(s)
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Action:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                      Finalize & Save
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmModal(false)}
+                    disabled={submitting}
+                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={executeSubmit}
+                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {submitting ? "Processing..." : "Confirm & Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </ModalWrapper>
   );
 }

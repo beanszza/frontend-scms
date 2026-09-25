@@ -9,6 +9,7 @@ import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { SupplyItem } from "./types";
 import SupplyTable from "./SupplyTable";
+import ResourceStatusTabs from "./ResourceStatusTabs";
 
 interface SupplyTabProps {
   supplies: SupplyItem[];
@@ -41,6 +42,12 @@ export default function SupplyTab({
   onEdit,
   onView,
 }: SupplyTabProps) {
+  const statusCounts = {
+    all: supplies.length,
+    active: supplies.filter((item) => item.isActive !== false).length,
+    inactive: supplies.filter((item) => item.isActive === false).length,
+  };
+
   const filteredSupplies = supplies.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
@@ -109,7 +116,7 @@ export default function SupplyTab({
                 onPageChange(1);
               }}
             >
-              <SelectTrigger className="w-[150px] h-8 text-body-sm bg-transparent border-input">
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -118,25 +125,18 @@ export default function SupplyTab({
                 <SelectItem value="Tools and Supplies">Tools & Supplies</SelectItem>
               </SelectContent>
             </Select>
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                onStatusFilterChange(val);
-                onPageChange(1);
-              }}
-            >
-              <SelectTrigger className="w-[130px] h-8 text-body-sm bg-transparent border-input">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>
+
+      <ResourceStatusTabs
+        value={statusFilter}
+        counts={statusCounts}
+        onChange={(status) => {
+          onStatusFilterChange(status);
+          onPageChange(1);
+        }}
+      />
 
       <SupplyTable
         items={paginatedSupplies}

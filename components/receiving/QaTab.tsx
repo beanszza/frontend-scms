@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, RefreshCw, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -17,6 +24,7 @@ export default function QaTab() {
   const [inspections, setInspections] = useState<QAInspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("All");
   const [activeSubTab, setActiveSubTab] = useState<QaSubTab>("all");
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -67,7 +75,16 @@ export default function QaTab() {
     };
   }, [inspections]);
 
-  // Filtered by subtab and search
+  // Unique Suppliers
+  const uniqueSuppliers = useMemo(() => {
+    const set = new Set<string>();
+    inspections.forEach((q) => {
+      if (q.supplierName) set.add(q.supplierName);
+    });
+    return Array.from(set).sort();
+  }, [inspections]);
+
+  // Filtered by subtab, search, and supplier
   const filteredInspections = useMemo(() => {
     return inspections.filter((qc) => {
       // Subtab filter
@@ -79,6 +96,9 @@ export default function QaTab() {
 
       if (activeSubTab === "ready_to_qa" && !isPending) return false;
       if (activeSubTab === "completed_qa" && isPending) return false;
+
+      // Supplier Filter
+      if (supplierFilter !== "All" && qc.supplierName !== supplierFilter) return false;
 
       // Search filter
       if (search.trim()) {
@@ -95,7 +115,7 @@ export default function QaTab() {
       }
       return true;
     });
-  }, [inspections, activeSubTab, search]);
+  }, [inspections, activeSubTab, search, supplierFilter]);
 
   // Paginated list
   const totalCount = filteredInspections.length;
@@ -118,8 +138,8 @@ export default function QaTab() {
 
   const tabs = [
     { id: "all" as QaSubTab, label: "All", count: counts.all },
-    { id: "ready_to_qa" as QaSubTab, label: "Ready to QA", count: counts.ready_to_qa },
-    { id: "completed_qa" as QaSubTab, label: "Completed QA", count: counts.completed_qa },
+    { id: "ready_to_qa" as QaSubTab, label: "Ready for Quality Assurance", count: counts.ready_to_qa },
+    { id: "completed_qa" as QaSubTab, label: "Completed Quality Assurance", count: counts.completed_qa },
   ];
 
   return (
@@ -127,7 +147,7 @@ export default function QaTab() {
       {/* Top Header Controls */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Incoming Quality Assurance (QA)</h2>
+          <h2 className="text-2xl font-bold text-foreground">Incoming Quality Assurance</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Evaluate delivered materials against specifications, record lot dispositions, and trigger automated quarantine or put-away
           </p>
@@ -148,27 +168,25 @@ export default function QaTab() {
             onClick={() => setAddQaOpen(true)}
             className="flex items-center justify-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm h-10"
           >
-            <Plus className="w-4 h-4" /> Add QA
+            <Plus className="w-4 h-4" /> Add Quality Assurance
           </Button>
         </div>
       </div>
 
-      {/* Full-width Search Bar matching PR/PO */}
-      <div className="mb-6 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/20">
-          <div className="flex items-center gap-2 flex-1">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-            <Input
-              type="text"
-              placeholder="Search QA inspections by Inspection#, GRN#, PO#, PR#, or Supplier..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+      {/* Search & Filters */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center border border-border rounded-md bg-card px-2 py-2">
+        <div className="flex flex-1 items-center gap-2 px-2 bg-muted/20 h-full rounded-md">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Input
+            type="text"
+            placeholder="Search by inspection, Goods Receipt Note, Purchase Order, Purchase Requisition, or supplier..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
+          />
           {search && (
             <button
               type="button"
@@ -176,15 +194,40 @@ export default function QaTab() {
                 setSearch("");
                 setPage(1);
               }}
-              className="text-xs text-muted-foreground hover:text-foreground font-medium"
+              className="text-xs text-muted-foreground hover:text-foreground font-medium pr-2"
             >
               Clear
             </button>
           )}
         </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <Select
+              value={supplierFilter}
+              onValueChange={(val) => {
+                setSupplierFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent align="end" className="text-xs z-[9999]">
+                <SelectItem value="All">All Suppliers</SelectItem>
+                {uniqueSuppliers.map((supp) => (
+                  <SelectItem key={supp} value={supp}>
+                    {supp}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
-      {/* Subtab Pill Navigation: All, Ready to QA, Completed QA */}
+      {/* Subtab Pill Navigation: All, Ready to Quality Assurance, Completed Quality Assurance */}
       <div className="border-b border-border overflow-x-auto">
         <div className="flex items-center gap-1.5 min-w-max pb-2">
           {tabs.map((t) => {
@@ -235,7 +278,7 @@ export default function QaTab() {
         onPageChange={setPage}
       />
 
-      {/* Add QA Modal — user selects a GRN */}
+      {/* Add Quality Assurance Modal — user selects a GRN */}
       <AddQaModal
         open={addQaOpen}
         onClose={() => setAddQaOpen(false)}

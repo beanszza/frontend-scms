@@ -3,12 +3,12 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, FileText } from "lucide-react";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { Supplier } from "./types";
 import SupplierTable from "./SupplierTable";
+import ResourceStatusTabs from "./ResourceStatusTabs";
 
 interface SupplierTabProps {
   suppliers: Supplier[];
@@ -37,6 +37,12 @@ export default function SupplierTab({
   onEdit,
   onView,
 }: SupplierTabProps) {
+  const statusCounts = {
+    all: suppliers.length,
+    active: suppliers.filter((supplier) => supplier.isActive).length,
+    inactive: suppliers.filter((supplier) => !supplier.isActive).length,
+  };
+
   const filteredSuppliers = suppliers.filter((supplier) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
@@ -99,26 +105,17 @@ export default function SupplierTab({
               className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-body-sm flex-1 text-foreground placeholder:text-muted-foreground"
             />
           </div>
-          <div className="flex items-center gap-sm shrink-0">
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                onStatusFilterChange(val);
-                onPageChange(1);
-              }}
-            >
-              <SelectTrigger className="w-[140px] h-8 text-body-sm bg-transparent border-input">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
+
+      <ResourceStatusTabs
+        value={statusFilter}
+        counts={statusCounts}
+        onChange={(status) => {
+          onStatusFilterChange(status);
+          onPageChange(1);
+        }}
+      />
 
       <SupplierTable
         suppliers={paginatedSuppliers}

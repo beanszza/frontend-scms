@@ -81,7 +81,7 @@ export default function ProcurementTable({
                       <div style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }} className="absolute w-44 rounded-xl border border-border bg-card shadow-xl z-[200] py-1.5 text-left">
                         {order.status === "Arrived" && (
                           <button type="button" onClick={() => { onQAInspection(order); setActiveDropdownPoId(null); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors">
-                            <ClipboardCheck size={14} className="shrink-0" /> QA Inspection
+                            <ClipboardCheck size={14} className="shrink-0" /> Quality Assurance Inspection
                           </button>
                         )}
                         {order.status === "Pending" && (

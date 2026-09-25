@@ -27,9 +27,9 @@ export default function GrnTable({ grns, loading, onSelectGrn }: GrnTableProps) 
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
-            <th className="px-5 py-4">GRN No.</th>
-            <th className="px-5 py-4">PR Ref.</th>
-            <th className="px-5 py-4">PO Number</th>
+            <th className="px-5 py-4">Goods Receipt Note No.</th>
+            <th className="px-5 py-4">Purchase Requisition Ref.</th>
+            <th className="px-5 py-4">Purchase Order Number</th>
             <th className="px-5 py-4">Delivery #</th>
             <th className="px-5 py-4">Supplier</th>
             <th className="px-5 py-4">Received Date</th>

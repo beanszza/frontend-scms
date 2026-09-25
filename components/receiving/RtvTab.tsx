@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, MoreHorizontal, Eye, Check, XCircle, Truck, AlertCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -15,6 +22,7 @@ export default function RtvTab() {
   const [rtvs, setRtvs] = useState<RtvRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("All");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -128,25 +136,43 @@ export default function RtvTab() {
     }
   };
 
+  // Unique Suppliers
+  const uniqueSuppliers = useMemo(() => {
+    const set = new Set<string>();
+    rtvs.forEach((r) => {
+      if (r.supplierName) set.add(r.supplierName);
+    });
+    return Array.from(set).sort();
+  }, [rtvs]);
+
   // Filter
   const filtered = useMemo(() => {
-    if (!search.trim()) return rtvs;
-    const s = search.toLowerCase();
-    return rtvs.filter((r) => {
-      return (
-        r.rtvNumber?.toLowerCase().includes(s) ||
-        r.ncrNumber?.toLowerCase().includes(s) ||
-        r.discrepancyNumber?.toLowerCase().includes(s) ||
-        r.grnNumber?.toLowerCase().includes(s) ||
-        r.poNumber?.toLowerCase().includes(s) ||
-        r.supplierName?.toLowerCase().includes(s) ||
-        r.itemName?.toLowerCase().includes(s) ||
-        r.returnReason?.toLowerCase().includes(s) ||
-        (r as any).reason?.toLowerCase().includes(s) ||
-        r.status?.toLowerCase().includes(s)
-      );
-    });
-  }, [rtvs, search]);
+    let filteredList = rtvs;
+
+    if (supplierFilter !== "All") {
+      filteredList = filteredList.filter((r) => r.supplierName === supplierFilter);
+    }
+
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      filteredList = filteredList.filter((r) => {
+        return (
+          r.rtvNumber?.toLowerCase().includes(s) ||
+          r.ncrNumber?.toLowerCase().includes(s) ||
+          r.discrepancyNumber?.toLowerCase().includes(s) ||
+          r.grnNumber?.toLowerCase().includes(s) ||
+          r.poNumber?.toLowerCase().includes(s) ||
+          r.supplierName?.toLowerCase().includes(s) ||
+          r.itemName?.toLowerCase().includes(s) ||
+          r.returnReason?.toLowerCase().includes(s) ||
+          (r as any).reason?.toLowerCase().includes(s) ||
+          r.status?.toLowerCase().includes(s)
+        );
+      });
+    }
+
+    return filteredList;
+  }, [rtvs, search, supplierFilter]);
 
   const totalCount = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -160,7 +186,7 @@ export default function RtvTab() {
       {/* Top action row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Supplier Return (RTV) Records ({rtvs.length})
+          Return to Vendor Records ({rtvs.length})
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -175,22 +201,20 @@ export default function RtvTab() {
         </div>
       </div>
 
-      {/* Full-width Search Bar */}
-      <div className="mb-4 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/20">
-          <div className="flex items-center gap-2 flex-1">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-            <Input
-              type="text"
-              placeholder="Search supplier returns by RTV#, Supplier, or Item..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+      {/* Search & Filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center border border-border rounded-md bg-card px-2 py-2">
+        <div className="flex flex-1 items-center gap-2 px-2 bg-muted/20 h-full rounded-md">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Input
+            type="text"
+            placeholder="Search supplier returns by Return to Vendor No., Supplier, or Item..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
+          />
           {search && (
             <button
               type="button"
@@ -198,11 +222,36 @@ export default function RtvTab() {
                 setSearch("");
                 setPage(1);
               }}
-              className="text-xs text-muted-foreground hover:text-foreground font-medium"
+              className="text-xs text-muted-foreground hover:text-foreground font-medium pr-2"
             >
               Clear
             </button>
           )}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <Select
+              value={supplierFilter}
+              onValueChange={(val) => {
+                setSupplierFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent align="end" className="text-xs z-[9999]">
+                <SelectItem value="All">All Suppliers</SelectItem>
+                {uniqueSuppliers.map((supp) => (
+                  <SelectItem key={supp} value={supp}>
+                    {supp}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -216,7 +265,7 @@ export default function RtvTab() {
           <table className="w-full text-xs text-left border-collapse">
             <thead>
               <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                <th className="px-4 py-3">RTV No.</th>
+                <th className="px-4 py-3">Return to Vendor No.</th>
                 <th className="px-4 py-3">Supplier</th>
                 <th className="px-4 py-3">Item</th>
                 <th className="px-3 py-3 text-right">Return Qty</th>
@@ -361,7 +410,7 @@ export default function RtvTab() {
             <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-center justify-between">
               <div>
                 <div className="font-semibold text-sm text-foreground">
-                  Return to Vendor (RTV)
+                  Return to Vendor
                 </div>
                 <p className="text-muted-foreground mt-0.5 text-xs">
                   Physical return documentation and quarantine disposition record.
@@ -373,7 +422,7 @@ export default function RtvTab() {
             {/* Traceability Grid */}
             <div className="bg-muted/20 border border-border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">RTV No.</div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Return to Vendor No.</div>
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.rtvNumber}</div>
               </div>
               <div>
@@ -381,7 +430,7 @@ export default function RtvTab() {
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.discrepancyNumber || "Direct"}</div>
               </div>
               <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source GRN</div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Goods Receipt Note</div>
                 <div className="font-mono font-semibold text-xs mt-0.5">{selectedRtv.grnNumber || "—"}</div>
               </div>
               <div>

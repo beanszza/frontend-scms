@@ -38,8 +38,8 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PO NUMBER</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PR REF.</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE ORDER NUMBER</th>
+            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE REQUISITION REF.</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ORDER DATE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUESTED BY</th>
@@ -80,7 +80,7 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
                 }
                 if (isCancellable && onCancel) {
                   actions.push({
-                    label: "Cancel PO",
+                    label: "Cancel Purchase Order",
                     icon: <Ban className="w-4 h-4 text-foreground" />,
                     onClick: () => { setOpenDropdownId(null); onCancel(po); },
                   });

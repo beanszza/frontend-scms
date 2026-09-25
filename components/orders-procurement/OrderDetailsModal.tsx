@@ -62,12 +62,12 @@ export default function OrderDetailsModal({ order, onClose }: OrderDetailsModalP
 
         {order.status === "Completed" && (
           <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-            <p className="text-xs font-bold text-foreground">QA Inspection Record</p>
+            <p className="text-xs font-bold text-foreground">Quality Assurance Inspection Record</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div><span className="text-muted-foreground">Arrival Date:</span> <span className="font-semibold text-foreground">{order.arrivalDate || "N/A"}</span></div>
               <div><span className="text-muted-foreground">Inspected By:</span> <span className="font-semibold text-foreground">{order.inspectedBy || "N/A"}</span></div>
-              <div><span className="text-muted-foreground">QA Status:</span> <span className="font-semibold text-foreground">{order.qaStatus || "Passed"}</span></div>
-              <div><span className="text-muted-foreground">QA Approved Qty:</span> <span className="font-semibold text-foreground">{order.qaApproved ?? order.quantity}</span></div>
+              <div><span className="text-muted-foreground">Quality Assurance Status:</span> <span className="font-semibold text-foreground">{order.qaStatus || "Passed"}</span></div>
+              <div><span className="text-muted-foreground">Quality Assurance Approved Quantity:</span> <span className="font-semibold text-foreground">{order.qaApproved ?? order.quantity}</span></div>
             </div>
             {order.qaNotes && (
               <div className="pt-2 border-t border-border">

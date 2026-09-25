@@ -68,7 +68,7 @@ export default function CreateTransferModal({
     const fp = products.find((p) => p.productId.toString() === product);
     if (!fp) return null;
     // Strictly find the inventory at the Commissary
-    return inventories.find((inv) => inv.itemId === fp.itemId && inv.locationName.toLowerCase().includes("commissary")) 
+    return inventories.find((inv) => inv.itemId === fp.itemId && inv.locationName.toLowerCase().includes("commissary"))
            ?? inventories.find((inv) => inv.itemId === fp.itemId) // fallback
            ?? null;
   })();
@@ -464,6 +464,7 @@ export default function CreateTransferModal({
               </label>
               <input
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
                 className={`w-full px-3 py-2 text-sm rounded-lg border ${
                   dateError
                     ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"

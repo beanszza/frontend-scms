@@ -4,6 +4,13 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, MoreHorizontal, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import Pagination from "@/components/Pagination";
 import api from "@/lib/api";
@@ -18,6 +25,7 @@ export default function StockInTab() {
   const [stockIns, setStockIns] = useState<StockIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("All");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -69,21 +77,39 @@ export default function StockInTab() {
     });
   }, [stockIns, activeSubTab]);
 
-  // Search filter
-  const searchFiltered = useMemo(() => {
-    if (!search.trim()) return tabFiltered;
-    const q = search.toLowerCase();
-    return tabFiltered.filter((s) => {
-      return (
-        s.stockInNumber?.toLowerCase().includes(q) ||
-        s.grnNumber?.toLowerCase().includes(q) ||
-        s.supplierName?.toLowerCase().includes(q) ||
-        s.createdBy?.toLowerCase().includes(q) ||
-        s.approvedBy?.toLowerCase().includes(q) ||
-        s.committedBy?.toLowerCase().includes(q)
-      );
+  // Unique Suppliers
+  const uniqueSuppliers = useMemo(() => {
+    const set = new Set<string>();
+    stockIns.forEach((s) => {
+      if (s.supplierName) set.add(s.supplierName);
     });
-  }, [tabFiltered, search]);
+    return Array.from(set).sort();
+  }, [stockIns]);
+
+  // Search & Supplier Filter
+  const searchFiltered = useMemo(() => {
+    let filtered = tabFiltered;
+
+    if (supplierFilter !== "All") {
+      filtered = filtered.filter((s) => s.supplierName === supplierFilter);
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((s) => {
+        return (
+          s.stockInNumber?.toLowerCase().includes(q) ||
+          s.grnNumber?.toLowerCase().includes(q) ||
+          s.supplierName?.toLowerCase().includes(q) ||
+          s.createdBy?.toLowerCase().includes(q) ||
+          s.approvedBy?.toLowerCase().includes(q) ||
+          s.committedBy?.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    return filtered;
+  }, [tabFiltered, search, supplierFilter]);
 
   // Pagination
   const totalCount = searchFiltered.length;
@@ -241,13 +267,13 @@ export default function StockInTab() {
         </div>
       </div>
 
-      {/* Prominent Search Bar */}
-      <div className="mb-4 border border-border rounded-md overflow-hidden bg-card">
-        <div className="flex items-center gap-2 px-4 py-2 bg-muted/20">
+      {/* Search & Filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center border border-border rounded-md bg-card px-2 py-2">
+        <div className="flex flex-1 items-center gap-2 px-2 bg-muted/20 h-full rounded-md">
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           <Input
             type="text"
-            placeholder="Search by Stock-In #, GRN #, Supplier..."
+            placeholder="Search by Stock-In number, Goods Receipt Note, or supplier..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -255,6 +281,31 @@ export default function StockInTab() {
             }}
             className="border-0 shadow-none focus-visible:ring-0 bg-transparent h-8 p-0 text-xs flex-1 text-foreground placeholder:text-muted-foreground"
           />
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <Select
+              value={supplierFilter}
+              onValueChange={(val) => {
+                setSupplierFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent align="end" className="text-xs z-[9999]">
+                <SelectItem value="All">All Suppliers</SelectItem>
+                {uniqueSuppliers.map((supp) => (
+                  <SelectItem key={supp} value={supp}>
+                    {supp}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -269,7 +320,7 @@ export default function StockInTab() {
             <thead>
               <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-3">Stock-In No.</th>
-                <th className="px-4 py-3">GRN No.</th>
+                <th className="px-4 py-3">Goods Receipt Note No.</th>
                 <th className="px-4 py-3">Supplier</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-3 py-3 text-center">Items</th>

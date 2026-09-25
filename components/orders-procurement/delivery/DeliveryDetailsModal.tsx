@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { Truck, ShieldCheck, Receipt, FileText, AlertCircle } from "lucide-react";
+import { Truck, ShieldCheck, Receipt, FileText, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Delivery, DeliveryStatus } from "../types";
+import { Delivery } from "../types";
+import CreateGrnModal from "@/components/receiving/CreateGrnModal";
 
 interface DeliveryDetailsModalProps {
   delivery: Delivery | null;
@@ -15,7 +16,7 @@ interface DeliveryDetailsModalProps {
   onDispatch?: (delivery: Delivery) => void;
   onArrive?: (delivery: Delivery) => void;
   onCancel?: (delivery: Delivery) => void;
-  onCreateGrn?: (delivery: Delivery) => void;
+  onGrnCreated?: () => void;
 }
 
 export function DeliveryDetailsModal({
@@ -25,8 +26,10 @@ export function DeliveryDetailsModal({
   onDispatch,
   onArrive,
   onCancel,
-  onCreateGrn,
+  onGrnCreated,
 }: DeliveryDetailsModalProps) {
+  const [showCreateGrnModal, setShowCreateGrnModal] = React.useState(false);
+
   if (!delivery) return null;
 
   const fmtDate = (d?: string) =>
@@ -45,6 +48,9 @@ export function DeliveryDetailsModal({
   const isArrived = delivery.status === "Arrived";
   const isCancelled = delivery.status === "Cancelled";
 
+  const steps = ["Scheduled", "Dispatched", "Arrived", "Received"];
+  const currentStepIdx = isCancelled ? -1 : delivery.grnNumber ? 3 : isArrived ? 2 : isInTransit ? 1 : 0;
+
   return (
     <ModalWrapper
       open={!!delivery}
@@ -60,9 +66,44 @@ export function DeliveryDetailsModal({
             <span className="font-mono text-sm font-bold text-foreground">{delivery.deliveryNumber}</span>
           </div>
           <div className="text-xs text-muted-foreground">
-            PO Ref: <span className="font-mono font-medium text-foreground">{delivery.poNumber}</span>
+            Purchase Order Reference: <span className="font-mono font-medium text-foreground">{delivery.poNumber}</span>
           </div>
         </div>
+
+        {/* Visual Stepper */}
+        {!isCancelled && (
+          <div className="py-2">
+            <div className="flex items-center justify-between relative">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-foreground transition-all duration-500 ease-in-out"
+                  style={{ width: `${(currentStepIdx / (steps.length - 1)) * 100}%` }}
+                />
+              </div>
+              {steps.map((s, i) => {
+                const isActive = i <= currentStepIdx;
+                const isLast = i === currentStepIdx;
+                return (
+                  <div key={s} className="relative flex flex-col items-center gap-2 bg-background px-2">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 text-xs font-bold transition-all duration-500 z-10 ${
+                        isActive
+                          ? "bg-foreground border-foreground text-background shadow-md scale-110"
+                          : "bg-background border-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isActive && !isLast ? <Check className="w-4 h-4" /> : (i + 1)}
+                    </div>
+                    <span className={`text-[10px] uppercase tracking-wider font-bold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                      {s}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Cancellation Reason Notice */}
         {isCancelled && delivery.notes && (
           <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs flex items-start gap-2.5">
@@ -323,8 +364,8 @@ export function DeliveryDetailsModal({
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-xs">
                   <th className="px-3.5 py-2.5">Item Description</th>
-                  <th className="px-3.5 py-2.5">UOM</th>
-                  <th className="px-3.5 py-2.5 text-right">PO Ordered</th>
+                  <th className="px-3.5 py-2.5">Unit of Measure</th>
+                  <th className="px-3.5 py-2.5 text-right">Purchase Order Quantity</th>
                   <th className="px-3.5 py-2.5 text-right">Prior Received</th>
                   <th className="px-3.5 py-2.5 text-right font-bold text-foreground">Shipment Qty</th>
                   <th className="px-3.5 py-2.5 text-right">Remaining Balance</th>
@@ -417,22 +458,34 @@ export function DeliveryDetailsModal({
               </Button>
             )}
 
-            {!isAdmin && isArrived && !delivery.grnNumber && onCreateGrn && (
+            {!isAdmin && isArrived && !delivery.grnNumber && (
               <Button
                 type="button"
                 onClick={() => {
-                  onClose();
-                  onCreateGrn(delivery);
+                  setShowCreateGrnModal(true);
                 }}
                 className="flex items-center gap-2 rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
               >
                 <Receipt className="w-4 h-4" />
-                Create GRN
+                Create Goods Receipt Note
               </Button>
             )}
           </div>
         </div>
       </div>
+
+      {showCreateGrnModal && (
+        <CreateGrnModal
+          open={showCreateGrnModal}
+          initialDeliveryId={delivery.deliveryId}
+          onClose={() => setShowCreateGrnModal(false)}
+          onSuccess={() => {
+            setShowCreateGrnModal(false);
+            onClose();
+            onGrnCreated?.();
+          }}
+        />
+      )}
     </ModalWrapper>
   );
 }
