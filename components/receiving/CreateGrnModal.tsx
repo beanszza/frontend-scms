@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, Plus, Trash2, ClipboardCheck } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, ClipboardCheck, AlertTriangle } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { ArrivedDelivery, GRN, QAInspection } from "./types";
@@ -40,6 +40,9 @@ interface QaItemRow {
   itemName: string;
   categoryName?: string;
   lotId?: number;
+  batchNumber?: number;
+  totalBatches?: number;
+  expiryDate?: string;
   deliveredQuantity: number;
   acceptedQuantity: number | "";
   rejectedQuantity: number | "";
@@ -81,7 +84,7 @@ const defectReasons = [
 
 const receivingChecks = [
   ["physicalQuantityVerified", "Physical quantity verified"],
-  ["itemsMatchPurchaseOrder", "Items match the Purchase Order"],
+  ["itemsMatchPurchaseOrder", "Items match delivery manifest"],
   ["supplierDocumentsChecked", "Supplier documents checked"],
   ["packagingConditionChecked", "Packaging / condition checked"],
 ] as const;
@@ -351,7 +354,8 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
   const isReadyForQa = Boolean(
     selected &&
       items.length > 0 &&
-      items.every((item) => isItemCounted(item))
+      items.every((item) => isItemCounted(item)) &&
+      Object.keys(fieldErrors).length === 0
   );
 
   const rawMaterials = items.filter(
@@ -382,7 +386,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
           deliveryItemId: i.deliveryItemId,
           itemId: i.itemId,
           deliveredQuantity: Number(b.deliveredQuantity) || 0,
-          expiryDate: b.expiryDate || undefined,
+          expiryDate: b.expiryDate ? `${b.expiryDate.split("T")[0]}T12:00:00Z` : undefined,
         }))
       );
 
@@ -491,7 +495,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
               deliveryItemId: i.deliveryItemId,
               itemId: i.itemId,
               deliveredQuantity: Number(b.deliveredQuantity) || 0,
-              expiryDate: b.expiryDate || undefined,
+              expiryDate: b.expiryDate ? b.expiryDate.split("T")[0] : undefined,
             }))
           );
 
@@ -522,28 +526,86 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
       }
 
       // Fetch or locate the QA inspection for this GRN
-      const qaRes = await api.get(`/api/QualityInspections?grnId=${resolvedGrn!.grnId}`);
-      const inspectionList: QAInspection[] = Array.isArray(qaRes.data?.data) ? qaRes.data.data : [];
-      const inspection = inspectionList[0] || null;
+      let inspection: QAInspection | null = null;
+      try {
+        const qaRes = await api.get(`/api/QualityInspections?grnId=${resolvedGrn!.grnId}`);
+        const inspectionList: QAInspection[] = Array.isArray(qaRes.data?.data)
+          ? qaRes.data.data
+          : Array.isArray(qaRes.data)
+          ? qaRes.data
+          : [];
+        inspection = inspectionList[0] || null;
 
-      if (!inspection) {
-        throw new Error("Unable to locate quality inspection record for this GRN.");
+        if (!inspection) {
+          const allQc = await api.get("/api/QualityInspections");
+          const allList: QAInspection[] = Array.isArray(allQc.data?.data)
+            ? allQc.data.data
+            : Array.isArray(allQc.data)
+            ? allQc.data
+            : [];
+          inspection =
+            allList.find(
+              (q) =>
+                q.referenceId === resolvedGrn!.grnId ||
+                q.referenceNumber === resolvedGrn!.grnNumber ||
+                (q as any).grnId === resolvedGrn!.grnId
+            ) || null;
+        }
+      } catch (qcFetchErr) {
+        console.warn("Could not fetch QA inspection directly:", qcFetchErr);
       }
 
       setQaInspection(inspection);
 
-      const qaRows: QaItemRow[] = (inspection.items || []).map((qItem) => {
-        const matchingSource = items.find((src) => src.itemId === qItem.itemId);
-        // Fields start empty so user fills them in
+      // Populate QA inspection rows from inspection items if available, or fall back to GRN/source items
+      const sourceItemsList =
+        inspection?.items && inspection.items.length > 0
+          ? inspection.items
+          : items.flatMap((src) =>
+              src.batches.map((b, bIdx) => ({
+                itemId: src.itemId,
+                itemName: src.itemName,
+                categoryName: src.categoryName,
+                deliveredQuantity: Number(b.deliveredQuantity) || 0,
+                lotId: undefined,
+                batchNumber: bIdx + 1,
+                totalBatches: src.batches.length,
+                expiryDate: b.expiryDate ? b.expiryDate.split("T")[0] : undefined,
+              }))
+            );
+
+      const itemBatchCounters: Record<number, number> = {};
+      const qaRows: QaItemRow[] = sourceItemsList.map((qItem: any, idx: number) => {
+        const itemId = qItem.itemId;
+        const currentCount = itemBatchCounters[itemId] || 0;
+        itemBatchCounters[itemId] = currentCount + 1;
+
+        const matchingSource = items.find((src) => src.itemId === itemId);
+        const matchingBatch = matchingSource?.batches?.[currentCount] || matchingSource?.batches?.[0];
+        const batchNum = qItem.batchNumber || currentCount + 1;
+        const totalBatches = qItem.totalBatches || matchingSource?.batches?.length || 1;
+        const expiry =
+          qItem.lot?.expiryDate?.split("T")[0] ||
+          qItem.expiryDate?.split("T")[0] ||
+          (matchingBatch?.expiryDate ? matchingBatch.expiryDate.split("T")[0] : undefined);
+
+        const deliveredQty =
+          Number(qItem.deliveredQuantity) ||
+          Number(matchingBatch?.deliveredQuantity) ||
+          (matchingSource ? getItemTotalActual(matchingSource) : 0);
+
         return {
-          inspectionItemId: qItem.inspectionItemId,
+          inspectionItemId: qItem.inspectionItemId || idx + 1,
           itemId: qItem.itemId,
           itemName: qItem.itemName || matchingSource?.itemName || `Item #${qItem.itemId}`,
           categoryName: matchingSource?.categoryName || "Raw Materials",
-          lotId: qItem.lotId,
-          deliveredQuantity: qItem.deliveredQuantity,
-          acceptedQuantity: "",
-          rejectedQuantity: "",
+          lotId: qItem.lotId || qItem.lot?.lotId,
+          batchNumber: batchNum,
+          totalBatches: totalBatches,
+          expiryDate: expiry,
+          deliveredQuantity: deliveredQty,
+          acceptedQuantity: deliveredQty,
+          rejectedQuantity: 0,
           concessionQuantity: 0,
           defectReason: "",
           notes: "",
@@ -553,16 +615,25 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
         };
       });
 
+      if (!inspectorName && HR_EMPLOYEES.length > 0) {
+        setInspectorName(HR_EMPLOYEES[0]);
+      }
       setQaItems(qaRows);
       setExpandedQaItems(Object.fromEntries(qaRows.map((r, i) => [r.inspectionItemId, i === 0])));
       setStep(2);
     } catch (err: any) {
-      console.error("[Proceed to QA] Error:", err?.response?.data || err?.message || err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "An error occurred while proceeding to QA inspection."
-      );
+      const errorMsg =
+        err?.response?.data?.message ||
+        (err?.response?.data?.errors
+          ? Object.entries(err.response.data.errors)
+              .map(([k, v]: [string, any]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+              .join("; ")
+          : null) ||
+        err?.response?.data?.title ||
+        err?.message ||
+        "An error occurred while proceeding to QA inspection.";
+      console.error("[Proceed to QA] Error message:", errorMsg, err);
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -658,11 +729,25 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
 
   // STEP 2 Action: Finish GRN (Complete QA)
   const executeFinishGrn = async () => {
-    if (!qaInspection || !activeGrn || !isQaDone) return;
+    if (!activeGrn || !isQaDone) return;
 
     setSubmitting(true);
     setError(null);
     try {
+      let resolvedInspectionId = qaInspection?.inspectionId;
+      if (!resolvedInspectionId) {
+        const qaRes = await api.get(`/api/QualityInspections?grnId=${activeGrn.grnId}`);
+        const list = Array.isArray(qaRes.data?.data) ? qaRes.data.data : [];
+        if (list[0]?.inspectionId) {
+          resolvedInspectionId = list[0].inspectionId;
+          setQaInspection(list[0]);
+        }
+      }
+
+      if (!resolvedInspectionId) {
+        throw new Error("Unable to locate active quality inspection for this GRN.");
+      }
+
       const payload = {
         overallNotes: qaOverallNotes.trim()
           ? `Inspector: ${inspectorName.trim()} | ${qaOverallNotes.trim()}`
@@ -683,7 +768,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
         })),
       };
 
-      const res = await api.post(`/api/QualityInspections/${qaInspection.inspectionId}/complete`, payload);
+      const res = await api.post(`/api/QualityInspections/${resolvedInspectionId}/complete`, payload);
       if (!res.data?.success) {
         throw new Error(res.data?.message || "Failed to complete QA inspection.");
       }
@@ -736,7 +821,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
       doc.setFontSize(9);
       doc.setTextColor(0);
       doc.text(`Supplier: ${selected?.supplierName || "—"}`, 18, 42);
-      doc.text(`Purchase Order: ${selected?.poNumber || "—"}`, 18, 49);
+      doc.text(`Carrier: ${selected?.carrier || "—"}`, 18, 49);
 
       doc.text(`Delivery No: ${selected?.deliveryNumber || "—"}`, 105, 42);
       doc.text(`Inspector: ${inspectorName || "—"}`, 105, 49);
@@ -1012,7 +1097,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
             : `Quality Assurance Inspection — ${activeGrn?.grnNumber || previewGrnNo}`
         }
         onClose={onClose}
-        size="max-w-7xl"
+        size="max-w-4xl"
       >
         <div className="space-y-4 text-foreground">
           {/* Top Assigned GRN Header */}
@@ -1107,11 +1192,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                         <span className="font-semibold text-foreground">{selected.supplierName}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground block">Purchase Order</span>
-                        <span className="font-semibold text-foreground">{selected.poNumber}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground block">Delivery Note</span>
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground block">Delivery No.</span>
                         <span className="font-semibold text-foreground">{selected.deliveryNumber}</span>
                       </div>
                       {selected.carrier && selected.carrier !== "N/A" && (
@@ -1213,7 +1294,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                   )}
                   <button
                     type="button"
-                    disabled={submitting || !selected}
+                    disabled={submitting || !isReadyForQa}
                     onClick={executeProceedToQa}
                     className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
@@ -1255,7 +1336,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                   </span>
                 </div>
 
-                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                <div className="space-y-3">
                   {qaItems.map((qaItem, idx) => {
                     const checksList = getQaChecks(qaItem);
                     const allChecked = checksList.every((c) => qaItem.checks[c.id]);
@@ -1264,18 +1345,28 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                     return (
                       <div
                         key={qaItem.inspectionItemId}
-                        className="rounded-2xl border border-border bg-card overflow-hidden transition-colors"
+                        className="rounded-2xl border border-border bg-card overflow-hidden transition-colors shadow-xs"
                       >
-                        {/* Accordion Header (Click to minimize / expand) */}
+                        {/* Clean Grey Accordion Header for QA item */}
                         <div
                           onClick={() => toggleExpandQaItem(qaItem.inspectionItemId)}
-                          className="flex items-center justify-between p-3.5 bg-muted/20 cursor-pointer hover:bg-muted/35 transition-colors select-none"
+                          className="flex items-center justify-between p-3.5 bg-muted/60 dark:bg-muted/40 text-foreground border-b border-border/80 cursor-pointer hover:bg-muted/80 dark:hover:bg-muted/60 transition-colors select-none"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold text-sm text-foreground">{qaItem.itemName}</span>
-                            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="font-bold text-sm text-foreground">{qaItem.itemName}</span>
+                            <span className="rounded-md bg-card border border-border text-muted-foreground px-2 py-0.5 text-[10px] font-semibold">
                               {qaItem.categoryName || "Raw Material"}
                             </span>
+                            {(qaItem.totalBatches || 1) > 1 && (
+                              <span className="rounded-md bg-card border border-border text-foreground px-2 py-0.5 text-[10px] font-mono font-medium">
+                                Batch #{qaItem.batchNumber || 1} of {qaItem.totalBatches}
+                              </span>
+                            )}
+                            {qaItem.expiryDate && (
+                              <span className="rounded-md bg-card border border-border text-foreground px-2 py-0.5 text-[10px] font-mono font-medium">
+                                Exp: {qaItem.expiryDate}
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-4">
@@ -1283,12 +1374,12 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                               Delivered: <strong className="text-foreground">{qaItem.deliveredQuantity}</strong>
                             </div>
                             {typeof qaItem.acceptedQuantity === "number" && (
-                              <div className="text-xs text-muted-foreground">
-                                Acc: <strong className="text-foreground">{qaItem.acceptedQuantity}</strong>
+                              <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                                Acc: {qaItem.acceptedQuantity}
                               </div>
                             )}
                             {typeof qaItem.rejectedQuantity === "number" && Number(qaItem.rejectedQuantity) > 0 && (
-                              <div className="text-xs text-destructive font-bold">
+                              <div className="text-xs text-rose-600 dark:text-rose-400 font-bold">
                                 Rej: {qaItem.rejectedQuantity}
                               </div>
                             )}
@@ -1303,11 +1394,28 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
                         {/* Accordion Body */}
                         {isExpanded && (
                           <div className="p-4 space-y-3.5 border-t border-border/60">
-                            {/* Checklist Section */}
+                            {/* Specific Batch & Expiry Date Info */}
+                            <div className="rounded-xl border border-border bg-muted/20 p-2.5 text-xs flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+                                Batch &amp; Expiry:
+                              </span>
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-card border border-border text-[11px] font-mono">
+                                <span className="text-muted-foreground">
+                                  {(qaItem.totalBatches || 1) > 1 ? `Batch #${qaItem.batchNumber || 1} of ${qaItem.totalBatches}:` : "Batch #1:"}
+                                </span>
+                                <strong className="text-foreground">{qaItem.deliveredQuantity}</strong>
+                                <span className="text-muted-foreground">· Expiry:</span>
+                                <span className="text-foreground font-semibold">
+                                  {qaItem.expiryDate || "Non-expiring"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Checklist Section (Optional) */}
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                  Verification Checks
+                                  Verification Checks (Optional)
                                 </span>
                                 <button
                                   type="button"
@@ -1469,68 +1577,96 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
         </div>
       </ModalWrapper>
 
-      {/* Reject Entire Shipment Modal (Monochromatic theme matching resources & suppliers) */}
-      {showRejectModal && (
-        <ModalWrapper
-          open={showRejectModal}
-          title="Reject Entire Shipment"
-          onClose={() => setShowRejectModal(false)}
-          size="max-w-xl"
+      {/* Reject Entire Shipment Modal (Matching POActionModal confirmation layout) */}
+      {showRejectModal && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setShowRejectModal(false)}
         >
-          <div className="space-y-4 text-foreground">
-            <p className="text-xs text-muted-foreground">
-              Rejecting this shipment will mark the Goods Receipt Note as <strong>Rejected</strong> and automatically log Discrepancy records for every line item.
-            </p>
+          <div
+            style={{ width: "100%", maxWidth: "440px" }}
+            className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col p-6 text-foreground shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center justify-center text-center">
+              {/* Circular Alert Icon */}
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-foreground">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
 
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-foreground">Rejection Reason <span className="text-destructive">*</span></span>
-              <select
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-              >
-                <option value="">Select Reason</option>
-                <option value="Severe transit damage to cargo">Severe transit damage to cargo</option>
-                <option value="Packaging compromised / contaminated">Packaging compromised / contaminated</option>
-                <option value="Wrong products delivered altogether">Wrong products delivered altogether</option>
-                <option value="Delivery documentation completely missing">Delivery documentation completely missing</option>
-                <option value="Temperature compliance breached">Temperature compliance breached</option>
-                <option value="Expired products on arrival">Expired products on arrival</option>
-                <option value="Rejected by commissary gate supervisor">Rejected by commissary gate supervisor</option>
-              </select>
-            </label>
+              {/* Title */}
+              <h2 className="text-xl font-bold text-foreground mb-1">
+                Reject Entire Shipment
+              </h2>
 
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-foreground">Detailed Remarks</span>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="Additional notes or photos reference..."
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-foreground"
-              />
-            </label>
+              {/* Subtitle */}
+              <p className="text-xs font-mono font-semibold text-muted-foreground mb-3">
+                Delivery No: {selected?.deliveryNumber || "—"}
+              </p>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
-              <button
-                type="button"
-                onClick={() => setShowRejectModal(false)}
-                disabled={submitting}
-                className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!rejectionReason.trim() || submitting}
-                onClick={handleRejectShipment}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              >
-                {submitting ? "Rejecting…" : "Confirm Rejection"}
-              </button>
+              {/* Description */}
+              <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+                Are you sure you want to reject this entire shipment? This will mark the Goods Receipt Note as Rejected and automatically log Discrepancy records for every line item.
+              </p>
+
+              {/* Rejection Reason Input */}
+              <div className="w-full text-left space-y-1.5 mb-4">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  Rejection Reason <span className="text-destructive">*</span>
+                </label>
+                <select
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background text-foreground px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-foreground"
+                >
+                  <option value="">Select Reason</option>
+                  <option value="Severe transit damage to cargo">Severe transit damage to cargo</option>
+                  <option value="Packaging compromised / contaminated">Packaging compromised / contaminated</option>
+                  <option value="Wrong products delivered altogether">Wrong products delivered altogether</option>
+                  <option value="Delivery documentation completely missing">Delivery documentation completely missing</option>
+                  <option value="Temperature compliance breached">Temperature compliance breached</option>
+                  <option value="Expired products on arrival">Expired products on arrival</option>
+                  <option value="Rejected by commissary gate supervisor">Rejected by commissary gate supervisor</option>
+                </select>
+              </div>
+
+              {/* Additional Remarks */}
+              <div className="w-full text-left space-y-1.5 mb-5">
+                <label className="text-xs font-semibold text-foreground">
+                  Additional Remarks
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Additional notes or photos reference..."
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-foreground resize-none"
+                />
+              </div>
+
+              {/* Uniform Action Buttons */}
+              <div className="flex justify-center gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowRejectModal(false)}
+                  disabled={submitting}
+                  className="flex-1 px-5 py-2.5 text-sm font-semibold text-foreground border border-border bg-card hover:bg-muted rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!rejectionReason.trim() || submitting}
+                  onClick={handleRejectShipment}
+                  className="flex-1 px-5 py-2.5 text-sm font-semibold text-background bg-foreground hover:bg-foreground/85 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {submitting ? "Rejecting…" : "Confirm Rejection"}
+                </button>
+              </div>
             </div>
           </div>
-        </ModalWrapper>
+        </div>,
+        document.body
       )}
 
 

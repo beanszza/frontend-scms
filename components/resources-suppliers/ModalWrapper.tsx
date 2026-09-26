@@ -20,7 +20,19 @@ export default function ModalWrapper({
   size,
 }: ModalWrapperProps) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = original;
+      };
+    }
+  }, [open]);
 
   if (!open || !mounted) return null;
 
@@ -42,19 +54,24 @@ export default function ModalWrapper({
       : "900px";
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 sm:p-6" onClick={onClose}>
       <div
         style={{ width: "100%", maxWidth: maxWidthStyle }}
-        className={`w-full max-h-[90vh] overflow-y-auto p-md sm:p-lg rounded-lg sm:rounded-xl border border-border bg-card flex flex-col shadow-2xl shrink-0 ${size || ""}`}
+        className={`w-full max-h-[90vh] p-6 sm:p-8 rounded-2xl border border-border bg-card flex flex-col shadow-2xl shrink-0 ${size || ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border pb-3 mb-4 flex-shrink-0">
           <h2 className="text-xl font-bold text-foreground">{title}</h2>
-          <button onClick={onClose} className="text-foreground/60 hover:text-foreground transition-colors p-1" title="Close">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-foreground/60 hover:text-foreground hover:bg-muted p-1 rounded-lg transition-colors cursor-pointer"
+            title="Close"
+          >
             <X size={22} />
           </button>
         </div>
-        <div className="overflow-y-auto">{children}</div>
+        <div className="overflow-y-auto flex-1 pr-1 pb-6">{children}</div>
       </div>
     </div>,
     document.body

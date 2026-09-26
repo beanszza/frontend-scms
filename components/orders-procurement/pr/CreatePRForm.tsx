@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Calendar, Search } from "lucide-react";
+import { Plus, Trash2, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { PurchaseRequisition, PRItem } from "../types";
 import { useAuth } from "@/context/AuthContext";
-import ConfirmModal from "@/components/ConfirmModal";
 import { HR_EMPLOYEES } from "@/lib/employees";
 
 export interface CreatePRModalProps {
@@ -278,14 +277,15 @@ export function CreatePRModal({
     });
   };
 
-  // Change Quantity
+  // Change Quantity - enforce positive (>0)
   const handleQuantityChange = (index: number, val: string) => {
-    const num = parseFloat(val);
+    const cleanVal = val.replace(/[-+e]/gi, "");
+    const num = parseFloat(cleanVal);
     setItems((prev) => {
       const copy = [...prev];
       copy[index] = {
         ...copy[index],
-        requestedQuantity: isNaN(num) ? 0 : num,
+        requestedQuantity: isNaN(num) ? 0 : Math.max(0, num),
       };
       return copy;
     });
@@ -309,7 +309,6 @@ export function CreatePRModal({
         newErrors.requiredDate = "Required date must be a future date.";
       }
     }
-    if (!purpose.trim()) newErrors.purpose = "Purpose / Justification is required.";
 
     if (items.length === 0) {
       newErrors.items = "At least one supply or ingredient must be requested.";
@@ -324,6 +323,14 @@ export function CreatePRModal({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const isFormValid = useMemo(() => {
+    if (!requestedBy.trim() || !department.trim() || !requestType.trim() || !priority.trim() || !requiredDate) {
+      return false;
+    }
+    if (items.length === 0) return false;
+    return items.every((it) => it.itemId > 0 && it.requestedQuantity > 0);
+  }, [requestedBy, department, requestType, priority, requiredDate, items]);
 
   // Execution
   const executeSave = async (submitForApproval: boolean) => {
@@ -340,7 +347,7 @@ export function CreatePRModal({
         requestType: requestType.trim(),
         priority: priority.trim(),
         requiredDate: new Date(requiredDate).toISOString(),
-        purpose: purpose.trim(),
+        purpose: notes.trim() || "Stock replenishment",
         notes: notes.trim() || null,
         submitForApproval,
         items: items.map((it) => ({
@@ -371,21 +378,12 @@ export function CreatePRModal({
     }
   };
 
-  const handleCloseAttempt = () => {
-    setConfirmModal({
-      open: true,
-      title: "Discard changes?",
-      message: "Are you sure you want to exit? Any unsaved changes will be lost.",
-      action: "cancel",
-    });
-  };
-
   return (
     <>
       <ModalWrapper
         open={open}
         title={isEdit ? "Edit Purchase Requisition" : "Create Purchase Requisition"}
-        onClose={handleCloseAttempt}
+        onClose={onClose}
         size="max-w-5xl"
       >
         <div className="space-y-4">
@@ -407,158 +405,29 @@ export function CreatePRModal({
               </button>
             </div>
           )}
-          {/* Row 1: PR Number & Request Date (2 Columns) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Top Form Fields: Clean, modern 3-column responsive grid preventing overly wide stretched inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 p-4 rounded-2xl bg-muted/20 border border-border">
+            {/* PR Number */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Purchase Requisition Number <span className="text-[10px] text-muted-foreground font-normal">(Auto-generated)</span>
+                Purchase Requisition Number
               </label>
-              <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 font-mono text-xs text-muted-foreground">
+              <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 font-mono text-xs text-muted-foreground select-all">
                 {prNumber || "PR-XXXX-XXXX"}
               </div>
             </div>
+
+            {/* Request Date */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Request Date
               </label>
-              <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 text-xs text-muted-foreground">
+              <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
                 {requestDate}
               </div>
             </div>
-          </div>
 
-          {/* Row 2: Requested By & Department (2 Columns) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Requested By <span className="text-destructive">*</span>
-              </label>
-              <select
-                value={requestedBy}
-                onChange={(e) => {
-                  setRequestedBy(e.target.value);
-                  setErrors((prev) => {
-                    const c = { ...prev };
-                    delete c.requestedBy;
-                    return c;
-                  });
-                }}
-                className={`w-full rounded-xl border ${
-                  errors.requestedBy ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-4 py-2.5 text-sm text-foreground shadow-none focus-visible:ring-1 focus-visible:ring-ring`}
-              >
-                <option value="" disabled>Select requester...</option>
-                {requestedBy && !HR_EMPLOYEES.includes(requestedBy as (typeof HR_EMPLOYEES)[number]) && (
-                  <option value={requestedBy}>{requestedBy}</option>
-                )}
-                {HR_EMPLOYEES.map(emp => (
-                  <option key={emp} value={emp}>{emp}</option>
-                ))}
-              </select>
-              {errors.requestedBy && (
-                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.requestedBy}</p>
-              )}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Department <span className="text-destructive">*</span>
-              </label>
-              <select
-                value={department}
-                onChange={(e) => {
-                  setDepartment(e.target.value);
-                  setErrors((prev) => {
-                    const c = { ...prev };
-                    delete c.department;
-                    return c;
-                  });
-                }}
-                className={`w-full rounded-xl border ${
-                  errors.department ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
-                  department ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                <option value="">Select department...</option>
-                <option value="Inventory" className="text-foreground">Inventory</option>
-                <option value="Production" className="text-foreground">Production</option>
-                <option value="Warehouse" className="text-foreground">Warehouse</option>
-                <option value="Quality Assurance" className="text-foreground">Quality Assurance</option>
-                <option value="Administration" className="text-foreground">Administration</option>
-              </select>
-              {errors.department && (
-                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.department}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 3: Request Type & Priority (2 Columns) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Request Type <span className="text-destructive">*</span>
-              </label>
-              <select
-                value={requestType}
-                onChange={(e) => {
-                  setRequestType(e.target.value);
-                  setErrors((prev) => {
-                    const c = { ...prev };
-                    delete c.requestType;
-                    return c;
-                  });
-                }}
-                className={`w-full rounded-xl border ${
-                  errors.requestType ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
-                  requestType ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                <option value="">Select request type...</option>
-                <option value="Stock Replenishment" className="text-foreground">Stock Replenishment</option>
-                <option value="Emergency Restock" className="text-foreground">Emergency Restock</option>
-                <option value="Production Run" className="text-foreground">Production Run</option>
-                <option value="Trial / New Product" className="text-foreground">Trial / New Product</option>
-                <option value="Other" className="text-foreground">Other</option>
-              </select>
-              {errors.requestType && (
-                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.requestType}</p>
-              )}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Priority <span className="text-destructive">*</span>
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => {
-                  setPriority(e.target.value);
-                  setErrors((prev) => {
-                    const c = { ...prev };
-                    delete c.priority;
-                    return c;
-                  });
-                }}
-                className={`w-full rounded-xl border ${
-                  errors.priority ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
-                  priority ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                <option value="">Select priority...</option>
-                <option value="Normal" className="text-foreground">Normal</option>
-                <option value="Low" className="text-foreground">Low</option>
-                <option value="High" className="text-foreground">High</option>
-                <option value="Urgent" className="text-foreground">Urgent</option>
-              </select>
-              {errors.priority && (
-                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.priority}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 4: Required Date & Requisition Status (2 Columns) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Required Date */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
                 Required Date <span className="text-destructive">*</span>
@@ -576,24 +445,145 @@ export function CreatePRModal({
                       return c;
                     });
                   }}
-                  className={`w-full rounded-xl border ${
+                  className={`w-full h-10 rounded-xl border ${
                     errors.requiredDate ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                  } bg-card px-4 py-2.5 pr-10 text-sm text-foreground transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                  } bg-card px-3.5 py-2 pr-10 text-xs text-foreground transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                 />
                 <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               </div>
               {errors.requiredDate && (
-                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.requiredDate}</p>
+                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.requiredDate}</p>
               )}
             </div>
+
+            {/* Requested By */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Requisition Status
+                Requested By <span className="text-destructive">*</span>
               </label>
-              <div className="flex items-center h-10 px-4 rounded-xl border border-border bg-muted/20 text-xs font-medium text-muted-foreground">
-                <span className="w-2 h-2 rounded-full bg-amber-500/70 mr-2 shrink-0" />
-                <span>{statusText || "Draft"}</span>
-              </div>
+              <select
+                value={requestedBy}
+                onChange={(e) => {
+                  setRequestedBy(e.target.value);
+                  setErrors((prev) => {
+                    const c = { ...prev };
+                    delete c.requestedBy;
+                    return c;
+                  });
+                }}
+                className={`w-full h-10 rounded-xl border ${
+                  errors.requestedBy ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-ring`}
+              >
+                <option value="" disabled>Select requester...</option>
+                {requestedBy && !HR_EMPLOYEES.includes(requestedBy as (typeof HR_EMPLOYEES)[number]) && (
+                  <option value={requestedBy}>{requestedBy}</option>
+                )}
+                {HR_EMPLOYEES.map((emp) => (
+                  <option key={emp} value={emp}>{emp}</option>
+                ))}
+              </select>
+              {errors.requestedBy && (
+                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.requestedBy}</p>
+              )}
+            </div>
+
+            {/* Department */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Department <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={department}
+                onChange={(e) => {
+                  setDepartment(e.target.value);
+                  setErrors((prev) => {
+                    const c = { ...prev };
+                    delete c.department;
+                    return c;
+                  });
+                }}
+                className={`w-full h-10 rounded-xl border ${
+                  errors.department ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-ring ${
+                  department ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <option value="">Select department...</option>
+                <option value="Inventory" className="text-foreground">Inventory</option>
+                <option value="Production" className="text-foreground">Production</option>
+                <option value="Warehouse" className="text-foreground">Warehouse</option>
+                <option value="Quality Assurance" className="text-foreground">Quality Assurance</option>
+                <option value="Administration" className="text-foreground">Administration</option>
+              </select>
+              {errors.department && (
+                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.department}</p>
+              )}
+            </div>
+
+            {/* Request Type */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Request Type <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={requestType}
+                onChange={(e) => {
+                  setRequestType(e.target.value);
+                  setErrors((prev) => {
+                    const c = { ...prev };
+                    delete c.requestType;
+                    return c;
+                  });
+                }}
+                className={`w-full h-10 rounded-xl border ${
+                  errors.requestType ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-ring ${
+                  requestType ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <option value="">Select request type...</option>
+                <option value="Stock Replenishment" className="text-foreground">Stock Replenishment</option>
+                <option value="Emergency Restock" className="text-foreground">Emergency Restock</option>
+                <option value="Production Run" className="text-foreground">Production Run</option>
+                <option value="Trial / New Product" className="text-foreground">Trial / New Product</option>
+                <option value="Other" className="text-foreground">Other</option>
+              </select>
+              {errors.requestType && (
+                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.requestType}</p>
+              )}
+            </div>
+
+            {/* Priority */}
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                Priority <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={priority}
+                onChange={(e) => {
+                  setPriority(e.target.value);
+                  setErrors((prev) => {
+                    const c = { ...prev };
+                    delete c.priority;
+                    return c;
+                  });
+                }}
+                className={`w-full h-10 rounded-xl border ${
+                  errors.priority ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-xs focus:ring-1 focus:ring-ring ${
+                  priority ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <option value="">Select priority...</option>
+                <option value="Normal" className="text-foreground">Normal</option>
+                <option value="Low" className="text-foreground">Low</option>
+                <option value="High" className="text-foreground">High</option>
+                <option value="Urgent" className="text-foreground">Urgent</option>
+              </select>
+              {errors.priority && (
+                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.priority}</p>
+              )}
             </div>
           </div>
 
@@ -603,16 +593,6 @@ export function CreatePRModal({
               <label className="block text-xs font-semibold text-foreground">
                 Requested Supplies &amp; Ingredients <span className="text-destructive">*</span>
               </label>
-              <div className="relative w-48">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search added items..."
-                  value={itemSearch}
-                  onChange={(e) => setItemSearch(e.target.value)}
-                  className="h-7 text-xs pl-7 rounded-lg border-border bg-card focus-visible:ring-1"
-                />
-              </div>
             </div>
 
             {errors.items && (
@@ -639,82 +619,80 @@ export function CreatePRModal({
                       </td>
                     </tr>
                   ) : (
-                    items
-                      .map((item, originalIndex) => ({ item, originalIndex }))
-                      .filter(({ item }) =>
-                        !itemSearch ||
-                        item.itemName?.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                        item.itemCode?.toLowerCase().includes(itemSearch.toLowerCase())
-                      )
-                      .map(({ item, originalIndex: idx }) => {
-                        const qtyErrorKey = `item_qty_${idx}`;
-                        const hasQtyError = !!errors[qtyErrorKey];
+                    items.map((item, idx) => {
+                      const qtyErrorKey = `item_qty_${idx}`;
+                      const hasQtyError = !!errors[qtyErrorKey] || (item.requestedQuantity !== undefined && item.requestedQuantity <= 0);
 
-                        return (
-                          <tr key={idx} className="hover:bg-muted/10 transition-colors">
-                            <td className="px-3.5 py-2">
-                              <select
-                                value={item.itemId}
-                                onChange={(e) => handleSelectSupply(idx, parseInt(e.target.value))}
-                                className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-ring"
-                              >
-                                {suppliesList.map((sup) => (
-                                  <option key={sup.itemId} value={sup.itemId}>
-                                    {sup.itemName}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-3.5 py-2 font-mono text-muted-foreground">
-                              {item.itemCode || `SPL-${item.itemId}`}
-                            </td>
-                            <td className="px-3.5 py-2 text-muted-foreground">
-                              {item.uomName || "pcs"}
-                            </td>
-                            <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
-                              {Number(item.actualInventory || 0).toLocaleString()}
-                            </td>
-                            <td className="px-3.5 py-2 text-right">
-                              <div className="flex flex-col items-end">
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  min="0.001"
-                                  value={item.requestedQuantity || ""}
-                                  onChange={(e) => {
-                                    handleQuantityChange(idx, e.target.value);
-                                    if (errors[qtyErrorKey]) {
-                                      setErrors((prev) => {
-                                        const copy = { ...prev };
-                                        delete copy[qtyErrorKey];
-                                        return copy;
-                                      });
-                                    }
-                                  }}
-                                  className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
-                                    hasQtyError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                                  }`}
-                                />
-                                {hasQtyError && (
-                                  <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
-                                    {errors[qtyErrorKey]}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-3.5 py-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveItem(idx)}
-                                className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors cursor-pointer"
-                                title="Remove"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
+                      return (
+                        <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-3.5 py-2">
+                            <select
+                              value={item.itemId}
+                              onChange={(e) => handleSelectSupply(idx, parseInt(e.target.value))}
+                              className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-ring"
+                            >
+                              {suppliesList.map((sup) => (
+                                <option key={sup.itemId} value={sup.itemId}>
+                                  {sup.itemName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-3.5 py-2 font-mono text-muted-foreground">
+                            {item.itemCode || `SPL-${item.itemId}`}
+                          </td>
+                          <td className="px-3.5 py-2 text-muted-foreground">
+                            {item.uomName || "pcs"}
+                          </td>
+                          <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
+                            {Number(item.actualInventory || 0).toLocaleString()}
+                          </td>
+                          <td className="px-3.5 py-2 text-right">
+                            <div className="flex flex-col items-end">
+                              <Input
+                                type="number"
+                                step="any"
+                                min="0.001"
+                                value={item.requestedQuantity || ""}
+                                onKeyDown={(e) => {
+                                  if (e.key === "-" || e.key === "e" || e.key === "+") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  handleQuantityChange(idx, e.target.value);
+                                  if (errors[qtyErrorKey]) {
+                                    setErrors((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[qtyErrorKey];
+                                      return copy;
+                                    });
+                                  }
+                                }}
+                                className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
+                                  hasQtyError ? "!border-destructive !text-destructive bg-destructive/5 focus-visible:!ring-destructive" : "border-border"
+                                }`}
+                              />
+                              {hasQtyError && (
+                                <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
+                                  {errors[qtyErrorKey] || "Must be > 0"}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(idx)}
+                              className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors cursor-pointer"
+                              title="Remove"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -730,69 +708,38 @@ export function CreatePRModal({
             </button>
           </div>
 
-          {/* Row 5: Purpose / Justification & Notes (2 Columns) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2 border-t border-border">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-foreground">
-                  Purpose / Justification <span className="text-destructive">*</span>
-                </label>
-                <span className="text-[10px] text-muted-foreground">{purpose.length}/500</span>
-              </div>
-              <Textarea
-                rows={3}
-                maxLength={500}
-                placeholder="Enter purpose or justification..."
-                value={purpose}
-                onChange={(e) => {
-                  setPurpose(e.target.value);
-                  setErrors((prev) => {
-                    const copy = { ...prev };
-                    delete copy.purpose;
-                    return copy;
-                  });
-                }}
-                className={`w-full rounded-xl border ${
-                  errors.purpose ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring resize-none`}
-              />
-              {errors.purpose && (
-                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.purpose}</p>
-              )}
+          {/* Notes (Purpose removed as requested) */}
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Notes <span className="text-muted-foreground font-normal">(Optional)</span>
+              </label>
+              <span className="text-[10px] text-muted-foreground">{notes.length}/300</span>
             </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-foreground">
-                  Notes <span className="text-muted-foreground font-normal">(Optional)</span>
-                </label>
-                <span className="text-[10px] text-muted-foreground">{notes.length}/300</span>
-              </div>
-              <Textarea
-                rows={3}
-                maxLength={300}
-                placeholder="Enter additional notes (optional)..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring resize-none"
-              />
-            </div>
+            <Textarea
+              rows={3}
+              maxLength={300}
+              placeholder="Enter additional notes (optional)..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-ring resize-none"
+            />
           </div>
 
           {/* Modal Footer: Matching Resources & Suppliers Modals */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+          <div className="flex justify-end gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2">
             <Button
               type="button"
               variant="outline"
-              onClick={handleCloseAttempt}
-              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-foreground hover:text-background transition-colors"
+              onClick={onClose}
+              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="button"
               variant="outline"
-              disabled={submitting}
+              disabled={submitting || !isFormValid}
               onClick={() => {
                 if (validateForm()) {
                   setConfirmModal({
@@ -803,13 +750,13 @@ export function CreatePRModal({
                   });
                 }
               }}
-              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               Save as Draft
             </Button>
             <Button
               type="button"
-              disabled={submitting}
+              disabled={submitting || !isFormValid}
               onClick={() => {
                 if (validateForm()) {
                   setConfirmModal({
@@ -820,7 +767,7 @@ export function CreatePRModal({
                   });
                 }
               }}
-              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               Submit for Approval
             </Button>
@@ -828,20 +775,8 @@ export function CreatePRModal({
         </div>
       </ModalWrapper>
 
-      {/* Action Confirmation Modal (for Cancel) */}
-      {confirmModal && confirmModal.action === "cancel" && (
-        <ConfirmModal
-          message={confirmModal.message}
-          onConfirm={() => {
-            setConfirmModal(null);
-            onClose();
-          }}
-          onCancel={() => setConfirmModal(null)}
-        />
-      )}
-
       {/* Review Modal for Submit/Draft */}
-      {confirmModal && confirmModal.action !== "cancel" && typeof document !== "undefined" && createPortal(
+      {confirmModal && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div
             style={{ width: "100%", maxWidth: "672px" }}
@@ -861,10 +796,12 @@ export function CreatePRModal({
                 <div><span className="text-muted-foreground block text-xs mb-1">Required Date</span> <span className="font-semibold">{requiredDate}</span></div>
               </div>
 
-              <div className="bg-muted/20 p-4 rounded-xl border border-border">
-                <span className="text-muted-foreground block text-xs mb-1">Purpose</span>
-                <span className="font-medium leading-relaxed">{purpose}</span>
-              </div>
+              {notes && (
+                <div className="bg-muted/20 p-4 rounded-xl border border-border">
+                  <span className="text-muted-foreground block text-xs mb-1">Notes</span>
+                  <span className="font-medium leading-relaxed">{notes}</span>
+                </div>
+              )}
 
               <div className="mt-4 border border-border rounded-xl overflow-hidden bg-card">
                 <table className="w-full text-xs">

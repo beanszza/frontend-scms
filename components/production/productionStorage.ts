@@ -631,9 +631,9 @@ export const productionStorage = {
       targetYield: req.targetYield,
       actualGoodOutput: req.packagingData?.goodQty || req.targetYield,
       purpose: req.purpose,
-      createdAt: req.createdAt,
+      createdAt: req.createdAt || new Date().toISOString(),
       approvedBy: req.approvedBy || "Administrator",
-      completedAt: req.completedAt,
+      completedAt: req.completedAt || new Date().toISOString(),
       materialsUsed: (req.materialRequest?.items || []).map((m) => ({
         itemName: m.itemName,
         supplierName: m.supplierName,

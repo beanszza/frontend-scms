@@ -116,10 +116,10 @@ export default function SupplyTab({
                 onPageChange(1);
               }}
             >
-              <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+              <SelectTrigger className="h-10 min-w-[210px] w-auto rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="min-w-[210px]">
                 <SelectItem value="All">All Categories</SelectItem>
                 <SelectItem value="Raw Materials">Raw Materials</SelectItem>
                 <SelectItem value="Tools and Supplies">Tools & Supplies</SelectItem>

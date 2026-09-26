@@ -21,7 +21,7 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
       <table className="w-full min-w-[700px]">
         <thead className="border-b border-border bg-muted/30">
           <tr className="text-left text-xs uppercase text-muted-foreground">
-            <th className="px-5 py-4">Recipe No.</th>
+            <th className="px-5 py-4">No.</th>
             <th className="px-5 py-4">Recipe Name</th>
             <th className="px-5 py-4">Finished Product</th>
             <th className="px-5 py-4">Target Yield</th>
@@ -53,7 +53,7 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold text-foreground">{recipe.recipeName}</p>
                         {recipe.recipeCode && (
-                          <p className="text-xs font-mono text-muted-foreground">Recipe No: {recipe.recipeCode}</p>
+                          <p className="text-xs font-mono text-muted-foreground">No: {recipe.recipeCode}</p>
                         )}
                         {recipe.finishedProduct && (
                           <p className="text-xs text-muted-foreground">Product: {recipe.finishedProduct}</p>

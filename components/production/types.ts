@@ -130,6 +130,41 @@ export interface ProductionSummaryReport {
   };
 }
 
+export interface FinishedProductItem {
+  productId: number;
+  itemId: number;
+  itemName: string;
+  sellingPrice: number;
+  sku: string;
+  variant: string;
+  imageUrl?: string;
+}
+
+export interface ProductionBatchItem {
+  batchId: number;
+  batchNumber: string;
+  recipeId: number;
+  recipeName: string;
+  productId: number;
+  productName: string;
+  variant: string;
+  purpose: string;
+  batchMultiplier: number;
+  estimatedQuantity: number;
+  actualQuantity: number;
+  scrapQuantity: number;
+  scrapReason?: string;
+  fgLotId?: number;
+  productionDate: string;
+  stage: string;
+  status: string;
+  assignedCook: string;
+  qualityStatus: string;
+  rejectionReason: string;
+  imageUrl: string;
+  notes: string;
+}
+
 export interface ProductionRequest {
   batchId: number;
   batchNumber: string;
@@ -144,16 +179,25 @@ export interface ProductionRequest {
     | "Pending Approval"
     | "Approved"
     | "In Progress"
+    | "Passed QA"
     | "Rejected"
     | "Cancelled"
-    | "Completed";
+    | "Completed"
+    | "Inventory Added";
   stage: string;
   scheduleDate: string;
   rejectionReason?: string;
   recipeId?: number;
   recipeName?: string;
+  batchMultiplier?: number;
+  actualQuantity?: number;
+  scrapQuantity?: number;
+  scrapReason?: string;
+  fgLotId?: number;
   assignedCook?: string;
-  createdAt: string;
+  imageUrl?: string;
+  qualityStatus?: string;
+  createdAt?: string;
   approvedAt?: string;
   approvedBy?: string;
   startedAt?: string;

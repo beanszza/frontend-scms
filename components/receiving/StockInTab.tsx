@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, MoreHorizontal, Eye } from "lucide-react";
+import { Search, MoreHorizontal, Eye, RefreshCw, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -253,15 +253,17 @@ export default function StockInTab() {
             variant="outline"
             onClick={fetchStockIns}
             disabled={loading}
-            className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+            className="h-10 px-4 text-xs font-semibold rounded-xl border border-border bg-card hover:bg-muted text-foreground flex items-center gap-2 cursor-pointer shadow-xs"
           >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button
             type="button"
             onClick={() => setCreateModalOpen(true)}
-            className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm"
+            className="h-10 px-4 text-xs font-semibold rounded-xl bg-foreground text-background hover:bg-foreground/85 flex items-center gap-2 cursor-pointer shadow-xs"
           >
+            <Plus className="w-3.5 h-3.5" />
             Create Stock-In
           </Button>
         </div>
@@ -337,7 +339,14 @@ export default function StockInTab() {
                 </tr>
               ) : (
                 paginatedList.map((s) => (
-                  <tr key={s.stockInId} className="hover:bg-muted/20 transition-colors">
+                  <tr
+                    key={s.stockInId}
+                    onClick={() => {
+                      setSelectedStockIn(s);
+                      setDetailsModalOpen(true);
+                    }}
+                    className="hover:bg-muted/20 transition-colors cursor-pointer"
+                  >
                     <td className="px-4 py-3 font-mono font-semibold text-foreground whitespace-nowrap">
                       {s.stockInNumber}
                     </td>

@@ -63,7 +63,7 @@ export function PRTable({
       : "—";
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
@@ -71,7 +71,6 @@ export function PRTable({
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUEST DATE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUESTED BY</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DEPARTMENT</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">TYPE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUIRED DATE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
             <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap w-24">ACTIONS</th>
@@ -80,7 +79,7 @@ export function PRTable({
         <tbody className="divide-y divide-border">
           {requisitions.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-12 text-center text-xs font-medium text-muted-foreground">
+              <td colSpan={7} className="px-5 py-8 text-center text-xs font-medium text-muted-foreground">
                 No purchase requisitions found.
               </td>
             </tr>
@@ -164,14 +163,6 @@ export function PRTable({
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
                     {pr.department || "Inventory"}
-                  </td>
-                  <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
-                    <span>{pr.requestType || "Stock Replenishment"}</span>
-                    {pr.priority && pr.priority !== "Normal" && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                        {pr.priority}
-                      </span>
-                    )}
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
                     {fmtDate(pr.requiredDate)}

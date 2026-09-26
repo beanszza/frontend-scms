@@ -26,7 +26,6 @@ import { useRouter } from "next/navigation";
 const STATUS_TABS: (DeliveryStatus | "All")[] = [
   "All",
   "Scheduled",
-  "In Transit",
   "Arrived",
   "Cancelled",
 ];
@@ -187,10 +186,10 @@ export function DeliveryTab() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectTrigger className="h-10 min-w-[210px] w-auto rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                   <SelectValue placeholder="All Suppliers" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[210px]">
                   <SelectItem value="all">All Suppliers</SelectItem>
                   {uniqueSuppliers.map((sup) => (
                     <SelectItem key={sup} value={sup}>
@@ -285,10 +284,6 @@ export function DeliveryTab() {
           delivery={selectedDelivery}
           isAdmin={isAdmin}
           onClose={() => setSelectedDelivery(null)}
-          onDispatch={(d) => {
-            setSelectedDelivery(null);
-            setDispatchDelivery(d);
-          }}
           onArrive={(d) => {
             setSelectedDelivery(null);
             setArriveDelivery(d);
@@ -298,18 +293,6 @@ export function DeliveryTab() {
             setCancelDelivery(d);
           }}
           onGrnCreated={fetchDeliveries}
-        />
-      )}
-
-      {/* MARK AS DISPATCHED MODAL */}
-      {dispatchDelivery && (
-        <MarkDispatchedModal
-          delivery={dispatchDelivery}
-          onClose={() => setDispatchDelivery(null)}
-          onSuccess={() => {
-            setDispatchDelivery(null);
-            fetchDeliveries();
-          }}
         />
       )}
 

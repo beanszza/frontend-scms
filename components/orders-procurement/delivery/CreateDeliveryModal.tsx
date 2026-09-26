@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, Upload, Check, Trash2, Search } from "lucide-react";
+import { AlertCircle, Upload, Check, Trash2, Search, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
@@ -62,6 +62,33 @@ export function CreateDeliveryModal({
   // Items
   const [items, setItems] = useState<ItemRow[]>([]);
 
+  const [existingDeliveries, setExistingDeliveries] = useState<any[]>([]);
+
+  // Helper to calculate total declared quantity across all active (non-cancelled) deliveries for a PO item
+  const getActiveScheduledForPoItem = (
+    deliveriesList: any[],
+    poId: number,
+    poNumber?: string,
+    poItemId?: number,
+    itemId?: number
+  ) => {
+    let sum = 0;
+    deliveriesList.forEach((d) => {
+      const matchPo = (d.poId && d.poId === poId) || (poNumber && d.poNumber === poNumber);
+      if (matchPo && d.status !== "Cancelled") {
+        (d.items || []).forEach((di: any) => {
+          const matchItem =
+            (poItemId && di.poItemId && di.poItemId === poItemId) ||
+            (itemId && di.itemId && di.itemId === itemId);
+          if (matchItem) {
+            sum += Number(di.declaredQuantity) || 0;
+          }
+        });
+      }
+    });
+    return sum;
+  };
+
   // Fetch Delivery sequence for unique delivery number preview & Approved/Ordered POs
   useEffect(() => {
     if (!open) return;
@@ -74,12 +101,15 @@ export function CreateDeliveryModal({
           api.get("/api/scms/api/PurchaseOrders?page=1&pageSize=1000&eligibleForDelivery=true"),
         ]);
 
-        // Calculate next unique Delivery Number
+        let deliveryList: any[] = [];
+        // Calculate next unique Delivery Number & store deliveries
         if (delivRes.status === "fulfilled" && delivRes.value.data?.success) {
-          const list: any[] = delivRes.value.data.data?.items || delivRes.value.data.data || [];
+          deliveryList = delivRes.value.data.data?.items || delivRes.value.data.data || [];
+          setExistingDeliveries(deliveryList);
+
           const year = new Date().getFullYear();
           let maxSeq = 0;
-          list.forEach((d) => {
+          deliveryList.forEach((d) => {
             if (d.deliveryNumber) {
               const match = d.deliveryNumber.match(/DEL-\d{4}-(\d+)/);
               if (match) {
@@ -95,10 +125,63 @@ export function CreateDeliveryModal({
         // Available POs (do NOT auto-select if initialPo is null)
         if (poRes.status === "fulfilled" && poRes.value.data?.success) {
           const raw: any[] = poRes.value.data.data?.items || poRes.value.data.data || [];
-          const available = raw.filter(
+          const candidate = raw.filter(
             (p) => p.status === "Ordered" || p.status === "Approved"
           );
-          setOrderedPOs(available);
+
+          const eligible: PurchaseOrderPO[] = [];
+          await Promise.all(
+            candidate.map(async (po) => {
+              try {
+                let poItems: any[] = [];
+                const outRes = await api.get(`/api/scms/api/deliveries/po/${po.poId}/outstanding`);
+                if (outRes.data?.success && Array.isArray(outRes.data.data) && outRes.data.data.length > 0) {
+                  poItems = outRes.data.data;
+                } else if (po.items && po.items.length > 0) {
+                  poItems = po.items;
+                }
+
+                const hasRemaining = poItems.some((item: any) => {
+                  const ordered = Number(item.poOrderedQuantity ?? item.poItemQuantity ?? item.orderedQuantity) || 0;
+                  const received = Number(item.poTotalReceivedQuantity ?? item.receivedQuantity) || 0;
+                  const apiScheduled = Number(item.alreadyScheduledQuantity) || 0;
+                  const delivScheduled = getActiveScheduledForPoItem(
+                    deliveryList,
+                    po.poId,
+                    po.poNumber,
+                    item.poItemId,
+                    item.itemId
+                  );
+                  const inFlight = Math.max(apiScheduled, delivScheduled);
+                  const remaining = ordered - received - inFlight;
+                  return remaining > 0;
+                });
+
+                if (hasRemaining) {
+                  eligible.push(po);
+                }
+              } catch {
+                // If endpoint check fails, check local PO items
+                const hasRemaining = (po.items || []).some((item: any) => {
+                  const ordered = Number(item.poItemQuantity || item.orderedQuantity) || 0;
+                  const received = Number(item.receivedQuantity) || 0;
+                  const delivScheduled = getActiveScheduledForPoItem(
+                    deliveryList,
+                    po.poId,
+                    po.poNumber,
+                    item.poItemId,
+                    item.itemId
+                  );
+                  return (ordered - received - delivScheduled) > 0;
+                });
+                if (hasRemaining) {
+                  eligible.push(po);
+                }
+              }
+            })
+          );
+          eligible.sort((a, b) => b.poId - a.poId);
+          setOrderedPOs(eligible);
         }
       } catch (err) {
         console.error("Failed to load initial data for delivery modal:", err);
@@ -155,7 +238,15 @@ export function CreateDeliveryModal({
           const rows: ItemRow[] = res.data.data.map((i: any) => {
             const ordered = Number(i.poOrderedQuantity) || 0;
             const received = Number(i.poTotalReceivedQuantity) || 0;
-            const inFlight = Number(i.alreadyScheduledQuantity) || 0;
+            const apiScheduled = Number(i.alreadyScheduledQuantity) || 0;
+            const delivScheduled = getActiveScheduledForPoItem(
+              existingDeliveries,
+              selectedPoId,
+              currentPO?.poNumber,
+              i.poItemId,
+              i.itemId
+            );
+            const inFlight = Math.max(apiScheduled, delivScheduled);
             const available = Math.max(0, ordered - received - inFlight);
             return {
               poItemId: i.poItemId,
@@ -176,7 +267,15 @@ export function CreateDeliveryModal({
             currentPO.items.map((i) => {
               const ordered = Number(i.poItemQuantity) || 0;
               const received = Number(i.receivedQuantity) || 0;
-              const available = Math.max(0, ordered - received);
+              const delivScheduled = getActiveScheduledForPoItem(
+                existingDeliveries,
+                selectedPoId,
+                currentPO?.poNumber,
+                i.poItemId,
+                i.itemId
+              );
+              const inFlight = delivScheduled;
+              const available = Math.max(0, ordered - received - inFlight);
               return {
                 poItemId: i.poItemId || 0,
                 itemId: i.itemId,
@@ -185,7 +284,7 @@ export function CreateDeliveryModal({
                 purchaseUomName: i.purchaseUomName || "pcs",
                 poOrderedQuantity: ordered,
                 poTotalReceivedQuantity: received,
-                alreadyScheduledQuantity: 0,
+                alreadyScheduledQuantity: inFlight,
                 availableToSchedule: available,
                 orderQuantity: available,
               };
@@ -201,7 +300,7 @@ export function CreateDeliveryModal({
     };
 
     fetchOutstanding();
-  }, [selectedPoId, open, currentPO]);
+  }, [selectedPoId, open, currentPO, existingDeliveries]);
 
   // Handle PO selection change with discard confirmation
   const handlePoSelectionChange = (newPoId: number | null) => {
@@ -632,56 +731,82 @@ export function CreateDeliveryModal({
 
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                    Planned Dispatch Date
+                    Planned Dispatch Date <span className="text-destructive">*</span>
                   </label>
-                  <Input
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
-                    value={plannedDispatchDate}
-                    onChange={(e) => setPlannedDispatchDate(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      value={plannedDispatchDate}
+                      onChange={(e) => setPlannedDispatchDate(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-card px-4 py-2.5 pr-10 text-sm text-foreground cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                    <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
                 </div>
-
-
               </div>
 
-              {/* Row 4: Proof of Receipt / Attachment */}
+              {/* Row 4: Proof of Receipt / Attachment (Required + Photo Preview) */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Proof of Receipt / Attachment
+                <label className="mb-1.5 block text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>
+                    Proof of Receipt / Attachment <span className="text-destructive">*</span>
+                  </span>
+                  {!scheduledAttachmentBase64 && (
+                    <span className="text-[11px] text-destructive font-normal">
+                      Required to schedule delivery
+                    </span>
+                  )}
                 </label>
                 <div className="rounded-xl border border-dashed border-border bg-card p-4 transition-colors">
                   {scheduledAttachmentBase64 ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 truncate">
-                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
-                          <Check className="w-4 h-4" />
-                        </div>
-                        <div className="truncate">
-                          <p className="text-xs font-medium text-foreground truncate">
-                            {attachmentFileName || "Receipt document uploaded"}
-                          </p>
-                        </div>
+                    <div className="space-y-3">
+                      <div className="relative flex flex-col items-center justify-center p-3 bg-muted/20 rounded-xl border border-border">
+                        {scheduledAttachmentBase64.startsWith("data:image/") ? (
+                          <img
+                            src={scheduledAttachmentBase64}
+                            alt="Proof of receipt"
+                            className="max-h-56 rounded-lg object-contain border border-border shadow-xs"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2.5 p-4 text-xs font-medium text-foreground">
+                            <FileText className="w-8 h-8 text-muted-foreground shrink-0" />
+                            <span className="truncate">{attachmentFileName || "Uploaded document"}</span>
+                          </div>
+                        )}
+                        <p className="mt-2 text-[11px] font-mono text-muted-foreground truncate max-w-xs text-center">
+                          {attachmentFileName}
+                        </p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setScheduledAttachmentBase64("");
-                          setAttachmentFileName("");
-                        }}
-                        className="text-muted-foreground hover:text-destructive h-8 px-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <label className="cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-colors flex items-center gap-1.5">
+                          <Upload className="w-3.5 h-3.5" />
+                          Change File
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScheduledAttachmentBase64("");
+                            setAttachmentFileName("");
+                          }}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1.5"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center cursor-pointer py-2">
-                      <Upload className="w-5 h-5 text-muted-foreground mb-1.5" />
+                    <label className="flex flex-col items-center justify-center cursor-pointer py-4 hover:bg-muted/30 rounded-xl transition-colors">
+                      <Upload className="w-6 h-6 text-muted-foreground mb-2" />
                       <span className="text-xs font-medium text-foreground">
-                        Click to upload receipt or proof
+                        Click to upload receipt or proof photo <span className="text-destructive">*</span>
                       </span>
                       <span className="text-[11px] text-muted-foreground mt-0.5">
                         JPG, PNG, PDF up to 8MB
@@ -700,7 +825,7 @@ export function CreateDeliveryModal({
           )}
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+          <div className="flex items-center justify-end gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2">
             <Button
               type="button"
               variant="outline"
@@ -712,8 +837,8 @@ export function CreateDeliveryModal({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !selectedPoId || hasErrors || !hasAnyOrderQty}
-              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+              disabled={submitting || !selectedPoId || hasErrors || !hasAnyOrderQty || !scheduledAttachmentBase64.trim() || !plannedDispatchDate}
+              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {submitting ? "Scheduling..." : "Schedule Order"}
             </Button>

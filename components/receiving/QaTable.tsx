@@ -59,7 +59,11 @@ export default function QaTable({ inspections, loading, onSelectInspection, pend
               qc.status === "In Inspection";
 
             return (
-              <tr key={qc.inspectionId} className="hover:bg-muted/30 transition-colors">
+              <tr
+                key={qc.inspectionId}
+                onClick={() => onSelectInspection(qc)}
+                className="hover:bg-muted/30 transition-colors cursor-pointer"
+              >
                 <td className="px-4 py-3 font-mono text-muted-foreground whitespace-nowrap">
                   {pendingView ? (qc.referenceNumber || qc.grnNumber) : qc.inspectionNumber}
                 </td>

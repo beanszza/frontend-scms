@@ -48,7 +48,11 @@ export default function PutAwayTable({ tasks, loading, onSelectTask }: PutAwayTa
             tasks.map((task) => {
               const isPending = task.status === "Pending";
               return (
-                <tr key={task.putAwayId} className="hover:bg-muted/20 transition-colors">
+                <tr
+                  key={task.putAwayId}
+                  onClick={() => onSelectTask(task)}
+                  className="hover:bg-muted/20 transition-colors cursor-pointer"
+                >
                   <td className="px-3 py-2.5 font-mono font-semibold text-foreground whitespace-nowrap">
                     {task.putAwayNumber}
                   </td>

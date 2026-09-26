@@ -65,10 +65,16 @@ export default function ResourcesSuppliersPage() {
         const suppliesOnly = rawItems.filter(
           (i: any) => i.categoryName !== "Finished Good" && i.categoryName !== "Finished Goods"
         );
-        setSupplyData([...suppliesOnly].sort((a: any, b: any) => a.itemId - b.itemId));
+        setSupplyData([...suppliesOnly].sort((a: any, b: any) => (b.itemId || 0) - (a.itemId || 0)));
       }
-      if (suppliersRes?.data?.success) setSupplierData(suppliersRes.data.data.items || suppliersRes.data.data || []);
-      if (recipesRes?.data?.success) setRecipeData((recipesRes.data.data.items || recipesRes.data.data || []).sort((a: any, b: any) => a.recipeId - b.recipeId));
+      if (suppliersRes?.data?.success) {
+        const rawSuppliers = suppliersRes.data.data.items || suppliersRes.data.data || [];
+        setSupplierData([...rawSuppliers].sort((a: any, b: any) => (b.supplierId || 0) - (a.supplierId || 0)));
+      }
+      if (recipesRes?.data?.success) {
+        const rawRecipes = recipesRes.data.data.items || recipesRes.data.data || [];
+        setRecipeData([...rawRecipes].sort((a: any, b: any) => (b.recipeId || 0) - (a.recipeId || 0)));
+      }
       if (fpRes?.data?.success) {
         setFinishedProductData((fpRes.data.data.items || fpRes.data.data || []).sort((a: any, b: any) => a.productId - b.productId).map((p: any) => ({
           productId: p.productId, itemName: p.itemName || "", variant: p.variant || "",
@@ -157,7 +163,7 @@ export default function ResourcesSuppliersPage() {
           );
         }
       }
-      setOpenSupplyModal(false); setEditingSupply(null); fetchData();
+      setOpenSupplyModal(false); setEditingSupply(null); setSupplyPage(1); fetchData();
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Failed to save supply item.";
       alert(msg);
@@ -168,7 +174,7 @@ export default function ResourcesSuppliersPage() {
     try {
       if (editingSupplier) await api.put(`/api/scms/api/Suppliers/${editingSupplier.supplierId}`, data);
       else await api.post("/api/scms/api/Suppliers", data);
-      setOpenSupplierModal(false); setEditingSupplier(null); fetchData();
+      setOpenSupplierModal(false); setEditingSupplier(null); setSupplierPage(1); fetchData();
     } catch { alert("Failed to save supplier."); }
   };
 
@@ -180,7 +186,7 @@ export default function ResourcesSuppliersPage() {
       };
       if (editingRecipe) await api.put(`/api/scms/api/Recipes/${editingRecipe.recipeId}`, payload);
       else await api.post("/api/scms/api/Recipes", payload);
-      setOpenRecipeModal(false); setEditingRecipe(null); fetchData();
+      setOpenRecipeModal(false); setEditingRecipe(null); setRecipePage(1); fetchData();
     } catch { alert("Failed to save recipe."); }
   };
 
@@ -197,7 +203,7 @@ export default function ResourcesSuppliersPage() {
           {[
             { id: "supply", label: "SUPPLY LIST" },
             { id: "supplier", label: "SUPPLIER LIST" },
-            { id: "recipe", label: "RECIPE / BOM" },
+            { id: "recipe", label: "BILL OF MATERIAL" },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (

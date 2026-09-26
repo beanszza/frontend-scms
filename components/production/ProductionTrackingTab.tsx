@@ -1,7 +1,20 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { Calendar, ChevronRight, X, QrCode, Search } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Calendar,
+  ChevronRight,
+  X,
+  QrCode,
+  Search,
+  RefreshCw,
+  Play,
+  CheckCircle2,
+  AlertTriangle,
+  ShoppingCart,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,11 +25,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProductionRequest, MaterialRequest, MaterialRequestItem } from "./types";
-import { productionStorage } from "./productionStorage";
+import {
+  ProductionRequest,
+  MaterialRequest,
+  MaterialRequestItem,
+  ProductionStageLog,
+  QAChecklist,
+  PackagingData,
+} from "./types";
 import QrScannerModal from "./QrScannerModal";
 import { CreatePRModal } from "@/components/orders-procurement/pr/CreatePRForm";
+import { PurchaseRequisition, PRItem } from "@/components/orders-procurement/types";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import { HR_EMPLOYEES } from "@/lib/employees";
 
@@ -27,53 +48,83 @@ interface ProductionTrackingTabProps {
   onNavigateToRequest?: () => void;
 }
 
-// Available Standard Recipes / BOMs
-const AVAILABLE_BOMS = [
+interface BomIngredient {
+  itemId: number;
+  itemName: string;
+  supplierName: string;
+  standardQty: number;
+  uom: string;
+  stock: number;
+  suggestedLot: string;
+  expiry: string;
+}
+
+interface BomOption {
+  recipeId: number;
+  recipeName: string;
+  productId: number;
+  outputYield: number;
+  ingredients: BomIngredient[];
+}
+
+const DEFAULT_BOMS: BomOption[] = [
   {
     recipeId: 1,
     recipeName: "Standard Ube Halaya Formula A (Classic)",
+    productId: 1,
     outputYield: 100,
     ingredients: [
-      { itemId: 101, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 30, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
-      { itemId: 102, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 15, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
-      { itemId: 103, itemName: "Evaporated Milk", supplierName: "Dairy Gold Co", standardQty: 10, uom: "Cans", stock: 65, suggestedLot: "LOT-EM-2026-004", expiry: "2027-02-14" },
-      { itemId: 104, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 5, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
-      { itemId: 105, itemName: "Refined Cane Sugar", supplierName: "SweetLife Sugar", standardQty: 8, uom: "KG", stock: 90, suggestedLot: "LOT-SG-2026-033", expiry: "2027-08-10" },
+      { itemId: 1, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 30, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
+      { itemId: 2, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 15, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
+      { itemId: 3, itemName: "Evaporated Milk", supplierName: "Dairy Gold Co", standardQty: 10, uom: "Cans", stock: 65, suggestedLot: "LOT-EM-2026-004", expiry: "2027-02-14" },
+      { itemId: 4, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 5, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
+      { itemId: 5, itemName: "Refined Cane Sugar", supplierName: "SweetLife Sugar", standardQty: 8, uom: "KG", stock: 90, suggestedLot: "LOT-SG-2026-033", expiry: "2027-08-10" },
     ],
   },
   {
     recipeId: 2,
     recipeName: "Special Ube Halaya with Cheese Formula B",
+    productId: 2,
     outputYield: 50,
     ingredients: [
-      { itemId: 101, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 18, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
-      { itemId: 106, itemName: "Aged Cheddar Cheese (Block)", supplierName: "Dairy Gold Co", standardQty: 4, uom: "KG", stock: 2, suggestedLot: "LOT-CH-2026-009", expiry: "2026-10-05" }, // Simulated shortfall
-      { itemId: 102, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 10, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
-      { itemId: 104, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 3, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
+      { itemId: 1, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 18, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
+      { itemId: 6, itemName: "Aged Cheddar Cheese (Block)", supplierName: "Dairy Gold Co", standardQty: 4, uom: "KG", stock: 2, suggestedLot: "LOT-CH-2026-009", expiry: "2026-10-05" },
+      { itemId: 2, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 10, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
+      { itemId: 4, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 3, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
     ],
   },
 ];
 
 const PREP_STAGES = ["Peeling", "Steaming", "Mixing", "Grind", "Cooking", "Cooling"] as const;
 
+// Storage keys for coordinating tracking steps across clients
+const MR_STORAGE_KEY = "production_material_requests_v3";
+const STAGE_LOGS_KEY = "production_stage_logs_v3";
+const PACKAGING_STORAGE_KEY = "production_packaging_data_v3";
+
 export default function ProductionTrackingTab({
   initialSelectedBatchId,
   isInventoryManager,
   isHeadCook,
 }: ProductionTrackingTabProps) {
-  const [requests, setRequests] = useState<ProductionRequest[]>(() =>
-    productionStorage.getRequests()
-  );
+  const [requests, setRequests] = useState<ProductionRequest[]>([]);
+  const [boms, setBoms] = useState<BomOption[]>(DEFAULT_BOMS);
+  const [loading, setLoading] = useState(true);
 
-  // Active batches for tracking (In Progress or Approved)
-  const activeBatches = requests.filter(
-    (r) => r.status === "In Progress" || r.status === "Approved"
-  );
+  // Material requests stored locally for coordinating Step 2, 3, 4
+  const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
 
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(() => {
     if (initialSelectedBatchId) return initialSelectedBatchId;
-    return activeBatches[0]?.batchId || null;
+    return null;
   });
+
+  useEffect(() => {
+    if (initialSelectedBatchId) {
+      setSelectedBatchId(initialSelectedBatchId);
+      setActiveStepTab(null);
+    }
+  }, [initialSelectedBatchId]);
 
   // Inventory Manager Tabs: Material Request and Material Issued
   const [invMainTab, setInvMainTab] = useState<"requests" | "issued">("requests");
@@ -83,7 +134,7 @@ export default function ProductionTrackingTab({
   const [isIssuanceMode, setIsIssuanceMode] = useState(false);
 
   // Step 2: BOM Selection & MR State
-  const [selectedBomId, setSelectedBomId] = useState<number>(AVAILABLE_BOMS[0].recipeId);
+  const [selectedBomId, setSelectedBomId] = useState<number>(DEFAULT_BOMS[0].recipeId);
   const [neededDate, setNeededDate] = useState(
     new Date(Date.now() + 86400000).toISOString().split("T")[0]
   );
@@ -94,9 +145,61 @@ export default function ProductionTrackingTab({
 
   // Shortfall PR Modal State
   const [isPROpen, setIsPROpen] = useState(false);
+  const [prInitialData, setPrInitialData] = useState<PurchaseRequisition | undefined>(undefined);
+
+  const handleOpenCreatePR = (
+    itemsToProcure: Array<{
+      itemId: number;
+      itemName: string;
+      uom: string;
+      availableStock: number;
+      requiredQty: number;
+    }>,
+    mrContext?: MaterialRequest
+  ) => {
+    const targetMR =
+      mrContext ||
+      materialRequests.find((m) => m.mrId === selectedMRId) ||
+      selectedBatch?.materialRequest;
+
+    const prItems: PRItem[] = itemsToProcure.map((it) => {
+      const deficit = Math.max(1, Math.round((it.requiredQty - it.availableStock) * 10) / 10);
+      return {
+        itemId: it.itemId,
+        itemCode: `ING-${it.itemId}`,
+        itemName: it.itemName,
+        uomName: it.uom,
+        actualInventory: it.availableStock,
+        requestedQuantity: deficit > 0 ? deficit : it.requiredQty,
+      };
+    });
+
+    const newPRData: PurchaseRequisition = {
+      prId: 0,
+      prNumber: `PR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+      department: "Production",
+      requestedBy: isHeadCook ? "Head Cook" : "Elena Reyes",
+      requestDate: new Date().toISOString(),
+      requiredDate:
+        targetMR?.neededDate ||
+        new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+      status: "Draft",
+      requestType: "Raw Materials",
+      priority: "High",
+      purpose: `Shortfall procurement for Batch ${
+        targetMR?.batchNumber || selectedBatch?.batchNumber || ""
+      } (${targetMR?.productName || selectedBatch?.productName || ""})`,
+      notes: `Generated from Material Request ${targetMR?.mrId || ""}`,
+      items: prItems,
+    };
+
+    setPrInitialData(newPRData);
+    setIsPROpen(true);
+  };
 
   // Step 5: Cooking Stages Input State
-  const [stageInCharge, setStageInCharge] = useState(isHeadCook ? "Head Cook" : "Elena");
+  const [stageInCharge, setStageInCharge] = useState(isHeadCook ? "Head Cook" : "Elena Reyes");
+  const [stagePhotoFile, setStagePhotoFile] = useState<File | null>(null);
   const [stagePhoto, setStagePhoto] = useState<string>("");
   const [stageNotes, setStageNotes] = useState("");
   const stageFileInputRef = useRef<HTMLInputElement>(null);
@@ -120,15 +223,183 @@ export default function ProductionTrackingTab({
   const [expiryDate, setExpiryDate] = useState(
     new Date(Date.now() + 86400000 * 90).toISOString().split("T")[0]
   );
+  const [packagingPhotoFile, setPackagingPhotoFile] = useState<File | null>(null);
   const [packagingPhoto, setPackagingPhoto] = useState<string>("");
   const packagingFileInputRef = useRef<HTMLInputElement>(null);
 
-  const refreshData = () => {
-    setRequests(productionStorage.getRequests());
+  // Load Material Requests from storage
+  const loadMaterialRequests = () => {
+    try {
+      const data = localStorage.getItem(MR_STORAGE_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch {}
+    return [];
   };
 
+  const saveMaterialRequests = (mrs: MaterialRequest[]) => {
+    setMaterialRequests(mrs);
+    try {
+      localStorage.setItem(MR_STORAGE_KEY, JSON.stringify(mrs));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Stage logs storage
+  const getStageLogs = (batchId: number): ProductionStageLog[] => {
+    try {
+      const data = localStorage.getItem(`${STAGE_LOGS_KEY}_${batchId}`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return [];
+  };
+
+  const saveStageLogs = (batchId: number, logs: ProductionStageLog[]) => {
+    try {
+      localStorage.setItem(`${STAGE_LOGS_KEY}_${batchId}`, JSON.stringify(logs));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Packaging data storage
+  const getPackagingData = (batchId: number): PackagingData | undefined => {
+    try {
+      const data = localStorage.getItem(`${PACKAGING_STORAGE_KEY}_${batchId}`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return undefined;
+  };
+
+  const savePackagingData = (batchId: number, data: PackagingData) => {
+    try {
+      localStorage.setItem(`${PACKAGING_STORAGE_KEY}_${batchId}`, JSON.stringify(data));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const mapStatus = (statusStr: string): ProductionRequest["status"] => {
+    const s = (statusStr || "").toLowerCase().trim();
+    if (s === "scheduled") return "Pending Approval";
+    if (s === "approved") return "Approved";
+    if (s === "in progress" || s === "inprogress") return "In Progress";
+    if (s === "passed qa" || s === "passedqa") return "Passed QA";
+    if (s === "completed") return "Completed";
+    if (s === "inventory added" || s === "inventoryadded") return "Completed";
+    if (s === "rejected") return "Rejected";
+    if (s === "cancelled") return "Cancelled";
+    return "Pending Approval";
+  };
+
+  // Fetch batches & BOMs from API
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [batchesRes, recipesRes, itemsRes] = await Promise.all([
+        api.get("/api/ProductionBatches"),
+        api.get("/api/Recipes"),
+        api.get("/api/Items"),
+      ]);
+
+      const storedMRs = loadMaterialRequests();
+      setMaterialRequests(storedMRs);
+
+      const rawBatches = batchesRes.data || [];
+      const mappedBatches: ProductionRequest[] = rawBatches.map((b: any) => {
+        const mr = storedMRs.find((m: MaterialRequest) => m.batchId === b.batchId);
+        const stageLogs = getStageLogs(b.batchId);
+        const pkgData = getPackagingData(b.batchId);
+
+        return {
+          batchId: b.batchId,
+          batchNumber: b.batchNumber,
+          productId: b.productId,
+          productName: b.productName,
+          variant: b.variant,
+          targetYield: b.estimatedQuantity,
+          yieldUnit: "PCS",
+          purpose: b.purpose || b.notes || "",
+          status: mapStatus(b.status),
+          stage: b.stage,
+          scheduleDate: b.productionDate,
+          rejectionReason: b.rejectionReason,
+          recipeId: b.recipeId,
+          recipeName: b.recipeName,
+          batchMultiplier: b.batchMultiplier,
+          actualQuantity: b.actualQuantity,
+          scrapQuantity: b.scrapQuantity,
+          scrapReason: b.scrapReason,
+          fgLotId: b.fgLotId,
+          assignedCook: b.assignedCook,
+          imageUrl: b.imageUrl,
+          qualityStatus: b.qualityStatus,
+          materialRequest: mr,
+          stageLogs: stageLogs.length > 0 ? stageLogs : undefined,
+          packagingData: pkgData,
+        };
+      });
+
+      setRequests(mappedBatches);
+
+      // Handle BOM options from API
+      const rawRecipes = recipesRes.data?.data || recipesRes.data || [];
+      if (rawRecipes.length > 0) {
+        const itemsList = itemsRes.data?.data?.items || itemsRes.data?.data || [];
+        const mappedBoms: BomOption[] = rawRecipes.map((r: any) => ({
+          recipeId: r.recipeId,
+          recipeName: r.recipeName,
+          productId: r.productId,
+          outputYield: Number(r.outputQuantity) || 100,
+          ingredients: (r.ingredients || []).map((ing: any) => {
+            const item = itemsList.find((i: any) => i.itemId === ing.itemId);
+            return {
+              itemId: ing.itemId,
+              itemName: item?.itemName || `Ingredient #${ing.itemId}`,
+              supplierName: "Registered Supplier",
+              standardQty: Number(ing.standardQuantity) || 5,
+              uom: item?.uomName || "KG",
+              stock: item?.currentStock ?? 100,
+              suggestedLot: `LOT-ING-${ing.itemId}-2026`,
+              expiry: new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+            };
+          }),
+        }));
+
+        // Merge with defaults if recipes have empty ingredients
+        const finalBoms = mappedBoms.map((b) =>
+          b.ingredients.length > 0 ? b : DEFAULT_BOMS[0]
+        );
+        setBoms(finalBoms.length > 0 ? finalBoms : DEFAULT_BOMS);
+      }
+
+      // Auto-select batch
+      if (!selectedBatchId && mappedBatches.length > 0) {
+        const firstActive = mappedBatches.find(
+          (b) => b.status === "In Progress" || b.status === "Approved"
+        );
+        setSelectedBatchId(firstActive ? firstActive.batchId : mappedBatches[0].batchId);
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to load tracking data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const selectedBatch = requests.find((r) => r.batchId === selectedBatchId);
-  const selectedBom = AVAILABLE_BOMS.find((b) => b.recipeId === selectedBomId) || AVAILABLE_BOMS[0];
+  const selectedBom =
+    boms.find((b) => b.recipeId === selectedBomId) ||
+    boms.find((b) => b.productId === selectedBatch?.productId) ||
+    boms[0];
+
+  const [activeStepTab, setActiveStepTab] = useState<number | null>(null);
 
   // Calculate current waterfall step (1 to 8)
   const getBatchStep = (batch?: ProductionRequest): number => {
@@ -136,21 +407,69 @@ export default function ProductionTrackingTab({
     if (batch.status === "Completed") return 8;
     if (batch.stage === "Stock In") return 8;
     if (batch.stage === "Packaging") return 7;
-    if (batch.stage === "QA") return 6;
-    if (PREP_STAGES.includes(batch.stage as any)) return 5;
-    if (batch.stage === "Materials Issued" || batch.materialRequest?.status === "Issued") return 4;
-    if (batch.materialRequest) return 3;
-    if (batch.status === "Approved" || batch.status === "In Progress") return 2;
+    if (
+      batch.status === "Passed QA" ||
+      batch.stage === "Quality Control" ||
+      batch.stage === "QA Review" ||
+      batch.stage === "QA"
+    )
+      return 6;
+
+    // Check material request for this batch
+    const mr =
+      materialRequests.find((m) => m.batchId === batch.batchId) ||
+      batch.materialRequest;
+
+    const isActivelyCooking =
+      (PREP_STAGES as readonly string[]).includes(batch.stage) &&
+      batch.stage !== "Preparation";
+
+    if (isActivelyCooking) return 5;
+    if (mr?.status === "Issued") return 4;
+    if (mr?.status === "Ready to Issue" || mr?.status === "Pending") return 3;
+    if (mr) return 2;
+
+    // By default, newly approved batches start at Step 1 (Request Info & Authorization)
     return 1;
   };
 
-  const currentStep = getBatchStep(selectedBatch);
+  const calculatedStep = getBatchStep(selectedBatch);
+  const currentStep = activeStepTab ?? calculatedStep;
+
+  // Active material request for currently selected batch
+  const activeMR =
+    materialRequests.find((m) => m.batchId === selectedBatch?.batchId) ||
+    selectedBatch?.materialRequest;
+
+  // Trackable batches (Approved, In Progress, Passed QA, Completed)
+  const allTrackableBatches = requests.filter(
+    (r) =>
+      r.status === "In Progress" ||
+      r.status === "Approved" ||
+      r.status === "Passed QA" ||
+      (r.status === "Completed" && r.stage !== "Completed")
+  );
+
+  const preProdBatches = allTrackableBatches.filter((b) => getBatchStep(b) < 5);
+  const activeCookingBatches = allTrackableBatches.filter((b) => getBatchStep(b) === 5);
+  const qaAndBeyondBatches = allTrackableBatches.filter((b) => getBatchStep(b) > 5);
+
+  const [trackingFilter, setTrackingFilter] = useState<"all" | "pre-prod" | "cooking" | "qa">("all");
+
+  const filteredDisplayBatches =
+    trackingFilter === "pre-prod"
+      ? preProdBatches
+      : trackingFilter === "cooking"
+      ? activeCookingBatches
+      : trackingFilter === "qa"
+      ? qaAndBeyondBatches
+      : allTrackableBatches;
 
   // Submit Material Request (Step 2 -> Step 3)
   const handleSubmitMR = () => {
     if (!selectedBatch) return;
 
-    const multiplier = selectedBatch.targetYield / selectedBom.outputYield;
+    const multiplier = selectedBatch.targetYield / (selectedBom.outputYield || 100);
     const items: MaterialRequestItem[] = selectedBom.ingredients.map((ing, idx) => {
       const required = Math.round(ing.standardQty * multiplier * 10) / 10;
       const isShortfall = ing.stock < required;
@@ -169,47 +488,76 @@ export default function ProductionTrackingTab({
       };
     });
 
-    productionStorage.createMaterialRequest({
+    const newMR: MaterialRequest = {
+      mrId: `MR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
       batchId: selectedBatch.batchId,
       batchNumber: selectedBatch.batchNumber,
       productName: selectedBatch.productName,
       recipeId: selectedBom.recipeId,
       recipeName: selectedBom.recipeName,
       neededDate,
+      status: "Pending",
       items,
-      submittedBy: isHeadCook ? "Head Cook" : "Elena",
-    });
+      submittedBy: isHeadCook ? "Head Cook" : "Elena Reyes",
+      submittedAt: new Date().toISOString(),
+    };
 
-    toast.success("Material Request generated and sent to Inventory Manager!");
-    refreshData();
+    const updated = [newMR, ...materialRequests.filter((m) => m.batchId !== selectedBatch.batchId)];
+    saveMaterialRequests(updated);
+
+    toast.success(`Material Request (${newMR.mrId}) submitted to Inventory Manager!`);
+    setActiveStepTab(3);
+    fetchData();
   };
 
-  // Scan trigger
+  // QR Scan trigger
   const handleOpenScan = (item: MaterialRequestItem) => {
     setScanningItem(item);
     setScannerOpen(true);
   };
 
   const handleScanSuccess = (scannedLot: string) => {
+    if (!scanningItem) return;
     const mrId = selectedBatch?.materialRequest?.mrId || selectedMRId;
-    if (!mrId || !scanningItem) return;
-    const res = productionStorage.updateMRItemScan(
-      mrId,
-      scanningItem.itemId,
-      scannedLot
-    );
-    if (res.success) {
-      toast.success(res.message);
-    } else {
-      toast.error(res.message);
+    if (!mrId) return;
+
+    const mr = materialRequests.find((m) => m.mrId === mrId);
+    if (!mr) return;
+
+    const cleanedScanned = scannedLot.trim().toUpperCase();
+    const targetLot = scanningItem.suggestedLot.trim().toUpperCase();
+
+    // Verify lot match
+    if (cleanedScanned !== targetLot && !cleanedScanned.includes(targetLot)) {
+      toast.error(`Scanned lot (${cleanedScanned}) does not match suggested lot (${targetLot})!`);
+      return;
     }
-    refreshData();
+
+    const updatedItems = mr.items.map((i) =>
+      i.itemId === scanningItem.itemId
+        ? { ...i, isScanned: true, scannedLot: cleanedScanned, scannedAt: new Date().toISOString() }
+        : i
+    );
+
+    const allDone = updatedItems.every((i) => i.isScanned);
+    const updatedMR: MaterialRequest = {
+      ...mr,
+      items: updatedItems,
+      status: allDone ? "Ready to Issue" : "Pending",
+    };
+
+    const updatedList = materialRequests.map((m) => (m.mrId === mrId ? updatedMR : m));
+    saveMaterialRequests(updatedList);
+
+    toast.success(`Verified Lot: ${cleanedScanned} ✓`);
+    setScannerOpen(false);
+    setScanningItem(null);
+    fetchData();
   };
 
-  // Issue Materials to Production
-  const handleIssueMaterials = (mrId: string) => {
-    const allMRs = productionStorage.getMaterialRequests();
-    const targetMR = allMRs.find((m) => m.mrId === mrId);
+  // Issue Materials to Production (Calls Backend PUT /api/ProductionBatches/{id}/stage with Preparation)
+  const handleIssueMaterials = async (mrId: string) => {
+    const targetMR = materialRequests.find((m) => m.mrId === mrId);
     if (!targetMR) return;
 
     const allScanned = targetMR.items.every((i) => i.isScanned);
@@ -218,83 +566,156 @@ export default function ProductionTrackingTab({
       return;
     }
 
-    productionStorage.issueMaterialsToProduction(mrId);
-    toast.success("Materials issued to production! Transferred to Material Issued tab.");
-    setSelectedMRId(null);
-    setIsIssuanceMode(false);
-    refreshData();
+    try {
+      toast.loading("Issuing materials and deducting stock (FEFO)...", { id: "issue-mat" });
+
+      // Call backend stage: "Preparation" which runs FEFO deduction
+      await api.put(`/api/ProductionBatches/${targetMR.batchId}/stage`, {
+        stage: "Preparation",
+      });
+
+      const updatedMR: MaterialRequest = {
+        ...targetMR,
+        status: "Issued",
+        issuedAt: new Date().toISOString(),
+        issuedBy: "Inventory Manager",
+      };
+
+      const updatedList = materialRequests.map((m) => (m.mrId === mrId ? updatedMR : m));
+      saveMaterialRequests(updatedList);
+
+      toast.success("Materials issued to production via FEFO! Stage updated to Preparation.", {
+        id: "issue-mat",
+      });
+      setSelectedMRId(null);
+      setIsIssuanceMode(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to issue materials", { id: "issue-mat" });
+    }
   };
 
   // Complete Cooking Stage (Step 5)
-  const handleCompleteCurrentStage = (stageName: typeof PREP_STAGES[number]) => {
+  const handleCompleteCurrentStage = async (stageName: typeof PREP_STAGES[number]) => {
     if (!selectedBatch) return;
-    if (!stagePhoto) {
-      toast.error(`Please upload a proof of completion photo for the ${stageName} stage.`);
-      return;
-    }
     if (!stageInCharge.trim()) {
       toast.error("Please specify the operator in-charge.");
       return;
     }
 
-    productionStorage.completeStage(
-      selectedBatch.batchId,
-      stageName,
-      stageInCharge.trim(),
-      stagePhoto,
-      stageNotes.trim()
-    );
+    try {
+      toast.loading(`Advancing to next stage...`, { id: "stage-advance" });
 
-    toast.success(`Completed stage: ${stageName}`);
-    setStagePhoto("");
-    setStageNotes("");
-    refreshData();
+      // If photo was selected, upload to backend
+      let uploadedUrl = stagePhoto;
+      if (stagePhotoFile) {
+        const formData = new FormData();
+        formData.append("file", stagePhotoFile);
+        const imgRes = await api.post(`/api/ProductionBatches/${selectedBatch.batchId}/images`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        uploadedUrl = imgRes.data?.imageUrl || uploadedUrl;
+      }
+
+      // Next stage index
+      const currIdx = PREP_STAGES.indexOf(stageName);
+      const nextStage = currIdx < PREP_STAGES.length - 1 ? PREP_STAGES[currIdx + 1] : "Quality Control";
+
+      // Map stage to backend compatible value ("Grind" -> "Mixing and Processing")
+      const backendStageName = nextStage === "Grind" ? "Mixing and Processing" : nextStage;
+
+      await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/stage`, {
+        stage: backendStageName,
+      });
+
+      // Save log entry
+      const existingLogs = getStageLogs(selectedBatch.batchId);
+      const newLog: ProductionStageLog = {
+        stageName,
+        inCharge: stageInCharge.trim(),
+        timestamp: new Date().toLocaleTimeString(),
+        photoUrl: uploadedUrl,
+        notes: stageNotes.trim(),
+        completed: true,
+      };
+
+      saveStageLogs(selectedBatch.batchId, [...existingLogs, newLog]);
+
+      toast.success(`Completed stage: ${stageName}`, { id: "stage-advance" });
+      setStagePhotoFile(null);
+      setStagePhoto("");
+      setStageNotes("");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to advance stage", { id: "stage-advance" });
+    }
   };
 
   // Submit QA (Step 6)
-  const handleQAApprove = () => {
+  const handleQAApprove = async () => {
     if (!selectedBatch) return;
-    productionStorage.submitQA(selectedBatch.batchId, {
-      overallAppearance: qaAppearance ? "Pass" : "Fail",
-      aroma: qaAroma ? "Pass" : "Fail",
-      texture: qaTexture ? "Pass" : "Fail",
-      tasteTest: qaTaste ? "Pass" : "Fail",
-      consistency: qaConsistency ? "Pass" : "Fail",
-      inspector: qaInspector,
-      notes: qaNotes.trim() || "Passed all sensory checks",
-      decision: "Approved",
-    });
-    toast.success("Quality Assurance Inspection Passed! Batch unlocked for Packaging.");
-    refreshData();
+    try {
+      toast.loading("Submitting QA approval...", { id: "qa-action" });
+
+      // Submit QA notes
+      await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/qa-notes`, {
+        notes: qaNotes.trim() || "Passed all sensory and safety checks",
+      });
+
+      // Submit QA approval verdict (locationId: 1 for FinishedGoods)
+      await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/qa-status`, {
+        isApproved: true,
+        locationId: 1,
+      });
+
+      toast.success("QA Inspection Passed! Batch released for Packaging.", { id: "qa-action" });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to submit QA approval", { id: "qa-action" });
+    }
   };
 
-  const handleQAReject = () => {
+  const handleQAReject = async () => {
     if (!selectedBatch) return;
     if (!qaRejectReason.trim()) {
       toast.error("Rejection reason is required");
       return;
     }
 
-    productionStorage.submitQA(selectedBatch.batchId, {
-      overallAppearance: qaAppearance ? "Pass" : "Fail",
-      aroma: qaAroma ? "Pass" : "Fail",
-      texture: qaTexture ? "Pass" : "Fail",
-      tasteTest: qaTaste ? "Pass" : "Fail",
-      consistency: qaConsistency ? "Pass" : "Fail",
-      inspector: qaInspector,
-      notes: qaNotes.trim(),
-      decision: "Rejected",
-      rejectionReason: qaRejectReason.trim(),
-    });
+    try {
+      toast.loading("Submitting QA rejection...", { id: "qa-action" });
 
-    toast.error(`Batch rejected! Automatic loss report generated in the Loss tab.`);
-    setShowRejectPrompt(false);
-    setQaRejectReason("");
-    refreshData();
+      await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/qa-status`, {
+        isApproved: false,
+        rejectionReason: qaRejectReason.trim(),
+        locationId: 1,
+      });
+
+      // Create Loss Report
+      try {
+        await api.post("/api/LossReports", {
+          batchId: selectedBatch.batchId,
+          batchNumber: selectedBatch.batchNumber,
+          productName: selectedBatch.productName,
+          variant: selectedBatch.variant,
+          failureStage: "Quality Control",
+          rejectionReason: qaRejectReason.trim(),
+          inspector: qaInspector,
+          notes: qaNotes.trim(),
+        });
+      } catch {}
+
+      toast.error(`Batch rejected! Automatic loss report generated in the Loss tab.`, { id: "qa-action" });
+      setShowRejectPrompt(false);
+      setQaRejectReason("");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to reject batch", { id: "qa-action" });
+    }
   };
 
   // Submit Packaging (Step 7)
-  const handleCompletePackaging = () => {
+  const handleCompletePackaging = async () => {
     if (!selectedBatch) return;
     if (goodOutput === "" || Number(goodOutput) <= 0) {
       toast.error("Please enter a valid Good Output quantity");
@@ -305,56 +726,76 @@ export default function ProductionTrackingTab({
       return;
     }
 
-    const fgLot = productionStorage.completePackaging(selectedBatch.batchId, {
-      goodQty: Number(goodOutput),
-      damagedQty: Number(damagedOutput) || 0,
-      wasteQty: Number(wasteOutput) || 0,
-      packagerName: packagerName.trim(),
-      expiryDate,
-      photoUrl: packagingPhoto,
-    });
+    try {
+      toast.loading("Finalizing packaging...", { id: "pkg-action" });
 
-    toast.success(`Packaging finalized! System assigned Lot: ${fgLot}`);
-    refreshData();
+      const goodQtyNum = Number(goodOutput);
+      const damagedQtyNum = Number(damagedOutput) || 0;
+
+      // Upload packaging photo if present
+      let uploadedUrl = packagingPhoto;
+      if (packagingPhotoFile) {
+        const formData = new FormData();
+        formData.append("file", packagingPhotoFile);
+        const imgRes = await api.post(`/api/ProductionBatches/${selectedBatch.batchId}/images`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        uploadedUrl = imgRes.data?.imageUrl || uploadedUrl;
+      }
+
+      // Update stage to Packaging with actual quantity
+      await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/stage`, {
+        stage: "Packaging",
+        actualQuantity: goodQtyNum,
+      });
+
+      const fgLot = `FG-${selectedBatch.batchNumber}`;
+      const pkgData: PackagingData = {
+        batchNumber: selectedBatch.batchNumber,
+        productName: selectedBatch.productName,
+        packagingSize: selectedBatch.variant,
+        bulkAvailable: `${Math.round(selectedBatch.targetYield * 0.25)} KG`,
+        targetOutput: selectedBatch.targetYield,
+        materials: [],
+        goodQty: goodQtyNum,
+        damagedQty: damagedQtyNum,
+        wasteQty: Number(wasteOutput) || 0,
+        fgLotNumber: fgLot,
+        expiryDate,
+        packagerName: packagerName.trim(),
+        photoUrl: uploadedUrl,
+        completed: true,
+      };
+
+      savePackagingData(selectedBatch.batchId, pkgData);
+
+      toast.success(`Packaging finalized! System assigned Lot: ${fgLot}`, { id: "pkg-action" });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to finalize packaging", { id: "pkg-action" });
+    }
   };
 
   // Final Stock In (Step 8)
-  const handleAddBatchToInventory = () => {
+  const handleAddBatchToInventory = async () => {
     if (!selectedBatch) return;
-    productionStorage.addBatchToInventory(selectedBatch.batchId);
-    toast.success("Batch successfully stocked into Finished Goods Inventory!");
-    refreshData();
-  };
-
-  // Handle Photo File Upload
-  const handlePhotoUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (url: string) => void
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size cannot exceed 5MB");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    try {
+      toast.loading("Stocking finished goods into Inventory...", { id: "stockin-action" });
+      await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/add-to-inventory`);
+      toast.success("Batch successfully stocked into Finished Goods Inventory!", { id: "stockin-action" });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to add batch to inventory", { id: "stockin-action" });
     }
   };
 
   // ==========================================
   // INVENTORY MANAGER VIEW: Material Request & Material Issued
   // ==========================================
-  // INVENTORY MANAGER VIEW: Material Request & Material Issued
-  // ==========================================
   if (isInventoryManager) {
-    const allMRs = productionStorage.getMaterialRequests();
     const q = mrSearchQuery.toLowerCase().trim();
 
-    const filteredMRs = allMRs.filter((m) => {
+    const filteredMRs = materialRequests.filter((m) => {
       const matchesSearch =
         !q ||
         m.mrId.toLowerCase().includes(q) ||
@@ -372,11 +813,10 @@ export default function ProductionTrackingTab({
 
     const pendingMRs = filteredMRs.filter((m) => m.status === "Pending" || m.status === "Ready to Issue");
     const issuedMRs = filteredMRs.filter((m) => m.status === "Issued");
-    const activeMR = allMRs.find((m) => m.mrId === selectedMRId);
+    const activeMR = materialRequests.find((m) => m.mrId === selectedMRId);
 
     return (
       <div className="space-y-6">
-        {/* Top Header matching Resources & Suppliers / PR Tab */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground">View Material Requests</h2>
@@ -384,10 +824,21 @@ export default function ProductionTrackingTab({
               Review kitchen requisitions, verify stock availability, and issue supplies
             </p>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-1.5 h-9 rounded-xl border-border hover:bg-muted font-semibold text-xs text-foreground cursor-pointer shadow-sm"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
-        {/* Full-width Search Bar (Reference from Resources & Suppliers / SupplyTab) */}
-        <div className="border border-border rounded-md overflow-hidden bg-card">
+        {/* Search Bar */}
+        <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 bg-muted/20">
             <div className="flex items-center gap-2 flex-1">
               <Search className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -417,7 +868,7 @@ export default function ProductionTrackingTab({
           </div>
         </div>
 
-        {/* Sub-Tabs styled exactly as screenshot 4 pill button tabs */}
+        {/* Sub-Tabs */}
         <div className="flex items-center">
           <div className="inline-flex p-1 rounded-xl border border-border bg-card shadow-xs gap-1">
             <button
@@ -448,355 +899,498 @@ export default function ProductionTrackingTab({
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              Material Issued ({issuedMRs.length})
+              Materials Issued ({issuedMRs.length})
             </button>
           </div>
         </div>
 
-        {/* ── TAB 1: Material Requests ── */}
-        {invMainTab === "requests" && (
-          <div className="space-y-4">
-            {!activeMR ? (
-              /* PRTable reference styling: rounded-2xl border border-border bg-card shadow-sm min-h-[300px] */
-              <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
-                {pendingMRs.length === 0 ? (
-                  <div className="p-12 text-center text-muted-foreground text-xs font-medium">
-                    No pending material requests matching your search.
-                  </div>
-                ) : (
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/40">
-                        <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">MR NUMBER</th>
-                        <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">BATCH NUMBER</th>
-                        <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PRODUCT NAME</th>
-                        <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">RECIPE FORMULA</th>
-                        <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DATE NEEDED</th>
-                        <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">STOCK STATUS</th>
-                        <th className="px-4 py-3 text-center font-bold text-muted-foreground tracking-wider whitespace-nowrap w-32">ACTIONS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {pendingMRs.map((mr) => {
-                        const hasShortfall = mr.items.some((i) => i.isShortfall);
-                        return (
-                          <tr
-                            key={mr.mrId}
-                            className="hover:bg-muted/30 transition-colors cursor-pointer"
-                            onClick={() => {
-                              setSelectedMRId(mr.mrId);
-                              setIsIssuanceMode(false);
-                            }}
-                          >
-                            <td className="px-4 py-3.5 font-mono text-foreground whitespace-nowrap font-medium">
-                              {mr.mrId}
-                            </td>
-                            <td className="px-4 py-3.5 font-mono text-foreground whitespace-nowrap font-semibold">
-                              {mr.batchNumber}
-                            </td>
-                            <td className="px-4 py-3.5 font-medium text-foreground whitespace-nowrap">
-                              {mr.productName}
-                            </td>
-                            <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
-                              {mr.recipeName}
-                            </td>
-                            <td className="px-4 py-3.5 text-muted-foreground font-mono whitespace-nowrap">
-                              {new Date(mr.neededDate).toLocaleDateString()}
-                            </td>
-                            <td className="px-4 py-3.5 whitespace-nowrap">
-                              <StatusBadge status={hasShortfall ? "Shortfall" : "Approved"} />
-                            </td>
-                            <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                              <Button
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedMRId(mr.mrId);
-                                  setIsIssuanceMode(false);
-                                }}
-                                className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/85 transition-colors rounded-lg shadow-xs cursor-pointer"
-                              >
-                                Review Request
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+        {/* Issuance Execution Mode */}
+        {isIssuanceMode && activeMR ? (
+          <div className="rounded-xl border border-border bg-card shadow-xs p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Scan & Verify Raw Materials for {activeMR.mrId}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Batch: {activeMR.batchNumber} &bull; Product: {activeMR.productName}
+                </p>
               </div>
-            ) : (
-              /* Selected Request Review / Issuance View (Prominent View Material Request header card) */
-              <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm space-y-6 p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-                  <div>
-                    <button
-                      onClick={() => {
-                        setSelectedMRId(null);
-                        setIsIssuanceMode(false);
-                      }}
-                      className="text-xs font-semibold text-muted-foreground hover:text-foreground mb-2 inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      &larr; Back to Material Requests
-                    </button>
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-2xl font-bold text-foreground">
-                        View Material Request &mdash; {activeMR.mrId}
-                      </h2>
-                      <StatusBadge status={isIssuanceMode ? "In Progress" : activeMR.items.some((i) => i.isShortfall) ? "Shortfall" : "Approved"} />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Batch: <strong className="text-foreground font-mono">{activeMR.batchNumber}</strong> &bull; Product: <strong className="text-foreground">{activeMR.productName}</strong> &bull; Recipe: {activeMR.recipeName}
-                    </p>
-                  </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsIssuanceMode(false)}
+                className="h-8 text-xs font-semibold gap-1.5 cursor-pointer"
+              >
+                <ArrowLeft size={13} /> Back to Stock Verification
+              </Button>
+            </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* If in stock check and has shortfall -> Create PR */}
-                    {!isIssuanceMode && activeMR.items.some((i) => i.isShortfall) && (
-                      <Button
-                        size="sm"
-                        onClick={() => setIsPROpen(true)}
-                        className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-xl shadow-xs cursor-pointer"
-                      >
-                        Create Purchase Requisition
-                      </Button>
-                    )}
-
-                    {/* If in stock check and sufficient -> Proceed to Material Issuance */}
-                    {!isIssuanceMode && !activeMR.items.some((i) => i.isShortfall) && (
-                      <Button
-                        size="sm"
-                        onClick={() => setIsIssuanceMode(true)}
-                        className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-xl shadow-xs cursor-pointer"
-                      >
-                        Proceed to Material Issuance
-                      </Button>
-                    )}
-
-                    {/* In Issuance Mode: Issue to Production button */}
-                    {isIssuanceMode && (
-                      <Button
-                        disabled={!activeMR.items.every((i) => i.isScanned)}
-                        onClick={() => handleIssueMaterials(activeMR.mrId)}
-                        className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 disabled:opacity-40 transition-colors rounded-xl shadow-xs cursor-pointer"
-                      >
-                        Issue to Production
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Details Form Grid styled like PRDetailsModal */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-muted-foreground">MR Number</label>
-                    <Input readOnly value={activeMR.mrId} className="h-9 font-mono text-xs bg-muted/40 cursor-not-allowed border-border" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-muted-foreground">Batch Number</label>
-                    <Input readOnly value={activeMR.batchNumber} className="h-9 font-mono text-xs bg-muted/40 cursor-not-allowed border-border" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-muted-foreground">Product &amp; Recipe</label>
-                    <Input readOnly value={`${activeMR.productName} (${activeMR.recipeName})`} className="h-9 text-xs bg-muted/40 cursor-not-allowed border-border" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-muted-foreground">Date Needed</label>
-                    <Input readOnly value={new Date(activeMR.neededDate).toLocaleDateString()} className="h-9 font-mono text-xs bg-muted/40 cursor-not-allowed border-border" />
-                  </div>
-                </div>
-
-                {/* Table of Materials styled like PRDetailsModal Requested Supplies Table */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-foreground">
-                      Requested Supplies &amp; Ingredients
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      {activeMR.items.length} ingredient(s) required
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px] border-b border-border">
-                        <tr>
-                          <th className="px-4 py-3">Ingredient</th>
-                          <th className="px-4 py-3">Required Qty</th>
-                          <th className="px-4 py-3">Available Stock</th>
-                          <th className="px-4 py-3">Stock Status</th>
-                          {isIssuanceMode && <th className="px-4 py-3">Suggested Lot</th>}
-                          {isIssuanceMode && <th className="px-4 py-3">Expiry Date</th>}
-                          {isIssuanceMode && <th className="px-4 py-3 text-right">QR Scan Verification</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {activeMR.items.map((item) => (
-                          <tr key={item.itemId} className="hover:bg-muted/10 transition-colors">
-                            <td className="px-4 py-3 font-semibold text-foreground">
-                              {item.itemName}
-                            </td>
-                            <td className="px-4 py-3 font-mono font-bold">
-                              {item.requiredQty} {item.uom}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-muted-foreground">
-                              {item.availableStock} {item.uom}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span
-                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                                  item.isShortfall
-                                    ? "bg-muted text-foreground border border-border font-bold"
-                                    : "bg-foreground text-background"
-                                }`}
-                              >
-                                {item.isShortfall ? "Shortfall" : "Sufficient"}
-                              </span>
-                            </td>
-                            {isIssuanceMode && (
-                              <td className="px-4 py-3 font-mono font-bold text-foreground">
-                                {item.suggestedLot}
-                              </td>
-                            )}
-                            {isIssuanceMode && (
-                              <td className="px-4 py-3 text-muted-foreground font-mono">
-                                {item.suggestedExpiry}
-                              </td>
-                            )}
-                            {isIssuanceMode && (
-                              <td className="px-4 py-3 text-right">
-                                {item.isScanned ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
-                                    Verified ✓
-                                  </span>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleOpenScan(item)}
-                                    className="h-7 px-3 text-xs font-semibold border-border hover:bg-muted cursor-pointer"
-                                  >
-                                    Scan
-                                  </Button>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── TAB 2: Material Issued (Issued to Production) ── */}
-        {invMainTab === "issued" && (
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
-            {issuedMRs.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground text-xs font-medium">
-                No issued material records found matching your search.
-              </div>
-            ) : (
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40">
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">MR NUMBER</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">BATCH NUMBER</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PRODUCT NAME</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">RECIPE FORMULA</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">DATE ISSUED</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ISSUED BY</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">STATUS</th>
+            <div className="border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] border-b border-border">
+                  <tr>
+                    <th className="py-2.5 px-4">Supply Name</th>
+                    <th className="py-2.5 px-4">Required Qty</th>
+                    <th className="py-2.5 px-4">Assigned Lot No</th>
+                    <th className="py-2.5 px-4">Expiry</th>
+                    <th className="py-2.5 px-4">QR Scan Validation</th>
+                    <th className="py-2.5 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {issuedMRs.map((mr) => (
-                    <tr key={mr.mrId} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3.5 font-mono font-medium text-foreground whitespace-nowrap">
-                        {mr.mrId}
+                  {activeMR.items.map((item) => (
+                    <tr key={item.itemId} className="hover:bg-muted/30">
+                      <td className="py-3 px-4 font-semibold text-foreground">{item.itemName}</td>
+                      <td className="py-3 px-4 font-mono font-bold">
+                        {item.requiredQty} {item.uom}
                       </td>
-                      <td className="px-4 py-3.5 font-mono text-foreground font-semibold whitespace-nowrap">
-                        {mr.batchNumber}
+                      <td className="py-3 px-4 font-mono">{item.suggestedLot}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{item.suggestedExpiry}</td>
+                      <td className="py-3 px-4">
+                        {item.isScanned ? (
+                          <span className="font-semibold text-foreground flex items-center gap-1">
+                            <CheckCircle2 size={13} className="text-emerald-500" /> {item.scannedLot}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground italic">Pending Scan</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3.5 font-medium text-foreground whitespace-nowrap">
-                        {mr.productName}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">{mr.recipeName}</td>
-                      <td className="px-4 py-3.5 font-mono text-muted-foreground whitespace-nowrap">
-                        {mr.issuedAt ? new Date(mr.issuedAt).toLocaleDateString() : "—"}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
-                        {mr.issuedBy || "Inventory Manager"}
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <StatusBadge status="Issued" />
+                      <td className="py-3 px-4 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenScan(item)}
+                          className="h-7 text-xs font-semibold gap-1 cursor-pointer"
+                        >
+                          <QrCode size={12} /> {item.isScanned ? "Re-Scan" : "Scan QR"}
+                        </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  activeMR.items.forEach((item) => {
+                    handleScanSuccess(item.suggestedLot);
+                  });
+                }}
+                className="h-8 text-xs font-semibold cursor-pointer"
+              >
+                Auto-Scan All
+              </Button>
+              <Button
+                onClick={() => handleIssueMaterials(activeMR.mrId)}
+                disabled={!activeMR.items.every((i) => i.isScanned)}
+                className="h-8 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 cursor-pointer disabled:opacity-50"
+              >
+                Issue to Production
+              </Button>
+            </div>
+          </div>
+        ) : selectedMRId && activeMR ? (
+          /* Stock Verification & Availability Table Screen */
+          <div className="rounded-xl border border-border bg-card shadow-xs p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Stock Verification for {activeMR.mrId}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Batch: {activeMR.batchNumber} &bull; Product: {activeMR.productName} &bull; Target Needed:{" "}
+                  {new Date(activeMR.neededDate).toLocaleDateString()}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedMRId(null)}
+                className="h-8 text-xs font-semibold gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <ArrowLeft size={13} /> Back to Requests
+              </Button>
+            </div>
+
+            {/* Banner based on shortfall/sufficient */}
+            {(() => {
+              const shortfallItems = activeMR.items.filter(
+                (i) => i.isShortfall || i.availableStock < i.requiredQty
+              );
+              const hasShortfall = shortfallItems.length > 0;
+
+              return hasShortfall ? (
+                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-start gap-3 text-amber-900 dark:text-amber-200">
+                  <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold">
+                      Shortfall Detected ({shortfallItems.length} Item{shortfallItems.length > 1 ? "s" : ""})
+                    </h4>
+                    <p className="text-xs opacity-90">
+                      One or more requested raw materials do not have sufficient warehouse inventory. Create a
+                      Purchase Requisition (PR) to procure the shortage before issuing materials to production.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-start gap-3 text-emerald-900 dark:text-emerald-200">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold">All Materials Sufficient ✓</h4>
+                    <p className="text-xs opacity-90">
+                      All required items have sufficient warehouse stock to fulfill this batch. Proceed to material
+                      issuance to scan and release inventory.
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Verification Table */}
+            <div className="border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] border-b border-border">
+                  <tr>
+                    <th className="py-2.5 px-4">Supply Item</th>
+                    <th className="py-2.5 px-4">Required Qty</th>
+                    <th className="py-2.5 px-4">Available Stock</th>
+                    <th className="py-2.5 px-4">Stock Status</th>
+                    <th className="py-2.5 px-4">Deficit</th>
+                    <th className="py-2.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {activeMR.items.map((item) => {
+                    const isDeficit = item.isShortfall || item.availableStock < item.requiredQty;
+                    const deficitAmount = Math.max(
+                      0,
+                      Math.round((item.requiredQty - item.availableStock) * 10) / 10
+                    );
+
+                    return (
+                      <tr key={item.itemId} className="hover:bg-muted/30">
+                        <td className="py-3 px-4 font-semibold text-foreground">
+                          {item.itemName}
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-foreground">
+                          {item.requiredQty} {item.uom}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-muted-foreground">
+                          {item.availableStock} {item.uom}
+                        </td>
+                        <td className="py-3 px-4">
+                          {isDeficit ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <AlertTriangle size={11} /> Shortfall
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <CheckCircle2 size={11} /> Sufficient
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-mono">
+                          {isDeficit ? (
+                            <span className="text-destructive font-bold">
+                              -{deficitAmount} {item.uom}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">0 {item.uom}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {isDeficit ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenCreatePR([item], activeMR)}
+                              className="h-7 px-2.5 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <ShoppingCart size={12} /> Create PR
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-medium flex items-center justify-end gap-1">
+                              <CheckCircle2 size={12} className="text-emerald-500" /> Ready
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Actions */}
+            {(() => {
+              const shortfallItems = activeMR.items.filter(
+                (i) => i.isShortfall || i.availableStock < i.requiredQty
+              );
+              const hasShortfall = shortfallItems.length > 0;
+
+              return (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
+                  {hasShortfall ? (
+                    <>
+                      <p className="text-xs text-muted-foreground italic">
+                        Generate a Purchase Requisition for shortfall materials or proceed with partial issuance.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleOpenCreatePR(shortfallItems, activeMR)}
+                          className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <ShoppingCart size={13} /> Create PR for Shortfalls ({shortfallItems.length})
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsIssuanceMode(true)}
+                          className="h-9 px-4 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          Proceed to Issuance (Override)
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 size={14} /> Stock verified &amp; ready for lot scanning
+                      </p>
+                      <Button
+                        onClick={() => setIsIssuanceMode(true)}
+                        className="h-9 px-5 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 gap-2 cursor-pointer shadow-xs"
+                      >
+                        Proceed to Material Issuance <ArrowRight size={14} />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+          /* Table of Requests */
+          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[10px] border-b border-border">
+                  <tr>
+                    <th className="py-3 px-4">MR Number</th>
+                    <th className="py-3 px-4">Batch No</th>
+                    <th className="py-3 px-4">Product Name</th>
+                    <th className="py-3 px-4">Needed Date</th>
+                    <th className="py-3 px-4">Stock Status</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {(invMainTab === "requests" ? pendingMRs : issuedMRs).length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                        No material requests found in this view.
+                      </td>
+                    </tr>
+                  ) : (
+                    (invMainTab === "requests" ? pendingMRs : issuedMRs).map((mr) => {
+                      const hasDeficit = mr.items.some(
+                        (i) => i.isShortfall || i.availableStock < i.requiredQty
+                      );
+
+                      return (
+                        <tr key={mr.mrId} className="hover:bg-muted/30">
+                          <td className="py-3 px-4 font-mono font-bold text-foreground">
+                            {mr.mrId}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-foreground">{mr.batchNumber}</td>
+                          <td className="py-3 px-4 font-semibold text-foreground">
+                            {mr.productName}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            {new Date(mr.neededDate).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4">
+                            {hasDeficit ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                <AlertTriangle size={10} /> Shortfall
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                <CheckCircle2 size={10} /> Sufficient
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <StatusBadge status={mr.status} />
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {invMainTab === "requests" ? (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedMRId(mr.mrId);
+                                  setIsIssuanceMode(false);
+                                }}
+                                className="h-7 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 cursor-pointer"
+                              >
+                                Check Stock &amp; Verify
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedMRId(mr.mrId);
+                                  setIsIssuanceMode(true);
+                                }}
+                                className="h-7 px-3 text-xs font-semibold border-border hover:bg-muted cursor-pointer"
+                              >
+                                View Issued Items
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* QR Scanner Modal */}
-        {scanningItem && (
-          <QrScannerModal
-            open={scannerOpen}
-            onClose={() => setScannerOpen(false)}
-            itemName={scanningItem.itemName}
-            suggestedLot={scanningItem.suggestedLot}
-            onScanSuccess={handleScanSuccess}
-          />
-        )}
+        <QrScannerModal
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScanSuccess={handleScanSuccess}
+          expectedLot={scanningItem?.suggestedLot}
+        />
 
-        {/* Purchase Requisition Modal for Shortfall */}
+        {/* Create PR Modal for Inventory Manager */}
         <CreatePRModal
           open={isPROpen}
           onClose={() => setIsPROpen(false)}
           onSuccess={() => {
             setIsPROpen(false);
-            toast.success("Purchase Requisition created for shortfall item!");
+            toast.success("Purchase Requisition submitted to Procurement!");
+            fetchData();
           }}
+          initialData={prInitialData}
         />
       </div>
     );
   }
 
   // ==========================================
-  // PRODUCTION TRACKING VIEW (Head Cook & Production)
+  // HEAD COOK / PRODUCTION TRACKING WATERFALL
   // ==========================================
   return (
-    <div className="flex flex-col lg:flex-row gap-5 items-start">
-      {/* ── Left Sidebar: Slim / Minimized Active Batches ── */}
-      <div className="lg:w-44 shrink-0 w-full">
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-          <div className="px-3 py-2 border-b border-border bg-muted/20 flex items-center justify-between">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Active Batches ({activeBatches.length})
-            </h3>
-          </div>
-          <div className="p-1.5 space-y-1.5 max-h-[75vh] overflow-y-auto">
-            {activeBatches.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-6 text-center">
-                No active batches.
+    <div className="flex flex-col lg:flex-row gap-6 items-start">
+      {/* ── Left Panel: Trackable Batches List ── */}
+      <div className="w-full lg:w-72 shrink-0 space-y-3">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <div>
+              <h3 className="text-xs font-bold text-foreground">Batch Tracking</h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {activeCookingBatches.length} Cooking &bull; {preProdBatches.length} Pre-Prod
               </p>
+            </div>
+            <span className="text-[11px] font-mono font-bold text-muted-foreground">
+              {filteredDisplayBatches.length} Batches
+            </span>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="grid grid-cols-4 gap-1 bg-muted/40 p-1 rounded-lg text-center">
+            <button
+              type="button"
+              onClick={() => setTrackingFilter("all")}
+              className={`py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
+                trackingFilter === "all"
+                  ? "bg-foreground text-background shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setTrackingFilter("pre-prod")}
+              className={`py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
+                trackingFilter === "pre-prod"
+                  ? "bg-foreground text-background shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Pre-Prod
+            </button>
+            <button
+              type="button"
+              onClick={() => setTrackingFilter("cooking")}
+              className={`py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
+                trackingFilter === "cooking"
+                  ? "bg-foreground text-background shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Cooking
+            </button>
+            <button
+              type="button"
+              onClick={() => setTrackingFilter("qa")}
+              className={`py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
+                trackingFilter === "qa"
+                  ? "bg-foreground text-background shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              QA
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+            {filteredDisplayBatches.length === 0 ? (
+              <div className="text-center py-6 px-2">
+                <p className="text-xs text-muted-foreground">
+                  {trackingFilter === "cooking"
+                    ? "No active batches currently in cooking stages."
+                    : trackingFilter === "pre-prod"
+                    ? "No batches currently in pre-production."
+                    : trackingFilter === "qa"
+                    ? "No batches currently in QA or packaging."
+                    : "No active batches available for tracking."}
+                </p>
+              </div>
             ) : (
-              activeBatches.map((b) => {
+              filteredDisplayBatches.map((b) => {
+                const isSelected = b.batchId === selectedBatchId;
                 const step = getBatchStep(b);
-                const progressPercent = Math.min(100, Math.round((step / 8) * 100));
-                const isSelected = selectedBatchId === b.batchId;
+                const progressPercent = Math.round((step / 8) * 100);
+                const phaseLabel =
+                  step === 1 ? "Pre-Prod: Authorized"
+                  : step === 2 ? "Pre-Prod: BOM"
+                  : step === 3 ? "Pre-Prod: MR Sent"
+                  : step === 4 ? "Pre-Prod: MR Ready"
+                  : step === 5 ? `Cooking: ${b.stage === "Preparation" ? "Peeling" : b.stage}`
+                  : step === 6 ? "QA Review"
+                  : step === 7 ? "Packaging"
+                  : "Stock In";
 
                 return (
                   <button
                     key={b.batchId}
                     type="button"
-                    onClick={() => setSelectedBatchId(b.batchId)}
-                    className={`w-full text-left p-2 rounded-lg border transition-all cursor-pointer ${
+                    onClick={() => {
+                      setSelectedBatchId(b.batchId);
+                      setActiveStepTab(null);
+                    }}
+                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${
                       isSelected
                         ? "border-foreground bg-foreground text-background shadow-xs"
                         : "border-border bg-card text-foreground hover:bg-muted/40"
@@ -805,7 +1399,7 @@ export default function ProductionTrackingTab({
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono font-bold">{b.batchNumber}</span>
                       <span
-                        className={`text-[9px] font-semibold uppercase px-1 py-0.2 rounded ${
+                        className={`text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded ${
                           isSelected ? "bg-background text-foreground" : "bg-muted text-muted-foreground"
                         }`}
                       >
@@ -815,9 +1409,26 @@ export default function ProductionTrackingTab({
                     <p className={`text-xs font-bold mt-0.5 truncate ${isSelected ? "text-background" : "text-foreground"}`}>
                       {b.productName}
                     </p>
-                    <p className={`text-[10px] truncate ${isSelected ? "text-background/80" : "text-muted-foreground"}`}>
-                      {b.variant} &bull; {b.targetYield} PCS
-                    </p>
+                    <div className="flex items-center justify-between mt-0.5 text-[10px]">
+                      <span className={`truncate ${isSelected ? "text-background/80" : "text-muted-foreground"}`}>
+                        {b.variant} &bull; {b.targetYield} PCS
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[9px]">
+                      <span
+                        className={`font-semibold px-1 py-0.5 rounded ${
+                          isSelected
+                            ? "bg-background/20 text-background"
+                            : step < 5
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold"
+                            : step === 5
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold"
+                        }`}
+                      >
+                        {phaseLabel}
+                      </span>
+                    </div>
 
                     <div className="mt-1.5">
                       <div className={`w-full h-1 rounded-full overflow-hidden ${isSelected ? "bg-background/20" : "bg-muted"}`}>
@@ -864,7 +1475,7 @@ export default function ProductionTrackingTab({
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-foreground text-background font-mono shadow-xs">
-                  Step {currentStep} of 8: {selectedBatch.stage}
+                  Step {currentStep} of 8: {selectedBatch.stage || "Preparation"}
                 </span>
               </div>
             </div>
@@ -883,22 +1494,28 @@ export default function ProductionTrackingTab({
                   "8. Stock In",
                 ].map((stepLabel, idx) => {
                   const stepNum = idx + 1;
-                  const isDone = currentStep > stepNum;
+                  const isDone = calculatedStep > stepNum;
                   const isCurr = currentStep === stepNum;
+                  const isAccessible = stepNum <= calculatedStep;
 
                   return (
                     <div key={stepLabel} className="flex items-center gap-1.5">
-                      <div
+                      <button
+                        type="button"
+                        disabled={!isAccessible}
+                        onClick={() => setActiveStepTab(stepNum)}
                         className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
                           isDone
-                            ? "bg-foreground text-background"
+                            ? "bg-foreground text-background cursor-pointer"
                             : isCurr
-                            ? "border border-foreground bg-card text-foreground font-bold shadow-xs"
-                            : "text-muted-foreground/60 opacity-60"
+                            ? "border border-foreground bg-card text-foreground font-bold shadow-xs cursor-pointer"
+                            : isAccessible
+                            ? "text-muted-foreground hover:text-foreground cursor-pointer"
+                            : "text-muted-foreground/30 cursor-not-allowed opacity-40"
                         }`}
                       >
                         {stepLabel}
-                      </div>
+                      </button>
                       {idx < 7 && <span className="text-muted-foreground/40 text-xs">&rarr;</span>}
                     </div>
                   );
@@ -921,12 +1538,11 @@ export default function ProductionTrackingTab({
                   </div>
                   <Button
                     onClick={() => {
-                      productionStorage.startPreProduction(selectedBatch.batchId);
-                      refreshData();
+                      setActiveStepTab(2);
                     }}
                     className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
                   >
-                    Select Bill of Materials Recipe
+                    Proceed to Bill of Materials &rarr;
                   </Button>
                 </div>
               )}
@@ -952,12 +1568,16 @@ export default function ProductionTrackingTab({
                         value={selectedBomId.toString()}
                         onValueChange={(val) => setSelectedBomId(parseInt(val, 10))}
                       >
-                        <SelectTrigger className="h-10 text-sm w-full bg-card border-border px-3 font-medium">
-                          <SelectValue placeholder="Choose Bill of Materials Recipe" />
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Choose Recipe" />
                         </SelectTrigger>
-                        <SelectContent className="bg-card border border-border shadow-lg">
-                          {AVAILABLE_BOMS.map((b) => (
-                            <SelectItem key={b.recipeId} value={b.recipeId.toString()} className="text-sm py-2">
+                        <SelectContent>
+                          {boms.map((b) => (
+                            <SelectItem
+                              key={b.recipeId}
+                              value={b.recipeId.toString()}
+                              className="text-xs"
+                            >
                               {b.recipeName}
                             </SelectItem>
                           ))}
@@ -967,38 +1587,36 @@ export default function ProductionTrackingTab({
 
                     <div>
                       <label className="text-xs font-bold text-foreground mb-1.5 block">
-                        Date Required by Kitchen
+                        Target Production Needed Date
                       </label>
-                      <div className="w-full">
-                        <Input
-                          type="date"
-                          min={new Date().toISOString().split("T")[0]}
-                          value={neededDate}
-                          onChange={(e) => setNeededDate(e.target.value)}
-                          className="h-10 text-sm w-full bg-card border-border px-3 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto"
-                        />
-                      </div>
+                      <Input
+                        type="date"
+                        value={neededDate}
+                        onChange={(e) => setNeededDate(e.target.value)}
+                        className="h-9 text-xs"
+                      />
                     </div>
                   </div>
 
-                  {/* BOM Ingredients Preview Table */}
-                  <div className="border border-border rounded-xl overflow-hidden mt-3">
-                    <div className="p-3.5 bg-muted/30 border-b border-border text-sm font-bold text-foreground">
-                      Ingredients in Selected Bill of Materials Formula
-                    </div>
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-muted/20 text-muted-foreground uppercase text-xs border-b border-border">
+                  {/* Ingredients Table */}
+                  <div className="border border-border rounded-xl overflow-hidden">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] border-b border-border">
                         <tr>
-                          <th className="py-3 px-4">Ingredient</th>
-                          <th className="py-3 px-4">Standard Yield</th>
-                          <th className="py-3 px-4">Scaled Target Qty</th>
-                          <th className="py-3 px-4">Available Stock</th>
+                          <th className="py-2.5 px-4">Supply Item</th>
+                          <th className="py-2.5 px-4">Standard Formula Qty</th>
+                          <th className="py-2.5 px-4">Calculated Requirement</th>
+                          <th className="py-2.5 px-4">Available Inventory Stock</th>
+                          <th className="py-2.5 px-4 text-right">Stock Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
                         {selectedBom.ingredients.map((ing) => {
-                          const multiplier = selectedBatch.targetYield / selectedBom.outputYield;
+                          const multiplier = selectedBatch.targetYield / (selectedBom.outputYield || 100);
                           const scaled = Math.round(ing.standardQty * multiplier * 10) / 10;
+                          const isDeficit = scaled > ing.stock;
+                          const deficit = Math.max(0, Math.round((scaled - ing.stock) * 10) / 10);
+
                           return (
                             <tr key={ing.itemId} className="hover:bg-muted/10">
                               <td className="py-3 px-4 font-semibold text-foreground">
@@ -1013,12 +1631,45 @@ export default function ProductionTrackingTab({
                               <td className="py-3 px-4 font-mono text-muted-foreground">
                                 {ing.stock} {ing.uom}
                               </td>
+                              <td className="py-3 px-4 text-right">
+                                {isDeficit ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    <AlertTriangle size={11} /> Shortfall (-{deficit} {ing.uom})
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <CheckCircle2 size={11} /> Sufficient
+                                  </span>
+                                )}
+                              </td>
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
                   </div>
+
+                  {(() => {
+                    const multiplier = selectedBatch.targetYield / (selectedBom.outputYield || 100);
+                    const shortfallList = selectedBom.ingredients
+                      .map((ing) => ({
+                        itemId: ing.itemId,
+                        itemName: ing.itemName,
+                        uom: ing.uom,
+                        availableStock: ing.stock,
+                        requiredQty: Math.round(ing.standardQty * multiplier * 10) / 10,
+                      }))
+                      .filter((it) => it.requiredQty > it.availableStock);
+
+                    return shortfallList.length > 0 ? (
+                      <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-amber-900 dark:text-amber-200">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span className="text-xs font-semibold">
+                          Note: {shortfallList.length} ingredient(s) have insufficient stock. Upon submitting this requisition, the Inventory Manager will review inventory and generate a Purchase Requisition (PR).
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
 
                   <div className="flex justify-end pt-2">
                     <Button
@@ -1032,149 +1683,258 @@ export default function ProductionTrackingTab({
               )}
 
               {/* ── STEP 3: Material Request Dispatched (Waiting for Inventory) ── */}
-              {currentStep === 3 && selectedBatch.materialRequest && (
-                <div className="space-y-5">
-                  <div className="p-5 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {currentStep === 3 && (
+                activeMR ? (
+                  <div className="space-y-5">
+                    <div className="p-5 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-base font-bold text-foreground">
+                          Step 3: Material Request Dispatched ({activeMR.mrId})
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          Dispatched to Inventory Manager for stock verification and QR lot scanning.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono font-bold px-3 py-1 rounded bg-foreground text-background">
+                        {activeMR.status}
+                      </span>
+                    </div>
+
+                    {/* Waiting status banner based on MR state */}
+                    {activeMR.status === "Issued" ? (
+                      <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200">
+                        <div className="flex items-center gap-2.5">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <div>
+                            <h5 className="text-xs font-bold">Materials Issued by Inventory Manager ✓</h5>
+                            <p className="text-xs opacity-90">
+                              All required raw materials have been verified and issued. You may now proceed to Step 4 (Materials Issued).
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => setActiveStepTab(4)}
+                          className="h-8 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 gap-1.5 cursor-pointer shrink-0 shadow-xs"
+                        >
+                          Proceed to Materials Issued (Step 4) &rarr;
+                        </Button>
+                      </div>
+                    ) : (() => {
+                      const shortfallItems = activeMR.items.filter(
+                        (i) => i.isShortfall || i.availableStock < i.requiredQty
+                      );
+                      const hasShortfall = shortfallItems.length > 0;
+
+                      return hasShortfall ? (
+                        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-start gap-2.5 text-amber-900 dark:text-amber-200">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <h5 className="text-xs font-bold">
+                              Awaiting Inventory Manager Review &amp; PR Procurement
+                            </h5>
+                            <p className="text-xs opacity-90">
+                              Shortfall detected for {shortfallItems.length} material(s). Production is waiting for the Inventory Manager to review stock, initiate a Purchase Requisition (PR), and issue materials to the kitchen.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-border bg-muted/20 flex items-start gap-2.5 text-foreground">
+                          <RefreshCw className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5 animate-spin" />
+                          <div className="space-y-0.5">
+                            <h5 className="text-xs font-bold">Awaiting Material Issuance from Inventory Manager</h5>
+                            <p className="text-xs text-muted-foreground">
+                              All ingredients are sufficient in warehouse inventory. Waiting for the Inventory Manager to complete QR scanning and issue materials to production.
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="border border-border rounded-xl overflow-hidden">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] border-b border-border">
+                          <tr>
+                            <th className="py-2.5 px-4">Ingredient</th>
+                            <th className="py-2.5 px-4">Required</th>
+                            <th className="py-2.5 px-4">Available Stock</th>
+                            <th className="py-2.5 px-4">Stock Status</th>
+                            <th className="py-2.5 px-4">Assigned Lot</th>
+                            <th className="py-2.5 px-4 text-right">Issuance Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {activeMR.items.map((item) => {
+                            const isDeficit = item.isShortfall || item.availableStock < item.requiredQty;
+                            const deficit = Math.max(0, Math.round((item.requiredQty - item.availableStock) * 10) / 10);
+
+                            return (
+                              <tr key={item.itemId} className="hover:bg-muted/20">
+                                <td className="py-3 px-4 font-semibold text-foreground">
+                                  {item.itemName}
+                                </td>
+                                <td className="py-3 px-4 font-mono font-bold text-foreground">
+                                  {item.requiredQty} {item.uom}
+                                </td>
+                                <td className="py-3 px-4 font-mono text-muted-foreground">
+                                  {item.availableStock} {item.uom}
+                                </td>
+                                <td className="py-3 px-4">
+                                  {isDeficit ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                      <AlertTriangle size={10} /> Shortfall (-{deficit} {item.uom})
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                      <CheckCircle2 size={10} /> Sufficient
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-4 font-mono font-bold text-foreground">
+                                  {item.suggestedLot}
+                                </td>
+                                <td className="py-3 px-4 text-right">
+                                  {activeMR.status === "Issued" || item.isScanned ? (
+                                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
+                                      <CheckCircle2 size={12} /> Issued
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground italic">
+                                      Pending Warehouse Issuance
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground italic">
+                        {activeMR.status === "Issued"
+                          ? "Supplies have been issued from the warehouse."
+                          : "Waiting for the Inventory Manager in 'View Material Requests' to verify stock and issue supplies."}
+                      </p>
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={fetchData}
+                          className="h-8 px-3 text-xs font-semibold border-border hover:bg-muted gap-1.5 cursor-pointer"
+                        >
+                          <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh Status
+                        </Button>
+                        {activeMR.status === "Issued" && (
+                          <Button
+                            onClick={() => setActiveStepTab(4)}
+                            className="h-8 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            Proceed to Step 4 &rarr;
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-xl border border-border bg-muted/10 space-y-4">
                     <div>
                       <h4 className="text-base font-bold text-foreground">
-                        Step 3: Material Request Dispatched ({selectedBatch.materialRequest.mrId})
+                        Step 3: Material Request
                       </h4>
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        Dispatched to Inventory Manager for stock verification and QR lot scanning.
+                        No Material Request has been submitted yet for this batch. Complete Step 2 first.
                       </p>
                     </div>
-                    <span className="text-xs font-mono font-bold px-3 py-1 rounded bg-foreground text-background">
-                      {selectedBatch.materialRequest.status}
-                    </span>
-                  </div>
-
-                  <div className="border border-border rounded-xl overflow-hidden">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-muted/40 text-muted-foreground uppercase text-xs border-b border-border">
-                        <tr>
-                          <th className="py-3 px-4">Ingredient</th>
-                          <th className="py-3 px-4">Required</th>
-                          <th className="py-3 px-4">Assigned Lot</th>
-                          <th className="py-3 px-4 text-right">Verification</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {selectedBatch.materialRequest.items.map((item) => (
-                          <tr key={item.itemId}>
-                            <td className="py-3 px-4 font-semibold text-foreground">
-                              {item.itemName}
-                            </td>
-                            <td className="py-3 px-4 font-mono">
-                              {item.requiredQty} {item.uom}
-                            </td>
-                            <td className="py-3 px-4 font-mono font-bold text-foreground">
-                              {item.suggestedLot}
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              {item.isScanned ? (
-                                <span className="text-xs font-semibold text-foreground">
-                                  Verified ✓
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">
-                                  Pending Scan
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Simulation Helper */}
-                  <div className="flex justify-end pt-2">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        selectedBatch.materialRequest?.items.forEach((item) => {
-                          productionStorage.updateMRItemScan(
-                            selectedBatch.materialRequest!.mrId,
-                            item.itemId,
-                            item.suggestedLot
-                          );
-                        });
-                        productionStorage.issueMaterialsToProduction(selectedBatch.materialRequest!.mrId);
-                        toast.success("Materials scanned and issued to production!");
-                        refreshData();
-                      }}
-                      className="h-8 px-3 text-xs font-semibold border-border hover:bg-muted"
+                      onClick={() => setActiveStepTab(2)}
+                      className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
                     >
-                      Simulate Verification & Issuance
+                      Go to Step 2: Bill of Materials &rarr;
                     </Button>
                   </div>
-                </div>
+                )
               )}
 
               {/* ── STEP 4: Materials Issued Confirmation ── */}
               {currentStep === 4 && (
-                <div className="space-y-4">
-                  <div className="p-3.5 rounded-lg border border-border bg-muted/20">
-                    <h4 className="text-xs font-bold text-foreground">
-                      Step 4: Raw Materials Issued & Verified
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      All ingredients have been verified. Click below to begin cooking stages.
-                    </p>
-                  </div>
+                activeMR ? (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-lg border border-border bg-muted/20">
+                      <h4 className="text-xs font-bold text-foreground">
+                        Step 4: Raw Materials Issued & Verified
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        All ingredients have been verified. Click below to begin cooking stages.
+                      </p>
+                    </div>
 
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] border-b border-border">
-                        <tr>
-                          <th className="py-2 px-3">Supply Name</th>
-                          <th className="py-2 px-3">Supplier Name</th>
-                          <th className="py-2 px-3">Lot Number</th>
-                          <th className="py-2 px-3">Expiry Date</th>
-                          <th className="py-2 px-3 text-right">Quantity</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {selectedBatch.materialRequest?.items.map((item) => (
-                          <tr key={item.itemId}>
-                            <td className="py-2 px-3 font-semibold text-foreground">
-                              {item.itemName}
-                            </td>
-                            <td className="py-2 px-3 text-muted-foreground">{item.supplierName}</td>
-                            <td className="py-2 px-3 font-mono font-bold text-foreground">
-                              {item.scannedLot || item.suggestedLot}
-                            </td>
-                            <td className="py-2 px-3 font-mono text-muted-foreground">
-                              {item.suggestedExpiry}
-                            </td>
-                            <td className="py-2 px-3 text-right font-mono font-bold text-foreground">
-                              {item.requiredQty} {item.uom}
-                            </td>
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] border-b border-border">
+                          <tr>
+                            <th className="py-2 px-3">Supply Name</th>
+                            <th className="py-2 px-3">Supplier Name</th>
+                            <th className="py-2 px-3">Lot Number</th>
+                            <th className="py-2 px-3">Expiry Date</th>
+                            <th className="py-2 px-3 text-right">Quantity</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {activeMR.items.map((item) => (
+                            <tr key={item.itemId}>
+                              <td className="py-2 px-3 font-semibold text-foreground">
+                                {item.itemName}
+                              </td>
+                              <td className="py-2 px-3 text-muted-foreground">{item.supplierName}</td>
+                              <td className="py-2 px-3 font-mono font-bold text-foreground">
+                                {item.scannedLot || item.suggestedLot}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-muted-foreground">
+                                {item.suggestedExpiry}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-foreground">
+                                {item.requiredQty} {item.uom}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
 
-                  <div className="flex justify-end pt-2">
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        onClick={async () => {
+                          await api.put(`/api/ProductionBatches/${selectedBatch.batchId}/stage`, {
+                            stage: "Peeling",
+                          });
+                          toast.success("Started Peeling stage!");
+                          fetchData();
+                        }}
+                        className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
+                      >
+                        Start Production Stages
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-xl border border-border bg-muted/10 space-y-4">
+                    <div>
+                      <h4 className="text-base font-bold text-foreground">
+                        Step 4: Materials Issuance
+                      </h4>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Materials have not been requested yet. Please submit the Material Request in Step 2 first.
+                      </p>
+                    </div>
                     <Button
-                      onClick={() => {
-                        productionStorage.completeStage(
-                          selectedBatch.batchId,
-                          "Peeling",
-                          isHeadCook ? "Head Cook" : "Elena",
-                          "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23333'/></svg>",
-                          "Verified"
-                        );
-                        refreshData();
-                      }}
-                      className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
+                      onClick={() => setActiveStepTab(2)}
+                      className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
                     >
-                      Start Production Stages
+                      Go to Step 2: Bill of Materials &rarr;
                     </Button>
                   </div>
-                </div>
+                )
               )}
 
               {/* ── STEP 5: 6 Preparation & Cooking Stages (Waterfall) ── */}
@@ -1218,110 +1978,101 @@ export default function ProductionTrackingTab({
                   </div>
 
                   {/* Current Active Stage Form */}
-                  {PREP_STAGES.includes(selectedBatch.stage as any) && (
-                    <div className="p-4 rounded-xl border border-border bg-muted/10 space-y-4">
-                      <div className="flex items-center justify-between border-b border-border pb-2">
-                        <h5 className="text-xs font-bold text-foreground">
-                          Active Stage: {selectedBatch.stage}
-                        </h5>
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          {new Date().toLocaleTimeString()}
-                        </span>
-                      </div>
+                  <div className="p-4 rounded-xl border border-border bg-muted/10 space-y-4">
+                    <div className="flex items-center justify-between border-b border-border pb-2">
+                      <h5 className="text-xs font-bold text-foreground">
+                        Active Stage: {selectedBatch.stage || "Preparation"}
+                      </h5>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {new Date().toLocaleTimeString()}
+                      </span>
+                    </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs font-semibold text-foreground mb-1 block">
-                            Operator In-Charge <span className="text-foreground">*</span>
-                          </label>
-                          <Input
-                            placeholder="Operator name..."
-                            value={stageInCharge}
-                            onChange={(e) => setStageInCharge(e.target.value)}
-                            className="h-9 text-xs"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-semibold text-foreground mb-1 block">
-                            Stage Notes
-                          </label>
-                          <Input
-                            placeholder="Observations, temperature..."
-                            value={stageNotes}
-                            onChange={(e) => setStageNotes(e.target.value)}
-                            className="h-9 text-xs"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Photo Upload */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-semibold text-foreground mb-1.5 block">
-                          Stage Completion Photo <span className="text-foreground">*</span>
+                        <label className="text-xs font-semibold text-foreground mb-1 block">
+                          Operator In-Charge <span className="text-foreground">*</span>
                         </label>
-                        <input
-                          type="file"
-                          ref={stageFileInputRef}
-                          onChange={(e) => handlePhotoUpload(e, setStagePhoto)}
-                          accept="image/*"
-                          className="hidden"
+                        <Input
+                          placeholder="Operator name..."
+                          value={stageInCharge}
+                          onChange={(e) => setStageInCharge(e.target.value)}
+                          className="h-9 text-xs"
+                          required
                         />
-                        <div className="flex items-center gap-4">
-                          <div className="w-20 h-20 rounded-lg border border-border bg-card overflow-hidden flex items-center justify-center shrink-0">
-                            {stagePhoto ? (
-                              <img src={stagePhoto} alt="Stage Proof" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground">No Photo</span>
-                            )}
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => stageFileInputRef.current?.click()}
-                                className="h-8 text-xs font-semibold border-border hover:bg-muted"
-                              >
-                                {stagePhoto ? "Change Photo" : "Upload Photo"}
-                              </Button>
-                              {!stagePhoto && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setStagePhoto(
-                                      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23222'/><text x='50%25' y='50%25' fill='%23fff' dominant-baseline='middle' text-anchor='middle'>Stage Verified</text></svg>"
-                                    )
-                                  }
-                                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                                >
-                                  Use Demo Snapshot
-                                </Button>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground">
-                              Photo saved directly in database.
-                            </p>
-                          </div>
-                        </div>
                       </div>
 
-                      <div className="flex justify-end pt-2">
-                        <Button
-                          onClick={() =>
-                            handleCompleteCurrentStage(selectedBatch.stage as typeof PREP_STAGES[number])
-                          }
-                          className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
-                        >
-                          Complete {selectedBatch.stage}
-                        </Button>
+                      <div>
+                        <label className="text-xs font-semibold text-foreground mb-1 block">
+                          Stage Notes
+                        </label>
+                        <Input
+                          placeholder="Observations, temperature..."
+                          value={stageNotes}
+                          onChange={(e) => setStageNotes(e.target.value)}
+                          className="h-9 text-xs"
+                        />
                       </div>
                     </div>
-                  )}
+
+                    {/* Photo Upload */}
+                    <div>
+                      <label className="text-xs font-semibold text-foreground mb-1.5 block">
+                        Stage Completion Photo
+                      </label>
+                      <input
+                        type="file"
+                        ref={stageFileInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setStagePhotoFile(file);
+                            setStagePhoto(URL.createObjectURL(file));
+                          }
+                        }}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-lg border border-border bg-card overflow-hidden flex items-center justify-center shrink-0">
+                          {stagePhoto ? (
+                            <img src={stagePhoto} alt="Stage Proof" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">No Photo</span>
+                          )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => stageFileInputRef.current?.click()}
+                              className="h-8 text-xs font-semibold border-border hover:bg-muted cursor-pointer"
+                            >
+                              {stagePhoto ? "Change Photo" : "Upload Photo"}
+                            </Button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Photo saved directly into the backend database.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        onClick={() =>
+                          handleCompleteCurrentStage(
+                            (selectedBatch.stage as typeof PREP_STAGES[number]) || "Peeling"
+                          )
+                        }
+                        className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
+                      >
+                        Complete {selectedBatch.stage || "Stage"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1389,7 +2140,7 @@ export default function ProductionTrackingTab({
                     <Button
                       variant="outline"
                       onClick={() => setShowRejectPrompt(true)}
-                      className="h-8 px-3 text-xs font-semibold border-border hover:bg-muted text-muted-foreground hover:text-foreground"
+                      className="h-8 px-3 text-xs font-semibold border-border hover:bg-muted text-destructive hover:text-destructive cursor-pointer"
                     >
                       Reject Batch
                     </Button>
@@ -1402,8 +2153,8 @@ export default function ProductionTrackingTab({
                   </div>
 
                   {showRejectPrompt && (
-                    <div className="p-4 rounded-xl border border-border bg-muted/30 space-y-3">
-                      <p className="text-xs font-bold text-foreground">
+                    <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 space-y-3">
+                      <p className="text-xs font-bold text-destructive">
                         Rejection Reason (Auto-generates Loss Report)
                       </p>
                       <Textarea
@@ -1418,14 +2169,14 @@ export default function ProductionTrackingTab({
                           variant="ghost"
                           size="sm"
                           onClick={() => setShowRejectPrompt(false)}
-                          className="h-8 text-xs"
+                          className="h-8 text-xs cursor-pointer"
                         >
                           Cancel
                         </Button>
                         <Button
                           size="sm"
                           onClick={handleQAReject}
-                          className="h-8 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
+                          className="h-8 px-3 text-xs font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors rounded-md shadow-xs cursor-pointer"
                         >
                           Confirm Rejection
                         </Button>
@@ -1443,7 +2194,7 @@ export default function ProductionTrackingTab({
                       Step 7: Packaging & Finished Goods Lot Allocation
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Review packaging materials, record actual output, and generate finished goods lot number.
+                      Record actual output quantities and assign finished goods lot number.
                     </p>
                   </div>
 
@@ -1485,43 +2236,6 @@ export default function ProductionTrackingTab({
                         <span className="text-sm font-bold text-foreground">
                           {selectedBatch.targetYield} PCS
                         </span>
-                      </div>
-                    </div>
-
-                    {/* Packaging Materials Table */}
-                    <div className="pt-2 border-t border-border">
-                      <div className="text-[11px] font-sans font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                        Packaging Materials
-                      </div>
-                      <div className="space-y-1">
-                        {[
-                          { name: "Plastic Jar / Tub", required: selectedBatch.targetYield, available: selectedBatch.targetYield + 20, shortfall: false },
-                          { name: "Lid Cap", required: selectedBatch.targetYield, available: selectedBatch.targetYield + 10, shortfall: false },
-                          { name: "Brand Label", required: selectedBatch.targetYield, available: selectedBatch.targetYield, shortfall: false },
-                          { name: "Heat Induction Seal", required: selectedBatch.targetYield, available: selectedBatch.targetYield - 20, shortfall: true },
-                        ].map((mat) => (
-                          <div
-                            key={mat.name}
-                            className="flex items-center justify-between py-1 px-2 rounded hover:bg-muted/30"
-                          >
-                            <span className="font-sans text-foreground">{mat.name}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-muted-foreground">
-                                {mat.required} required
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {mat.available} available
-                              </span>
-                              {mat.shortfall ? (
-                                <span className="text-foreground" title="Deficit">
-                                  ⚠
-                                </span>
-                              ) : (
-                                <span className="text-foreground text-[10px]">✓</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     </div>
 
@@ -1600,36 +2314,6 @@ export default function ProductionTrackingTab({
                           />
                         </div>
                       </div>
-
-                      {/* Photo Upload for Packaging */}
-                      <div>
-                        <label className="text-xs font-semibold text-foreground mb-1.5 block">
-                          Packaging Confirmation Photo
-                        </label>
-                        <input
-                          type="file"
-                          ref={packagingFileInputRef}
-                          onChange={(e) => handlePhotoUpload(e, setPackagingPhoto)}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        <div className="flex items-center gap-3">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => packagingFileInputRef.current?.click()}
-                            className="h-8 text-xs font-semibold border-border hover:bg-muted"
-                          >
-                            {packagingPhoto ? "Change Photo" : "Upload Photo"}
-                          </Button>
-                          {packagingPhoto && (
-                            <span className="text-xs font-semibold text-foreground">
-                              Photo Attached ✓
-                            </span>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -1661,7 +2345,7 @@ export default function ProductionTrackingTab({
                           Finished Lot
                         </span>
                         <span className="font-mono font-bold text-foreground">
-                          {selectedBatch.packagingData?.fgLotNumber || "LOT-FP-2026-001"}
+                          {selectedBatch.packagingData?.fgLotNumber || `FG-${selectedBatch.batchNumber}`}
                         </span>
                       </div>
                       <div>
@@ -1669,7 +2353,7 @@ export default function ProductionTrackingTab({
                           Stock Quantity
                         </span>
                         <span className="font-bold text-foreground">
-                          {selectedBatch.packagingData?.goodQty || selectedBatch.targetYield} PCS
+                          {selectedBatch.actualQuantity || selectedBatch.targetYield} PCS
                         </span>
                       </div>
                       <div>
@@ -1677,7 +2361,7 @@ export default function ProductionTrackingTab({
                           Expiry Date
                         </span>
                         <span className="font-mono font-bold text-foreground">
-                          {selectedBatch.packagingData?.expiryDate}
+                          {selectedBatch.packagingData?.expiryDate || "12 Months"}
                         </span>
                       </div>
                       <div>
@@ -1685,7 +2369,7 @@ export default function ProductionTrackingTab({
                           Packager
                         </span>
                         <span className="font-bold text-foreground">
-                          {selectedBatch.packagingData?.packagerName}
+                          {selectedBatch.packagingData?.packagerName || selectedBatch.assignedCook}
                         </span>
                       </div>
                     </div>
@@ -1705,6 +2389,17 @@ export default function ProductionTrackingTab({
           </div>
         )}
       </div>
+      {/* Create PR Modal for Head Cook / Tracking Waterfall */}
+      <CreatePRModal
+        open={isPROpen}
+        onClose={() => setIsPROpen(false)}
+        onSuccess={() => {
+          setIsPROpen(false);
+          toast.success("Purchase Requisition submitted to Procurement!");
+          fetchData();
+        }}
+        initialData={prInitialData}
+      />
     </div>
   );
 }

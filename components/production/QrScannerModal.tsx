@@ -8,18 +8,21 @@ import { Input } from "@/components/ui/input";
 interface QrScannerModalProps {
   open: boolean;
   onClose: () => void;
-  itemName: string;
-  suggestedLot: string;
+  itemName?: string;
+  suggestedLot?: string;
+  expectedLot?: string;
   onScanSuccess: (scannedLot: string) => void;
 }
 
 export default function QrScannerModal({
   open,
   onClose,
-  itemName,
+  itemName = "Ingredient Lot",
   suggestedLot,
+  expectedLot,
   onScanSuccess,
 }: QrScannerModalProps) {
+  const targetLot = suggestedLot || expectedLot || "";
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [hasCamera, setHasCamera] = useState(false);
@@ -72,7 +75,7 @@ export default function QrScannerModal({
 
   const verifyLot = (code: string) => {
     const trimmed = code.trim().toUpperCase();
-    const expected = suggestedLot.trim().toUpperCase();
+    const expected = targetLot.trim().toUpperCase();
 
     if (!trimmed) {
       setScanStatus("error");
@@ -84,12 +87,12 @@ export default function QrScannerModal({
       setScanStatus("success");
       setErrorMessage("");
       setTimeout(() => {
-        onScanSuccess(suggestedLot);
+        onScanSuccess(targetLot);
         onClose();
       }, 700);
     } else {
       setScanStatus("error");
-      setErrorMessage(`Verification Failed: Scanned code "${code}" does not match required Lot "${suggestedLot}".`);
+      setErrorMessage(`Verification Failed: Scanned code "${code}" does not match required Lot "${targetLot}".`);
     }
   };
 
@@ -146,7 +149,7 @@ export default function QrScannerModal({
               </div>
               <div className="text-center">
                 <span className="text-[10px] uppercase tracking-wider font-mono bg-black/70 text-white px-2 py-0.5 rounded">
-                  Target Lot: {suggestedLot}
+                  Target Lot: {targetLot}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -160,7 +163,7 @@ export default function QrScannerModal({
               <div className="absolute inset-0 bg-background/90 backdrop-blur-xs flex flex-col items-center justify-center gap-2 animate-in fade-in">
                 <CheckCircle2 className="w-12 h-12 text-foreground" />
                 <p className="text-sm font-bold text-foreground">Lot Verified!</p>
-                <p className="text-xs text-muted-foreground font-mono">{suggestedLot}</p>
+                <p className="text-xs text-muted-foreground font-mono">{targetLot}</p>
               </div>
             )}
           </div>
@@ -177,7 +180,7 @@ export default function QrScannerModal({
           <div className="space-y-2 pt-1 border-t border-border">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Expected Lot Verification</span>
-              <span className="font-mono font-bold text-foreground">{suggestedLot}</span>
+              <span className="font-mono font-bold text-foreground">{targetLot}</span>
             </div>
 
             <div className="flex gap-2">
@@ -202,10 +205,10 @@ export default function QrScannerModal({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => verifyLot(suggestedLot)}
+                onClick={() => verifyLot(targetLot)}
                 className="w-full text-xs font-medium border-border hover:bg-muted"
               >
-                Simulate Successful Scan ({suggestedLot})
+                Simulate Successful Scan ({targetLot})
               </Button>
             </div>
           </div>

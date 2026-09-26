@@ -215,8 +215,8 @@ export default function GrnTab({ onPosted }: GrnTabProps) {
             type="text"
             placeholder={
               activeSubTab === "pending"
-                ? "Search arrived deliveries by Delivery#, Purchase Order#, Purchase Requisition#, or Supplier..."
-                : "Search posted receipts by Goods Receipt Note#, Purchase Order#, Purchase Requisition#, or Supplier..."
+                ? "Search arrived deliveries by Delivery# or Supplier..."
+                : "Search posted receipts by Goods Receipt Note#, Delivery#, or Supplier..."
             }
             value={search}
             onChange={(e) => {

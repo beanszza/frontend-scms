@@ -22,7 +22,7 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
       <table className="w-full min-w-[900px]">
         <thead className="border-b border-border bg-muted/30">
           <tr className="text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
-            <th className="px-5 py-4">Item No.</th>
+            <th className="px-5 py-4">No.</th>
             <th className="px-5 py-4">Name</th>
             <th className="px-5 py-4">Category</th>
             <th className="px-5 py-4">Unit</th>
@@ -56,7 +56,7 @@ export default function SupplyTable({ items, currentPage, pageSize, onEdit, onVi
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold text-foreground">{item.itemName}</p>
                         {item.itemCode && (
-                          <p className="text-xs font-mono text-muted-foreground">Supply No: {item.itemCode}</p>
+                          <p className="text-xs font-mono text-muted-foreground">No: {item.itemCode}</p>
                         )}
                         <p className="text-xs text-muted-foreground">Category: {item.categoryName}</p>
                         <p className="text-xs text-muted-foreground">UOM: {item.uomName}</p>

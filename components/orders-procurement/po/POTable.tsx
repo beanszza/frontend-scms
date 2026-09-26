@@ -34,12 +34,11 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
   }, [openDropdownId]);
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE ORDER NUMBER</th>
-            <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">PURCHASE REQUISITION REF.</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">SUPPLIER</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">ORDER DATE</th>
             <th className="px-4 py-3 text-left font-bold text-muted-foreground tracking-wider whitespace-nowrap">REQUESTED BY</th>
@@ -51,7 +50,7 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
         <tbody className="divide-y divide-border">
           {orders.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-12 text-center text-xs font-medium text-muted-foreground">
+              <td colSpan={7} className="px-5 py-8 text-center text-xs font-medium text-muted-foreground">
                 No purchase orders found.
               </td>
             </tr>
@@ -99,9 +98,6 @@ export function POTable({ orders, isAdmin, onView, onEdit, onCancel }: POTablePr
                 <tr key={po.poId} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onView(po)}>
                   <td className="px-4 py-3.5 font-mono text-foreground whitespace-nowrap font-medium">
                     {po.poNumber}
-                  </td>
-                  <td className="px-4 py-3.5 font-mono text-muted-foreground whitespace-nowrap text-xs">
-                    {po.prNumber || "—"}
                   </td>
                   <td className="px-4 py-3.5 font-medium text-foreground whitespace-nowrap">
                     {po.supplierName || "—"}

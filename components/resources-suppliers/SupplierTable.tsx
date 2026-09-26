@@ -22,7 +22,7 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
       <table className="w-full min-w-[900px]">
         <thead className="border-b border-border bg-muted/30">
           <tr className="text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
-            <th className="px-5 py-4">Supplier No.</th>
+            <th className="px-5 py-4">No.</th>
             <th className="px-5 py-4">Supplier Name</th>
             <th className="px-5 py-4">Contact Person</th>
             <th className="px-5 py-4">Email</th>
@@ -55,7 +55,7 @@ export default function SupplierTable({ suppliers, currentPage, pageSize, onEdit
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold text-foreground">{supplier.companyName}</p>
                         {supplier.supplierCode && (
-                          <p className="text-xs font-mono text-muted-foreground">Supplier No: {supplier.supplierCode}</p>
+                          <p className="text-xs font-mono text-muted-foreground">No: {supplier.supplierCode}</p>
                         )}
                         <p className="text-xs text-muted-foreground">Contact: {supplier.contactPerson}</p>
                         <p className="text-xs text-muted-foreground">Email: {supplier.email}</p>

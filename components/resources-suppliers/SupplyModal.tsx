@@ -346,7 +346,6 @@ export default function SupplyModal({
                             selectedSupplierIds.includes(s.supplierId) ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        {s.supplierCode ? `${s.supplierCode} — ` : ""}
                         {s.companyName}
                       </CommandItem>
                     ))}
@@ -368,7 +367,6 @@ export default function SupplyModal({
                     variant="secondary"
                     className="rounded-md px-2 py-1 flex items-center gap-1 bg-muted border border-border text-foreground"
                   >
-                    {sup?.supplierCode ? `${sup.supplierCode} — ` : ""}
                     {sup?.companyName}
                     <X
                       className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors"
@@ -402,7 +400,7 @@ export default function SupplyModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+        <div className="flex justify-end gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2">
           <Button
             type="button"
             variant="outline"

@@ -1,14 +1,9 @@
 "use client";
 
 import React from "react";
-import {
-  Calendar,
-  AlertCircle,
-} from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { PurchaseRequisition } from "../types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 
@@ -60,137 +55,118 @@ export function PRDetailsModal({
       size="max-w-5xl"
     >
       <div className="space-y-6">
-        {/* Top Header Row with Status Badge & Document No */}
+        {/* Top Header Row with Status Badge */}
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-3">
             <StatusBadge status={pr.status} />
-            <span className="font-mono text-sm font-bold text-foreground">{pr.prNumber}</span>
           </div>
           <div className="text-xs text-muted-foreground">
             {pr.department} · {pr.priority} Priority
           </div>
         </div>
-        {/* Previous Admin Review Notes / Revision Reason (if any) */}
-        {pr.adminNotes && (
-          <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <AlertCircle className="w-4 h-4 text-foreground shrink-0" />
-              <span>Admin Feedback / Revision Reason:</span>
-            </div>
-            <p className="text-xs text-muted-foreground pl-6 whitespace-pre-wrap">{pr.adminNotes}</p>
-          </div>
-        )}
 
-        {/* Read-only Form matching Inventory side CreatePRForm (2 columns per row) */}
-        <div className="space-y-4">
-          {/* Row 1: PR Number & Request Date */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Purchase Requisition Number
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={pr.prNumber}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 font-mono text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+        {/* Feedback / Rejection / Return / Cancellation Reason */}
+        {pr.adminNotes ? (
+          <div className={`p-4 rounded-xl border space-y-1.5 ${
+            pr.status === "Cancelled" || pr.status === "Rejected"
+              ? "border-destructive/30 bg-destructive/5 text-destructive"
+              : pr.status === "Returned"
+              ? "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+              : "border-border bg-muted/40 text-foreground"
+          }`}>
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                {pr.status === "Cancelled"
+                  ? "Cancellation Reason:"
+                  : pr.status === "Rejected"
+                  ? "Rejection Reason:"
+                  : pr.status === "Returned"
+                  ? "Return / Revision Reason:"
+                  : "Admin Feedback:"}
+              </span>
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Request Date
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={formattedRequestDate}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
-            </div>
+            <p className="text-xs pl-6 whitespace-pre-wrap leading-relaxed opacity-95">{pr.adminNotes}</p>
           </div>
-
-          {/* Row 2: Requested By & Department */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Requested By
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={
-                  pr.requestedBy && pr.requestedBy !== "Unauthenticated"
-                    ? pr.requestedBy
-                    : "Inventory Manager"
-                }
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+        ) : (pr.status === "Cancelled" || pr.status === "Rejected") ? (
+          <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 space-y-1.5 text-destructive">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{pr.status === "Cancelled" ? "Cancellation Reason:" : "Rejection Reason:"}</span>
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Department
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={pr.department || "Inventory"}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+            <p className="text-xs pl-6 text-muted-foreground italic">No rejection or cancellation reason was recorded.</p>
+          </div>
+        ) : null}
+
+        {/* Read-only Form matching CreatePRForm (3 columns per row) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 p-4 rounded-2xl bg-muted/20 border border-border">
+          {/* PR Number */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Purchase Requisition Number
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 font-mono text-xs text-muted-foreground select-all">
+              {pr.prNumber}
             </div>
           </div>
 
-          {/* Row 3: Request Type & Priority */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Request Type
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={pr.requestType || "Stock Replenishment"}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Priority
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={pr.priority || "Normal"}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+          {/* Request Date */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Request Date
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
+              {formattedRequestDate}
             </div>
           </div>
 
-          {/* Row 4: Required Date & Requisition Status */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Required Date
-              </label>
-              <div className="relative">
-                <Input
-                  type="text"
-                  readOnly
-                  value={formattedRequiredDate}
-                  className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 pr-10 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-                />
-                <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
+          {/* Required Date */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Required Date
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
+              {formattedRequiredDate}
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Requisition Status
-              </label>
-              <Input
-                type="text"
-                readOnly
-                value={pr.status}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
+          </div>
+
+          {/* Requested By */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Requested By
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
+              {pr.requestedBy && pr.requestedBy !== "Unauthenticated" ? pr.requestedBy : "Inventory Manager"}
+            </div>
+          </div>
+
+          {/* Department */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Department
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
+              {pr.department || "Inventory"}
+            </div>
+          </div>
+
+          {/* Request Type */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Request Type
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
+              {pr.requestType || "Stock Replenishment"}
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div className="sm:col-span-2 lg:col-span-1">
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              Priority
+            </label>
+            <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground">
+              {pr.priority || "Normal"}
             </div>
           </div>
         </div>
@@ -250,34 +226,20 @@ export function PRDetailsModal({
           </div>
         </div>
 
-        {/* Purpose and Notes (2 columns per row) */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-foreground">
-              Purpose / Justification
-            </label>
-            <Textarea
-              readOnly
-              rows={3}
-              value={pr.purpose || "—"}
-              className="w-full rounded-xl border border-border bg-muted/40 p-3 text-xs text-foreground cursor-not-allowed resize-none shadow-none focus-visible:ring-0 leading-relaxed"
-            />
-          </div>
-          <div>
+        {/* Notes (Purpose removed as requested) */}
+        {pr.notes && (
+          <div className="pt-2 border-t border-border">
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
               Notes
             </label>
-            <Textarea
-              readOnly
-              rows={3}
-              value={pr.notes || "None"}
-              className="w-full rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground cursor-not-allowed resize-none shadow-none focus-visible:ring-0 leading-relaxed"
-            />
+            <div className="w-full rounded-xl border border-border bg-muted/40 p-3 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+              {pr.notes}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Modal Footer with Operations */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border mt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2">
           <div className="text-xs text-muted-foreground">
             {pr.updatedAt ? `Last modified: ${new Date(pr.updatedAt).toLocaleString()}` : ""}
           </div>

@@ -325,7 +325,7 @@ export default function RecipeModal({
         )}
 
         {/* Modal Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+        <div className="flex justify-end gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2">
           <Button
             type="button"
             variant="outline"
