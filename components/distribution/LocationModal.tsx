@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { LocationItem } from "./types";
+import AddressSelector from "@/components/shared/AddressSelector";
 
 interface LocationModalProps {
   open: boolean;
@@ -21,7 +22,10 @@ export default function LocationModal({
 }: LocationModalProps) {
   const [name, setName] = useState("");
   const [type, setType] = useState("Warehouse");
-  const [address, setAddress] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [barangay, setBarangay] = useState("");
+  const [city, setCity] = useState("");
+  const [province, setProvince] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [nameError, setNameError] = useState("");
 
@@ -29,12 +33,26 @@ export default function LocationModal({
     if (editingLocation) {
       setName(editingLocation.name || "");
       setType(editingLocation.type || "Warehouse");
-      setAddress(editingLocation.address || "");
+      if (editingLocation.address) {
+        const parts = editingLocation.address.split(", ");
+        setStreetNumber(parts[0] || "");
+        setBarangay(parts[1] || "");
+        setCity(parts[2] || "");
+        setProvince(parts[3] || "");
+      } else {
+        setStreetNumber("");
+        setBarangay("");
+        setCity("");
+        setProvince("");
+      }
       setIsActive(editingLocation.status === "Active");
     } else {
       setName("");
       setType("Warehouse");
-      setAddress("");
+      setStreetNumber("");
+      setBarangay("");
+      setCity("");
+      setProvince("");
       setIsActive(true);
     }
     setNameError("");
@@ -45,7 +63,8 @@ export default function LocationModal({
       setNameError("Location name is required.");
       return;
     }
-    onSave({ name: name.trim(), type, address: address.trim(), isActive });
+    const fullAddress = `${streetNumber.trim()}, ${barangay.trim()}, ${city.trim()}, ${province.trim()}`;
+    onSave({ name: name.trim(), type, address: fullAddress, isActive });
   };
 
   return (
@@ -69,7 +88,12 @@ export default function LocationModal({
 
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-foreground">Address</label>
-          <Input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 123 Logistics Way" className="rounded-xl border border-border bg-card text-foreground text-sm" />
+          <AddressSelector
+            streetNumber={streetNumber} setStreetNumber={setStreetNumber}
+            barangay={barangay} setBarangay={setBarangay}
+            city={city} setCity={setCity}
+            province={province} setProvince={setProvince}
+          />
         </div>
 
         {editingLocation && (

@@ -70,6 +70,13 @@ export function DeliveryDetailsModal({
           </div>
         </div>
 
+        {delivery.isPerBatch && (
+          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs">
+            <span className="font-semibold text-foreground">Per-batch delivery:</span>{" "}
+            <span className="font-mono text-muted-foreground">{delivery.batchReference}</span>
+          </div>
+        )}
+
         {/* Visual Stepper */}
         {!isCancelled && (
           <div className="py-2">

@@ -17,7 +17,6 @@ interface RecipeModalProps {
   onSave: (data: {
     recipeName: string;
     productId: number;
-    outputQuantity: number;
     ingredients: { itemId: number; uomId: number; standardQuantity: number }[];
     notes: string;
     isActive: boolean;
@@ -32,16 +31,18 @@ export default function RecipeModal({
   onClose,
   onSave,
 }: RecipeModalProps) {
+  const hasYieldSuffix = (value: string) =>
+    /\s*(?:[-–—]\s*)?(?:good\s+for\s+)?\d+(?:\.\d+)?\s*(?:pcs?|pieces?|g|kg|grams?|kilograms?|ml|l|liters?|litres?|servings?|containers?)\s*$/i.test(value) ||
+    /\s+pcs?\s*$/i.test(value);
+
   const [recipeName, setRecipeName] = useState("");
   const [productId, setProductId] = useState<number>(0);
-  const [outputQuantity, setOutputQuantity] = useState("");
   const [notes, setNotes] = useState("");
   const [recipeActive, setRecipeActive] = useState(true);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
   // Errors
   const [recipeNameError, setRecipeNameError] = useState("");
-  const [recipeYieldError, setRecipeYieldError] = useState("");
   const [ingredientsErrors, setIngredientsErrors] = useState<{ [id: number]: string }>({});
 
   useEffect(() => {
@@ -49,7 +50,6 @@ export default function RecipeModal({
       if (editingRecipe) {
         setRecipeName(editingRecipe.recipeName || "");
         setProductId(editingRecipe.productId || (finishedProducts[0]?.productId ?? 0));
-        setOutputQuantity(editingRecipe.outputQuantity?.toString() || "");
         setNotes(editingRecipe.notes || "");
         setRecipeActive(editingRecipe.isActive);
         if (editingRecipe.ingredients?.length > 0) {
@@ -58,26 +58,24 @@ export default function RecipeModal({
               id: Date.now() + idx,
               itemId: ing.itemId,
               quantity: ing.standardQuantity.toString(),
-              uomId: baseSupplies.find((s) => s.itemId === ing.itemId)?.uomId || 1,
+              uomId: ing.uomId || baseSupplies.find((s) => s.itemId === ing.itemId)?.uomId || 0,
             }))
           );
         } else {
           setIngredients([
-            { id: Date.now(), itemId: baseSupplies[0]?.itemId ?? 0, quantity: "", uomId: baseSupplies[0]?.uomId ?? 1 },
+            { id: Date.now(), itemId: baseSupplies[0]?.itemId ?? 0, quantity: "", uomId: baseSupplies[0]?.uomId ?? 0 },
           ]);
         }
       } else {
         setRecipeName("");
         setProductId(finishedProducts[0]?.productId ?? 0);
-        setOutputQuantity("");
         setNotes("");
         setRecipeActive(true);
         setIngredients([
-          { id: Date.now(), itemId: baseSupplies[0]?.itemId ?? 0, quantity: "", uomId: baseSupplies[0]?.uomId ?? 1 },
+          { id: Date.now(), itemId: baseSupplies[0]?.itemId ?? 0, quantity: "", uomId: baseSupplies[0]?.uomId ?? 0 },
         ]);
       }
       setRecipeNameError("");
-      setRecipeYieldError("");
       setIngredientsErrors({});
     }
   }, [editingRecipe, open, finishedProducts, baseSupplies]);
@@ -94,15 +92,13 @@ export default function RecipeModal({
     if (!recipeName.trim()) {
       setRecipeNameError("Recipe Name is required.");
       isValid = false;
-    }
-    if (!outputQuantity.trim() || Number(outputQuantity) <= 0) {
-      setRecipeYieldError("Target Yield must be greater than 0.");
+    } else if (hasYieldSuffix(recipeName)) {
+      setRecipeNameError("Enter only the dish or product name; do not include yield or unit suffixes.");
       isValid = false;
     }
-
     const errors: { [id: number]: string } = {};
     ingredients.forEach((ing) => {
-      if (!ing.quantity.trim() || Number(ing.quantity) <= 0) {
+      if (!ing.itemId || !ing.quantity.trim() || Number(ing.quantity) <= 0) {
         errors[ing.id] = "Quantity must be greater than 0.";
         isValid = false;
       }
@@ -113,7 +109,6 @@ export default function RecipeModal({
     onSave({
       recipeName: recipeName.trim(),
       productId: Number(productId),
-      outputQuantity: Number(outputQuantity),
       ingredients: ingredients.map((i) => ({ itemId: i.itemId, uomId: i.uomId, standardQuantity: Number(i.quantity) })),
       notes: notes.trim(),
       isActive: recipeActive,
@@ -123,14 +118,12 @@ export default function RecipeModal({
   // Check if form is valid to enable/disable button
   const isFormInvalid =
     !recipeName.trim() ||
+    hasYieldSuffix(recipeName) ||
     !!recipeNameError ||
     !productId ||
     productId <= 0 ||
-    !outputQuantity.trim() ||
-    Number(outputQuantity) <= 0 ||
-    !!recipeYieldError ||
     ingredients.length === 0 ||
-    ingredients.some((i) => !i.quantity.trim() || Number(i.quantity) <= 0) ||
+    ingredients.some((i) => !i.itemId || !i.quantity.trim() || Number(i.quantity) <= 0) ||
     Object.values(ingredientsErrors).some((err) => !!err);
 
   return (
@@ -154,9 +147,10 @@ export default function RecipeModal({
               const val = e.target.value.slice(0, 50);
               setRecipeName(val);
               if (!val.trim()) setRecipeNameError("Recipe Name is required.");
+              else if (hasYieldSuffix(val)) setRecipeNameError("Enter only the dish or product name; do not include yield or unit suffixes.");
               else setRecipeNameError("");
             }}
-            placeholder="e.g. Ube Halaya 200g Batch"
+            placeholder="e.g. Ube Halaya"
             aria-invalid={!!recipeNameError}
             style={recipeNameError ? { borderColor: "var(--destructive)" } : undefined}
             className={`w-full rounded-xl border ${
@@ -168,8 +162,8 @@ export default function RecipeModal({
           )}
         </div>
 
-        {/* Finished Product & Target Yield */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Finished Product */}
+        <div className="grid grid-cols-1 gap-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
               Finished Product <span className="text-destructive">*</span>
@@ -192,46 +186,21 @@ export default function RecipeModal({
             </select>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-foreground">
-              Target Yield <span className="text-destructive">*</span>
-            </label>
-            <Input
-              type="number"
-              min={1}
-              step="any"
-              maxLength={50}
-              value={outputQuantity}
-              onKeyDown={(e) => {
-                if (["-", "+", "e", "E"].includes(e.key)) {
-                  e.preventDefault();
-                }
-              }}
-              onChange={(e) => {
-                const val = e.target.value.slice(0, 50);
-                setOutputQuantity(val);
-                if (!val.trim() || Number(val) <= 0) {
-                  setRecipeYieldError("Target Yield must be greater than 0.");
-                } else {
-                  setRecipeYieldError("");
-                }
-              }}
-              placeholder="e.g. 100"
-              aria-invalid={!!recipeYieldError}
-              style={recipeYieldError ? { borderColor: "var(--destructive)" } : undefined}
-              className={`w-full rounded-xl border ${
-                recipeYieldError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-              } bg-card text-foreground px-4 py-2.5 text-sm transition-colors`}
-            />
-            {recipeYieldError && (
-              <p className="mt-1 text-xs text-destructive animate-in fade-in-50">{recipeYieldError}</p>
-            )}
-          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+          Please enter ingredient quantities per piece / per container (Good For One). The system will automatically
+          scale quantities based on the production batch size.
         </div>
 
         {/* Ingredients List */}
         <div>
           <h3 className="mb-2 text-sm font-bold text-foreground">Ingredients List</h3>
+          {baseSupplies.length === 0 && (
+            <p className="mb-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+              Add active supply items under the Ingredients category before creating a recipe.
+            </p>
+          )}
           <div className="space-y-3">
             {ingredients.map((ingredient, index) => (
               <RecipeIngredientItem

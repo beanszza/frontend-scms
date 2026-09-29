@@ -12,7 +12,6 @@ import api from "@/lib/api";
 import { PurchaseRequisition, PRItem } from "../types";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmModal from "@/components/ConfirmModal";
-import { HR_EMPLOYEES } from "@/lib/employees";
 
 export interface CreatePRModalProps {
   open: boolean;
@@ -62,6 +61,11 @@ export function CreatePRModal({
   const defaultAccountName = user?.firstName
     ? `${user.firstName} ${user.lastName}`.trim()
     : (user?.username || "");
+  const detectedDepartment = user?.roles?.some((role) => role.toLowerCase().includes("cook"))
+    ? "Production"
+    : user?.roles?.some((role) => role.toLowerCase().includes("admin"))
+      ? "Administration"
+      : "Inventory";
 
   const [requestedBy, setRequestedBy] = useState(
     initialData?.requestedBy && initialData.requestedBy !== "Unauthenticated"
@@ -148,8 +152,8 @@ export function CreatePRModal({
             year: "numeric",
           })
         );
-        setRequestedBy("");
-        setDepartment("");
+        setRequestedBy(defaultAccountName || "Inventory Manager");
+        setDepartment(detectedDepartment);
         setRequestType("");
         setPriority("");
         setRequiredDate("");
@@ -160,7 +164,7 @@ export function CreatePRModal({
         setErrors({});
       }
     }
-  }, [open, initialData, user, defaultAccountName]);
+  }, [open, initialData, user, defaultAccountName, detectedDepartment]);
 
   // Fetch supplies and next PR number
   useEffect(() => {
@@ -197,7 +201,7 @@ export function CreatePRModal({
             itemId: it.itemId,
             itemCode: it.itemCode || `SPL-${String(it.itemId).padStart(4, "0")}`,
             itemName: it.itemName,
-            uomName: it.uomName || it.uom?.abbreviation || it.stockUom?.abbreviation || "pcs",
+            uomName: it.uomName || it.uom?.abbreviation || it.stockUom?.abbreviation || "Unit",
             currentStock: stockMap[it.itemId] ?? 0,
           }));
 
@@ -314,6 +318,15 @@ export function CreatePRModal({
     if (items.length === 0) {
       newErrors.items = "At least one supply or ingredient must be requested.";
     } else {
+      const duplicateIds = new Set<number>();
+      const seenIds = new Set<number>();
+      items.forEach((item) => {
+        if (seenIds.has(item.itemId)) duplicateIds.add(item.itemId);
+        seenIds.add(item.itemId);
+      });
+      if (duplicateIds.size > 0) {
+        newErrors.items = "Duplicate ingredients must be consolidated before saving.";
+      }
       items.forEach((it, idx) => {
         if (!it.requestedQuantity || it.requestedQuantity <= 0) {
           newErrors[`item_qty_${idx}`] = "Quantity must be greater than 0.";
@@ -430,62 +443,31 @@ export function CreatePRModal({
           {/* Row 2: Requested By & Department (2 Columns) */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              <label className={`mb-1.5 block text-xs font-semibold ${errors.requestedBy ? "text-destructive" : "text-foreground"}`}>
                 Requested By <span className="text-destructive">*</span>
               </label>
-              <select
+              <Input
+                readOnly
                 value={requestedBy}
-                onChange={(e) => {
-                  setRequestedBy(e.target.value);
-                  setErrors((prev) => {
-                    const c = { ...prev };
-                    delete c.requestedBy;
-                    return c;
-                  });
-                }}
                 className={`w-full rounded-xl border ${
                   errors.requestedBy ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-4 py-2.5 text-sm text-foreground shadow-none focus-visible:ring-1 focus-visible:ring-ring`}
-              >
-                <option value="" disabled>Select requester...</option>
-                {requestedBy && !HR_EMPLOYEES.includes(requestedBy as (typeof HR_EMPLOYEES)[number]) && (
-                  <option value={requestedBy}>{requestedBy}</option>
-                )}
-                {HR_EMPLOYEES.map(emp => (
-                  <option key={emp} value={emp}>{emp}</option>
-                ))}
-              </select>
+                } bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed`}
+              />
               {errors.requestedBy && (
                 <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.requestedBy}</p>
               )}
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              <label className={`mb-1.5 block text-xs font-semibold ${errors.department ? "text-destructive" : "text-foreground"}`}>
                 Department <span className="text-destructive">*</span>
               </label>
-              <select
+              <Input
+                readOnly
                 value={department}
-                onChange={(e) => {
-                  setDepartment(e.target.value);
-                  setErrors((prev) => {
-                    const c = { ...prev };
-                    delete c.department;
-                    return c;
-                  });
-                }}
                 className={`w-full rounded-xl border ${
                   errors.department ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                } bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
-                  department ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                <option value="">Select department...</option>
-                <option value="Inventory" className="text-foreground">Inventory</option>
-                <option value="Production" className="text-foreground">Production</option>
-                <option value="Warehouse" className="text-foreground">Warehouse</option>
-                <option value="Quality Assurance" className="text-foreground">Quality Assurance</option>
-                <option value="Administration" className="text-foreground">Administration</option>
-              </select>
+                } bg-muted/40 px-3 py-2 text-sm text-foreground cursor-not-allowed`}
+              />
               {errors.department && (
                 <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.department}</p>
               )}
@@ -495,7 +477,7 @@ export function CreatePRModal({
           {/* Row 3: Request Type & Priority (2 Columns) */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              <label className={`mb-1.5 block text-xs font-semibold ${errors.requestType ? "text-destructive" : "text-foreground"}`}>
                 Request Type <span className="text-destructive">*</span>
               </label>
               <select
@@ -526,7 +508,7 @@ export function CreatePRModal({
               )}
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              <label className={`mb-1.5 block text-xs font-semibold ${errors.priority ? "text-destructive" : "text-foreground"}`}>
                 Priority <span className="text-destructive">*</span>
               </label>
               <select
@@ -560,7 +542,7 @@ export function CreatePRModal({
           {/* Row 4: Required Date & Requisition Status (2 Columns) */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              <label className={`mb-1.5 block text-xs font-semibold ${errors.requiredDate ? "text-destructive" : "text-foreground"}`}>
                 Required Date <span className="text-destructive">*</span>
               </label>
               <div className="relative">
@@ -600,7 +582,7 @@ export function CreatePRModal({
           {/* Supplies & Ingredients Table */}
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-foreground">
+              <label className={`block text-xs font-semibold ${errors.items ? "text-destructive" : "text-foreground"}`}>
                 Requested Supplies &amp; Ingredients <span className="text-destructive">*</span>
               </label>
               <div className="relative w-48">
@@ -619,7 +601,7 @@ export function CreatePRModal({
               <p className="text-xs font-medium text-destructive animate-in fade-in-50 mb-2">{errors.items}</p>
             )}
 
-            <div className="border border-border rounded-xl overflow-hidden bg-card">
+            <div className={`border rounded-xl overflow-hidden bg-card ${errors.items ? "border-destructive" : "border-border"}`}>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground">
@@ -669,7 +651,7 @@ export function CreatePRModal({
                               {item.itemCode || `SPL-${item.itemId}`}
                             </td>
                             <td className="px-3.5 py-2 text-muted-foreground">
-                              {item.uomName || "pcs"}
+                              {item.uomName || "Unit"}
                             </td>
                             <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
                               {Number(item.actualInventory || 0).toLocaleString()}
@@ -734,7 +716,7 @@ export function CreatePRModal({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2 border-t border-border">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-foreground">
+                <label className={`text-xs font-semibold ${errors.purpose ? "text-destructive" : "text-foreground"}`}>
                   Purpose / Justification <span className="text-destructive">*</span>
                 </label>
                 <span className="text-[10px] text-muted-foreground">{purpose.length}/500</span>

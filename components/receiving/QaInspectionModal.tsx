@@ -51,6 +51,7 @@ const toolAndSupplyChecks = [
 export default function QaInspectionModal({ inspection, open, onClose, onSuccess }: QaInspectionModalProps) {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [overallNotes, setOverallNotes] = useState("");
+  const [verificationChoice, setVerificationChoice] = useState("");
   const [inspectionBasis, setInspectionBasis] = useState("");
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -137,6 +138,17 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
     (item) => Number(item.rejectedQuantity) > 0 && !item.defectReason.trim()
   );
 
+  const isAllAccepted = items.length > 0 && items.every((i) => Number(i.acceptedQuantity) === Number(i.deliveredQuantity));
+  const isAllRejected = items.length > 0 && items.every((i) => Number(i.rejectedQuantity) === Number(i.deliveredQuantity));
+
+  useEffect(() => {
+    if (isAllAccepted) {
+      setVerificationChoice("All Accepted");
+    } else if (isAllRejected) {
+      setVerificationChoice("All Rejected");
+    }
+  }, [isAllAccepted, isAllRejected]);
+
   const handleSubmit = () => {
     if (mismatch) {
       setError("Every item's Accepted + Rejected quantity must equal Delivered quantity.");
@@ -144,6 +156,10 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
     }
     if (missingDefectReasons) {
       setError("Select a defect reason for every item with rejected quantity.");
+      return;
+    }
+    if (!verificationChoice) {
+      setError("Please select a Verification Choice.");
       return;
     }
     setConfirmModal(true);
@@ -174,6 +190,7 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
 
     const inspectionNotes = [
       inspectionBasis.trim() ? `QA BASIS: ${inspectionBasis.trim()}` : "",
+      `VERIFICATION: ${verificationChoice}`,
       overallNotes.trim(),
     ]
       .filter(Boolean)
@@ -339,24 +356,55 @@ export default function QaInspectionModal({ inspection, open, onClose, onSuccess
           )}
         </div>
 
-        {/* OVERALL NOTES */}
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground uppercase tracking-wide block">
-            Overall Quality Assurance Comments / Inspection Summary
-          </label>
-          {isReadOnly ? (
-            <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground">
-              {overallNotes || "No inspection summary recorded."}
-            </div>
-          ) : (
-            <textarea
-              rows={3}
-              placeholder="e.g. Visual and laboratory testing confirmed compliant specifications. 10 kg rejected due to moisture damage."
-              value={overallNotes}
-              onChange={(e) => setOverallNotes(e.target.value)}
-              className="w-full bg-card border border-border rounded-xl p-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-            />
-          )}
+        {/* VERIFICATION CHOICE & OVERALL NOTES */}
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground uppercase tracking-wide block">
+              Verification Choice <span className="text-destructive">*</span>
+            </label>
+            {isReadOnly ? (
+              <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs font-medium text-foreground">
+                {inspection?.overallNotes?.match(/VERIFICATION:\s*(.*?)(?:\n|$)/)?.[1] || "—"}
+              </div>
+            ) : (
+              <select
+                value={verificationChoice}
+                onChange={(e) => setVerificationChoice(e.target.value)}
+                className="w-full bg-card border border-border rounded-xl p-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+              >
+                <option value="">Select a Verification Reason...</option>
+                <optgroup label="Positive Outcomes (Accepted)">
+                  <option value="All Accepted">All Accepted</option>
+                  <option value="Partial Accept - Acceptable Quality">Partial Accept - Acceptable Quality</option>
+                  <option value="Partial Accept - Condition Satisfactory">Partial Accept - Condition Satisfactory</option>
+                </optgroup>
+                <optgroup label="Negative Outcomes (Rejected)">
+                  <option value="All Rejected">All Rejected</option>
+                  <option value="Rejected - Quality Issues">Rejected - Quality Issues</option>
+                  <option value="Rejected - Packaging Issues">Rejected - Packaging Issues</option>
+                  <option value="Rejected - Documentation Issues">Rejected - Documentation Issues</option>
+                </optgroup>
+              </select>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground uppercase tracking-wide block">
+              Additional Remarks (Optional)
+            </label>
+            {isReadOnly ? (
+              <div className="bg-muted/30 border border-border rounded-xl p-3 text-xs text-muted-foreground">
+                {overallNotes.replace(/VERIFICATION:\s*.*?(?:\n|$)/, "") || "No additional remarks."}
+              </div>
+            ) : (
+              <textarea
+                rows={2}
+                placeholder="e.g. Visual and laboratory testing confirmed compliant specifications. 10 kg rejected due to moisture damage."
+                value={overallNotes}
+                onChange={(e) => setOverallNotes(e.target.value)}
+                className="w-full bg-card border border-border rounded-xl p-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+              />
+            )}
+          </div>
         </div>
 
         {/* FOOTER ACTIONS */}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Calendar, ChevronRight, X, QrCode, Search } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronRight, X, QrCode, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +19,8 @@ import { CreatePRModal } from "@/components/orders-procurement/pr/CreatePRForm";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { toast } from "sonner";
 import { HR_EMPLOYEES } from "@/lib/employees";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/api";
 
 interface ProductionTrackingTabProps {
   initialSelectedBatchId?: number | null;
@@ -32,24 +34,24 @@ const AVAILABLE_BOMS = [
   {
     recipeId: 1,
     recipeName: "Standard Ube Halaya Formula A (Classic)",
-    outputYield: 100,
+    outputYield: 1,
     ingredients: [
-      { itemId: 101, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 30, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
-      { itemId: 102, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 15, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
-      { itemId: 103, itemName: "Evaporated Milk", supplierName: "Dairy Gold Co", standardQty: 10, uom: "Cans", stock: 65, suggestedLot: "LOT-EM-2026-004", expiry: "2027-02-14" },
-      { itemId: 104, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 5, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
-      { itemId: 105, itemName: "Refined Cane Sugar", supplierName: "SweetLife Sugar", standardQty: 8, uom: "KG", stock: 90, suggestedLot: "LOT-SG-2026-033", expiry: "2027-08-10" },
+      { itemId: 101, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 0.3, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
+      { itemId: 102, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 0.15, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
+      { itemId: 103, itemName: "Evaporated Milk", supplierName: "Dairy Gold Co", standardQty: 0.1, uom: "Cans", stock: 65, suggestedLot: "LOT-EM-2026-004", expiry: "2027-02-14" },
+      { itemId: 104, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 0.05, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
+      { itemId: 105, itemName: "Refined Cane Sugar", supplierName: "SweetLife Sugar", standardQty: 0.08, uom: "KG", stock: 90, suggestedLot: "LOT-SG-2026-033", expiry: "2027-08-10" },
     ],
   },
   {
     recipeId: 2,
     recipeName: "Special Ube Halaya with Cheese Formula B",
-    outputYield: 50,
+    outputYield: 1,
     ingredients: [
-      { itemId: 101, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 18, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
-      { itemId: 106, itemName: "Aged Cheddar Cheese (Block)", supplierName: "Dairy Gold Co", standardQty: 4, uom: "KG", stock: 2, suggestedLot: "LOT-CH-2026-009", expiry: "2026-10-05" }, // Simulated shortfall
-      { itemId: 102, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 10, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
-      { itemId: 104, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 3, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
+      { itemId: 101, itemName: "Fresh Purple Yam (Ube)", supplierName: "Highland Agri Corp", standardQty: 0.36, uom: "KG", stock: 150, suggestedLot: "LOT-UB-2026-088", expiry: "2026-10-15" },
+      { itemId: 106, itemName: "Aged Cheddar Cheese (Block)", supplierName: "Dairy Gold Co", standardQty: 0.08, uom: "KG", stock: 2, suggestedLot: "LOT-CH-2026-009", expiry: "2026-10-05" }, // Simulated shortfall
+      { itemId: 102, itemName: "Condensed Milk (Sweetened)", supplierName: "Dairy Gold Co", standardQty: 0.2, uom: "Cans", stock: 80, suggestedLot: "LOT-CM-2026-012", expiry: "2027-03-20" },
+      { itemId: 104, itemName: "Pure Dairy Butter (Unsalted)", supplierName: "Creamery Phil", standardQty: 0.06, uom: "KG", stock: 25, suggestedLot: "LOT-DB-2026-091", expiry: "2026-11-30" },
     ],
   },
 ];
@@ -61,6 +63,7 @@ export default function ProductionTrackingTab({
   isInventoryManager,
   isHeadCook,
 }: ProductionTrackingTabProps) {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<ProductionRequest[]>(() =>
     productionStorage.getRequests()
   );
@@ -94,6 +97,7 @@ export default function ProductionTrackingTab({
 
   // Shortfall PR Modal State
   const [isPROpen, setIsPROpen] = useState(false);
+  const [requestingShortfallItemId, setRequestingShortfallItemId] = useState<number | null>(null);
 
   // Step 5: Cooking Stages Input State
   const [stageInCharge, setStageInCharge] = useState(isHeadCook ? "Head Cook" : "Elena");
@@ -128,7 +132,10 @@ export default function ProductionTrackingTab({
   };
 
   const selectedBatch = requests.find((r) => r.batchId === selectedBatchId);
-  const selectedBom = AVAILABLE_BOMS.find((b) => b.recipeId === selectedBomId) || AVAILABLE_BOMS[0];
+
+  const selectedBom =
+    AVAILABLE_BOMS.find((b) => b.recipeId === (selectedBatch?.recipeId ?? selectedBomId)) ||
+    AVAILABLE_BOMS[0];
 
   // Calculate current waterfall step (1 to 8)
   const getBatchStep = (batch?: ProductionRequest): number => {
@@ -150,9 +157,9 @@ export default function ProductionTrackingTab({
   const handleSubmitMR = () => {
     if (!selectedBatch) return;
 
-    const multiplier = selectedBatch.targetYield / selectedBom.outputYield;
+    const multiplier = selectedBatch.targetYield;
     const items: MaterialRequestItem[] = selectedBom.ingredients.map((ing, idx) => {
-      const required = Math.round(ing.standardQty * multiplier * 10) / 10;
+      const required = Math.round(ing.standardQty * multiplier * 1000) / 1000;
       const isShortfall = ing.stock < required;
       return {
         ingredientId: idx + 1,
@@ -223,6 +230,42 @@ export default function ProductionTrackingTab({
     setSelectedMRId(null);
     setIsIssuanceMode(false);
     refreshData();
+  };
+
+  const handleRequestShortfall = async (mr: MaterialRequest, item: MaterialRequestItem) => {
+    const shortfallQuantity = Math.max(0, item.requiredQty - item.availableStock);
+    if (shortfallQuantity <= 0 || item.shortfallRequested) return;
+
+    const requestedBy = user?.firstName
+      ? `${user.firstName} ${user.lastName || ""}`.trim()
+      : user?.username || "Inventory Manager";
+    const linkedBatch = requests.find((request) => request.batchId === mr.batchId);
+
+    try {
+      setRequestingShortfallItemId(item.itemId);
+      const response = await api.post("/api/scms/api/PurchaseRequisitions", {
+        requestedBy,
+        department: user?.roles?.some((role) => role.toLowerCase().includes("cook"))
+          ? "Production"
+          : "Inventory",
+        requiredDate: `${mr.neededDate}T00:00:00Z`,
+        requestType: "Production Shortfall",
+        priority: linkedBatch?.priority === "Urgent" ? "Urgent" : "Normal",
+        purpose: `Production shortfall for ${mr.batchNumber} - ${item.itemName}`,
+        notes: `Automatically generated from Material Request ${mr.mrId}.`,
+        submitForApproval: true,
+        items: [{ itemId: item.itemId, requestedQuantity: shortfallQuantity }],
+      });
+
+      const created = response.data?.data;
+      productionStorage.markShortfallRequested(mr.mrId, item.itemId, created?.prNumber);
+      refreshData();
+      toast.success(`Purchase Requisition ${created?.prNumber || "created"} for ${item.itemName}.`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to create the shortfall request.");
+    } finally {
+      setRequestingShortfallItemId(null);
+    }
   };
 
   // Complete Cooking Stage (Step 5)
@@ -626,6 +669,7 @@ export default function ProductionTrackingTab({
                           <th className="px-4 py-3">Required Qty</th>
                           <th className="px-4 py-3">Available Stock</th>
                           <th className="px-4 py-3">Stock Status</th>
+                          {!isIssuanceMode && <th className="px-4 py-3 text-right">Shortfall Action</th>}
                           {isIssuanceMode && <th className="px-4 py-3">Suggested Lot</th>}
                           {isIssuanceMode && <th className="px-4 py-3">Expiry Date</th>}
                           {isIssuanceMode && <th className="px-4 py-3 text-right">QR Scan Verification</th>}
@@ -647,13 +691,35 @@ export default function ProductionTrackingTab({
                               <span
                                 className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
                                   item.isShortfall
-                                    ? "bg-muted text-foreground border border-border font-bold"
+                                    ? "bg-red-100 text-red-700 border border-red-400 font-bold dark:bg-red-950 dark:text-red-300"
                                     : "bg-foreground text-background"
                                 }`}
                               >
-                                {item.isShortfall ? "Shortfall" : "Sufficient"}
+                                {item.isShortfall && <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />}
+                                {item.isShortfall ? `Shortfall: ${Math.max(0, item.requiredQty - item.availableStock)} ${item.uom}` : "Sufficient"}
                               </span>
                             </td>
+                            {!isIssuanceMode && (
+                              <td className="px-4 py-3 text-right">
+                                {item.isShortfall ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={item.shortfallRequested || requestingShortfallItemId === item.itemId}
+                                    onClick={() => handleRequestShortfall(activeMR, item)}
+                                    className="h-7 border-red-400 px-3 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                                  >
+                                    {item.shortfallRequested
+                                      ? item.linkedPrNumber || "Requested"
+                                      : requestingShortfallItemId === item.itemId
+                                        ? "Requesting..."
+                                        : "Request"}
+                                  </Button>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                            )}
                             {isIssuanceMode && (
                               <td className="px-4 py-3 font-mono font-bold text-foreground">
                                 {item.suggestedLot}
@@ -939,7 +1005,7 @@ export default function ProductionTrackingTab({
                       Step 2: Select Bill of Materials Recipe & Generate Material Request
                     </h4>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Select the standard recipe formula. Required quantities are calculated based on target yield: {selectedBatch.targetYield} PCS.
+                      Each recipe is Good For One. Required quantities are automatically scaled by the production batch size of {selectedBatch.targetYield} containers.
                     </p>
                   </div>
 
@@ -949,8 +1015,9 @@ export default function ProductionTrackingTab({
                         Recipe / Bill of Materials (BOM)
                       </label>
                       <Select
-                        value={selectedBomId.toString()}
+                        value={selectedBom.recipeId.toString()}
                         onValueChange={(val) => setSelectedBomId(parseInt(val, 10))}
+                        disabled={Boolean(selectedBatch.recipeId)}
                       >
                         <SelectTrigger className="h-10 text-sm w-full bg-card border-border px-3 font-medium">
                           <SelectValue placeholder="Choose Bill of Materials Recipe" />
@@ -963,6 +1030,11 @@ export default function ProductionTrackingTab({
                           ))}
                         </SelectContent>
                       </Select>
+                      {selectedBatch.recipeId && (
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          Recipe selected in the approved production batch request.
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -990,15 +1062,15 @@ export default function ProductionTrackingTab({
                       <thead className="bg-muted/20 text-muted-foreground uppercase text-xs border-b border-border">
                         <tr>
                           <th className="py-3 px-4">Ingredient</th>
-                          <th className="py-3 px-4">Standard Yield</th>
+                          <th className="py-3 px-4">Per Container</th>
                           <th className="py-3 px-4">Scaled Target Qty</th>
                           <th className="py-3 px-4">Available Stock</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
                         {selectedBom.ingredients.map((ing) => {
-                          const multiplier = selectedBatch.targetYield / selectedBom.outputYield;
-                          const scaled = Math.round(ing.standardQty * multiplier * 10) / 10;
+                          const multiplier = selectedBatch.targetYield;
+                          const scaled = Math.round(ing.standardQty * multiplier * 1000) / 1000;
                           return (
                             <tr key={ing.itemId} className="hover:bg-muted/10">
                               <td className="py-3 px-4 font-semibold text-foreground">

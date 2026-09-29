@@ -26,6 +26,8 @@ export default function RecipeIngredientItem({
   onItemChange,
   onQuantityChange,
 }: RecipeIngredientItemProps) {
+  const selectedSupply = baseSupplies.find((s) => s.itemId === ingredient.itemId);
+
   return (
     <div className="rounded-xl border border-border p-4 bg-muted/20">
       <div className="mb-3 flex items-center justify-between">
@@ -66,7 +68,7 @@ export default function RecipeIngredientItem({
           </select>
         </div>
         <div className="sm:col-span-3">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Quantity <span className="text-destructive">*</span></label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Quantity per one <span className="text-destructive">*</span></label>
           <Input
             type="number"
             min={0.001}
@@ -97,15 +99,7 @@ export default function RecipeIngredientItem({
             disabled
             className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground cursor-not-allowed"
           >
-            <option value={1}>kg</option>
-            <option value={2}>pcs</option>
-            <option value={3}>liters</option>
-            <option value={4}>m</option>
-            <option value={5}>grams</option>
-            <option value={6}>box</option>
-            <option value={7}>pack</option>
-            <option value={8}>roll</option>
-            <option value={9}>bottle</option>
+            <option value={ingredient.uomId}>{selectedSupply?.uomName || "Unit"}</option>
           </select>
         </div>
       </div>

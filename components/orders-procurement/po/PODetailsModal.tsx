@@ -201,7 +201,7 @@ export function PODetailsModal({
                   po.items.map((item, idx) => (
                     <tr key={idx} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{item.itemName}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{item.purchaseUomName || "pcs"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.purchaseUomName || "Unit"}</td>
                       <td className="px-4 py-3 text-right font-mono text-foreground">
                         {Number(item.poItemQuantity || 0).toLocaleString()}
                       </td>

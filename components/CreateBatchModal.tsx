@@ -57,6 +57,29 @@ type ItemResponse = {
   currentStock: number;
 };
 
+const PURPOSE_OPTIONS = [
+  "Inventory Replenishment",
+  "Customer Order",
+  "Store Allocation",
+  "Promotional Demand",
+  "Safety Stock Build",
+] as const;
+
+const NOTES_OPTIONS = [
+  "Standard Production Run",
+  "Priority Production",
+  "Seasonal Production",
+  "Trial / Validation Run",
+  "No Additional Notes",
+] as const;
+
+const toLocalDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
   const [finishedProduct, setFinishedProduct] = useState("");
   const [finishedProductError, setFinishedProductError] = useState("");
@@ -69,9 +92,11 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
   const [recipeTargetYield, setRecipeTargetYield] = useState<number | null>(null);
   const [yieldUnit, setYieldUnit] = useState("");
-
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleDateError, setScheduleDateError] = useState("");
+  const [purpose, setPurpose] = useState<string>(PURPOSE_OPTIONS[0]);
+  const [notes, setNotes] = useState<string>(NOTES_OPTIONS[0]);
+  const [priority, setPriority] = useState<"Normal" | "Urgent">("Normal");
 
   const [ingredients, setIngredients] = useState<IngredientAllocation[]>([]);
   const [isComputing, setIsComputing] = useState(false);
@@ -100,6 +125,9 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
       setYieldUnit("");
       setScheduleDate("");
       setScheduleDateError("");
+      setPurpose(PURPOSE_OPTIONS[0]);
+      setNotes(NOTES_OPTIONS[0]);
+      setPriority("Normal");
       setIngredients([]);
       setIsComputing(false);
       setIsSubmitting(false);
@@ -141,7 +169,6 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
         const variant = availableVariants.find((v) => v.recipeId.toString() === selectedVariantId);
         if (variant) {
           setRecipeTargetYield(variant.outputQuantity);
-          // Get the base unit for the product item
           const prodItem = items.find(i => i.itemId === products.find(p => p.productId.toString() === finishedProduct)?.itemId);
           setYieldUnit(prodItem?.uomName || "units");
 
@@ -170,34 +197,16 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     fetchRecipe();
   }, [selectedVariantId, finishedProduct, availableVariants, items, products]);
 
-  // Validate user target yield against recipe target yield
-  useEffect(() => {
-    if (recipeTargetYield !== null && userTargetYield !== "" && Number(userTargetYield) > 0) {
-      if (Number(userTargetYield) !== recipeTargetYield) {
-        setTargetYieldError(`Target yield must be exactly ${recipeTargetYield} ${yieldUnit}`);
-      } else {
-        setTargetYieldError("");
-      }
-    } else if (recipeTargetYield !== null && userTargetYield === "") {
-      setTargetYieldError("Target yield is required");
-    } else {
-      setTargetYieldError("");
-    }
-  }, [userTargetYield, recipeTargetYield, yieldUnit]);
-
-  // Batch multiplier is decimal on the backend as of the decimal(18,3) migration, so the exact
-  // ratio can be sent. It used to be rounded up with Math.ceil, which silently overproduced:
-  // asking for 30 jars from a 20-jar recipe cooked 40 and consumed ingredients for 40.
-  const batchMultiplierFor = (targetYield: number | string, recipeYield: number | null) => {
-    if (!recipeYield || targetYield === "" || Number(targetYield) <= 0) return 1;
-    // Rounded to 3 decimals to match the backend column scale.
-    return Math.round((Number(targetYield) / recipeYield) * 1000) / 1000;
+  // A Good For One recipe is scaled directly by the requested number of output units.
+  const batchMultiplierFor = (targetYield: number | string) => {
+    if (targetYield === "" || Number(targetYield) <= 0) return 0;
+    return Number(targetYield);
   };
 
   const hasStockIssue = useMemo(() => {
-    const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
+    const multiplier = batchMultiplierFor(userTargetYield);
     return ingredients.some((ing) => ing.availableStock < ing.requiredQty * multiplier);
-  }, [ingredients, userTargetYield, recipeTargetYield]);
+  }, [ingredients, userTargetYield]);
 
   const isFormValid =
     finishedProduct &&
@@ -207,6 +216,8 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     !targetYieldError &&
     scheduleDate &&
     !scheduleDateError &&
+    purpose &&
+    notes &&
     !isSubmitting &&
     !hasStockIssue;
 
@@ -214,14 +225,15 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
     if (!isFormValid) return;
     setIsSubmitting(true);
     try {
-      const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
-
       await api.post("/api/scms/api/ProductionBatches", {
         recipeId: Number(selectedVariantId),
         productId: Number(finishedProduct),
-        batchMultiplier: multiplier,
+        batchSize: Number(userTargetYield),
         scheduleDate: scheduleDate + "T00:00:00Z",
-        assignedCook: "System Assignment" // Or user selector if available
+        assignedCook: "System Assignment", // Or user selector if available
+        purpose,
+        notes,
+        priority,
       });
       onCreated();
       onClose();
@@ -375,7 +387,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
             {/* Editable Target Yield */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                Target Yield
+                Target Yield ({yieldUnit || "pieces / units"})
               </label>
               <input
                 type="number"
@@ -384,9 +396,16 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                 onChange={(e) => {
                   const val = e.target.value;
                   setUserTargetYield(val === "" ? "" : Number(val));
+                  setTargetYieldError(
+                    val === ""
+                      ? "Target yield is required"
+                      : Number(val) <= 0
+                        ? "Target yield must be greater than 0"
+                        : ""
+                  );
                 }}
                 placeholder="Enter target yield"
-                disabled={!recipeTargetYield}
+                disabled={!selectedVariantId}
                 className={`w-full rounded-xl border ${
                   targetYieldError
                     ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
@@ -405,7 +424,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               </label>
               <input
                 type="date"
-                min={new Date().toISOString().split("T")[0]}
+                min={toLocalDateInput(new Date())}
                 value={scheduleDate}
                 max="2100-12-31"
                 onChange={(e) => {
@@ -413,6 +432,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   setScheduleDate(val);
                   validateScheduleDate(val);
                 }}
+                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full rounded-xl border ${
                   scheduleDateError
                     ? "!border-destructive focus:!border-destructive focus:ring-1 focus:!ring-destructive"
@@ -422,6 +442,50 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
               {scheduleDateError && (
                 <p className="mt-1 text-xs text-destructive">{scheduleDateError}</p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Production Purpose
+              </label>
+              <select
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                className="w-full rounded-xl border border-border bg-card py-2.5 px-3 text-sm text-foreground"
+              >
+                {PURPOSE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Production Notes
+              </label>
+              <select
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full rounded-xl border border-border bg-card py-2.5 px-3 text-sm text-foreground"
+              >
+                {NOTES_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Priority
+              </label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as "Normal" | "Urgent")}
+                className="w-full rounded-xl border border-border bg-card py-2.5 px-3 text-sm text-foreground"
+              >
+                <option value="Normal">Normal</option>
+                <option value="Urgent">Urgent</option>
+              </select>
             </div>
           </div>
 
@@ -450,7 +514,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
                   </thead>
                   <tbody>
                     {ingredients.map((ing) => {
-                      const multiplier = batchMultiplierFor(userTargetYield, recipeTargetYield);
+                      const multiplier = batchMultiplierFor(userTargetYield);
                       const required = ing.requiredQty * multiplier;
                       const deficit = required - ing.availableStock;
                       const sufficient = deficit <= 0;
@@ -489,7 +553,7 @@ export default function CreateBatchModal({ open, onClose, onCreated }: Props) {
 
               {recipeTargetYield !== null && (
                 <p className="ml-1 mt-3 text-xs text-muted-foreground">
-                  Recipe target yield: {recipeTargetYield} {yieldUnit}
+                  Quantities shown are the Good For One recipe multiplied by the requested target yield.
                 </p>
               )}
 

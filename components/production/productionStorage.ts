@@ -109,9 +109,12 @@ const DEFAULT_REQUESTS: ProductionRequest[] = [
     productId: 1,
     productName: "Ube Halaya Classic",
     variant: "250g (Tub)",
+    batchSize: 100,
     targetYield: 100,
     yieldUnit: "PCS",
-    purpose: "Weekly Store Replenishment",
+    purpose: "Inventory Replenishment",
+    notes: "Standard Production Run",
+    priority: "Normal",
     status: "Approved",
     stage: "Material Request",
     scheduleDate: new Date().toISOString().split("T")[0],
@@ -128,9 +131,12 @@ const DEFAULT_REQUESTS: ProductionRequest[] = [
     productId: 2,
     productName: "Ube Halaya with Cheese",
     variant: "500g (Tub)",
+    batchSize: 50,
     targetYield: 50,
     yieldUnit: "PCS",
-    purpose: "Special Catering Order",
+    purpose: "Customer Order",
+    notes: "Priority Production",
+    priority: "Urgent",
     status: "Pending Approval",
     stage: "Draft",
     scheduleDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
@@ -289,8 +295,12 @@ export const productionStorage = {
     productId: number;
     productName: string;
     variant: string;
-    targetYield: number;
+    batchSize: number;
+    recipeId: number;
+    recipeName: string;
     purpose: string;
+    notes: string;
+    priority: "Normal" | "Urgent";
     scheduleDate: string;
     status: "Draft" | "Pending Approval";
     assignedCook?: string;
@@ -303,9 +313,14 @@ export const productionStorage = {
       productId: data.productId,
       productName: data.productName,
       variant: data.variant,
-      targetYield: data.targetYield,
+      batchSize: data.batchSize,
+      targetYield: data.batchSize * 1, // Good For One recipe basis
       yieldUnit: "PCS",
+      recipeId: data.recipeId,
+      recipeName: data.recipeName,
       purpose: data.purpose,
+      notes: data.notes,
+      priority: data.priority,
       status: data.status,
       stage: "Request",
       scheduleDate: data.scheduleDate,
@@ -436,6 +451,24 @@ export const productionStorage = {
     }
 
     return { success: true, message: `Successfully verified Lot ${scannedLot}!` };
+  },
+
+  markShortfallRequested(mrId: string, itemId: number, prNumber?: string): void {
+    const allMRs = this.getMaterialRequests();
+    const mr = allMRs.find((entry) => entry.mrId === mrId);
+    const item = mr?.items.find((entry) => entry.itemId === itemId);
+    if (!mr || !item) return;
+
+    item.shortfallRequested = true;
+    item.linkedPrNumber = prNumber;
+    localStorage.setItem(STORAGE_KEYS.MATERIAL_REQUESTS, JSON.stringify(allMRs));
+
+    const requests = this.getRequests();
+    const request = requests.find((entry) => entry.batchId === mr.batchId);
+    if (request?.materialRequest) {
+      request.materialRequest = mr;
+      this.saveRequest(request);
+    }
   },
 
   issueMaterialsToProduction(mrId: string, issuedBy = "Inventory Manager"): void {

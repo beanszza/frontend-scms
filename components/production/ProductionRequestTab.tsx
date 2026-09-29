@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Search, MoreHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,50 @@ import ProductionKpiCards from "./ProductionKpiCards";
 import ProductionSummaryModal from "./ProductionSummaryModal";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { toast } from "sonner";
+import api from "@/lib/api";
+
+interface RecipeOption {
+  recipeId: number;
+  recipeName: string;
+  displayName?: string;
+  productId: number;
+  isActive: boolean;
+}
+
+const PURPOSE_OPTIONS = [
+  "Inventory Replenishment",
+  "Customer Order",
+  "Store Allocation",
+  "Promotional Demand",
+  "Safety Stock Build",
+] as const;
+
+const NOTES_OPTIONS = [
+  "Standard Production Run",
+  "Priority Production",
+  "Seasonal Production",
+  "Trial / Validation Run",
+  "No Additional Notes",
+] as const;
+
+const toLocalDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const tomorrowLocalDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return toLocalDateInput(date);
+};
+
+const formatLocalDate = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return "—";
+  return new Date(year, month - 1, day).toLocaleDateString();
+};
 
 interface ProductionRequestTabProps {
   isAdmin: boolean;
@@ -41,6 +85,7 @@ export default function ProductionRequestTab({
     productionStorage.getRequests()
   );
   const products = productionStorage.getProducts();
+  const [recipes, setRecipes] = useState<RecipeOption[]>([]);
 
   // Active status tab: Admin sees Pending Approval (Request) and Approved tabs
   const [activeTab, setActiveTab] = useState<string>(isAdmin ? "Pending Approval" : "All");
@@ -54,16 +99,28 @@ export default function ProductionRequestTab({
   const [selectedVariant, setSelectedVariant] = useState<string>(
     products[0]?.variations[0]?.size || "250g (Tub)"
   );
+  const [selectedRecipeId, setSelectedRecipeId] = useState<number>(0);
   const [targetQuantity, setTargetQuantity] = useState<number | "">(100);
-  const [targetDate, setTargetDate] = useState(
-    new Date(Date.now() + 86400000).toISOString().split("T")[0]
-  );
-  const [purpose, setPurpose] = useState("");
+  const [targetDate, setTargetDate] = useState(tomorrowLocalDate);
+  const [purpose, setPurpose] = useState<string>(PURPOSE_OPTIONS[0]);
+  const [notes, setNotes] = useState<string>(NOTES_OPTIONS[0]);
+  const [priority, setPriority] = useState<"Normal" | "Urgent">("Normal");
+
+  useEffect(() => {
+    api.get("/api/scms/api/Recipes")
+      .then((response) => {
+        const data = response.data?.data?.items || response.data?.data || [];
+        setRecipes(Array.isArray(data) ? data.filter((recipe: RecipeOption) => recipe.isActive !== false) : []);
+      })
+      .catch(() => setRecipes([]));
+  }, []);
 
   // Admin Review Modal state (3 dots action)
   const [reviewingBatch, setReviewingBatch] = useState<ProductionRequest | null>(null);
   const [isRejectMode, setIsRejectMode] = useState(false);
+  const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasonError, setRejectReasonError] = useState(false);
 
   // Summary Report Modal state
   const [viewingSummaryBatch, setViewingSummaryBatch] = useState<ProductionRequest | null>(null);
@@ -117,6 +174,16 @@ export default function ProductionRequestTab({
 
   // Selected product variations for modal
   const currentProduct = products.find((p) => p.productId === selectedProdId) || products[0];
+  const availableRecipes = useMemo(
+    () => recipes.filter((recipe) => recipe.productId === selectedProdId),
+    [recipes, selectedProdId]
+  );
+
+  const effectiveRecipeId = availableRecipes.some(
+    (recipe) => recipe.recipeId === selectedRecipeId
+  )
+    ? selectedRecipeId
+    : availableRecipes[0]?.recipeId ?? 0;
 
   const handleOpenCreateModal = () => {
     if (products.length === 0) {
@@ -128,9 +195,13 @@ export default function ProductionRequestTab({
     setSelectedVariant(
       p.variations[0] ? `${p.variations[0].size} (${p.variations[0].packagingType})` : "Standard"
     );
+    const firstRecipe = recipes.find((recipe) => recipe.productId === p.productId);
+    setSelectedRecipeId(firstRecipe?.recipeId ?? 0);
     setTargetQuantity(100);
-    setTargetDate(new Date(Date.now() + 86400000).toISOString().split("T")[0]);
-    setPurpose("");
+    setTargetDate(tomorrowLocalDate());
+    setPurpose(PURPOSE_OPTIONS[0]);
+    setNotes(NOTES_OPTIONS[0]);
+    setPriority("Normal");
     setIsCreateOpen(true);
   };
 
@@ -143,8 +214,17 @@ export default function ProductionRequestTab({
       toast.error("Please specify a valid target quantity");
       return;
     }
+    const selectedRecipe = availableRecipes.find((recipe) => recipe.recipeId === effectiveRecipeId);
+    if (!selectedRecipe) {
+      toast.error("Please select an active recipe for this product");
+      return;
+    }
     if (!targetDate) {
       toast.error("Please specify target date to start production");
+      return;
+    }
+    if (targetDate < toLocalDateInput(new Date())) {
+      toast.error("Target date cannot be in the past");
       return;
     }
 
@@ -152,8 +232,12 @@ export default function ProductionRequestTab({
       productId: currentProduct.productId,
       productName: currentProduct.name,
       variant: selectedVariant,
-      targetYield: Number(targetQuantity),
-      purpose: purpose.trim() || "Standard Batch Replenishment",
+      batchSize: Number(targetQuantity),
+      recipeId: selectedRecipe.recipeId,
+      recipeName: selectedRecipe.recipeName,
+      purpose,
+      notes,
+      priority,
       scheduleDate: targetDate,
       status,
       assignedCook: isHeadCook ? "Head Cook" : "Elena",
@@ -172,12 +256,14 @@ export default function ProductionRequestTab({
     productionStorage.approveRequest(batchId, "Administrator");
     toast.success("Batch production request approved!");
     setReviewingBatch(null);
+    setIsApproveConfirmOpen(false);
     refreshRequests();
   };
 
   const handleConfirmReject = () => {
     if (!reviewingBatch) return;
     if (!rejectReason.trim()) {
+      setRejectReasonError(true);
       toast.error("Rejection reason is required");
       return;
     }
@@ -187,6 +273,7 @@ export default function ProductionRequestTab({
     setReviewingBatch(null);
     setIsRejectMode(false);
     setRejectReason("");
+    setRejectReasonError(false);
     refreshRequests();
   };
 
@@ -275,7 +362,7 @@ export default function ProductionRequestTab({
                     <th className="py-3 px-4">Batch Number</th>
                     <th className="py-3 px-4">Product Name</th>
                     <th className="py-3 px-4">Variant</th>
-                    <th className="py-3 px-4">Target Output</th>
+                    <th className="py-3 px-4">Target Yield</th>
                     <th className="py-3 px-4">Target Date</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
@@ -297,7 +384,7 @@ export default function ProductionRequestTab({
                         {req.targetYield} {req.yieldUnit}
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">
-                        {new Date(req.scheduleDate).toLocaleDateString()}
+                        {formatLocalDate(req.scheduleDate)}
                       </td>
                       <td className="py-3 px-4">
                         <StatusBadge status={req.status} />
@@ -313,6 +400,7 @@ export default function ProductionRequestTab({
                                 setReviewingBatch(req);
                                 setIsRejectMode(false);
                                 setRejectReason("");
+                                setRejectReasonError(false);
                               }}
                               className="h-7 px-2.5 text-xs font-semibold border-border hover:bg-muted"
                               title="Review Request"
@@ -403,6 +491,8 @@ export default function ProductionRequestTab({
                       `${p.variations[0].size} (${p.variations[0].packagingType})`
                     );
                   }
+                  const firstRecipe = recipes.find((recipe) => recipe.productId === pid);
+                  setSelectedRecipeId(firstRecipe?.recipeId ?? 0);
                 }}
               >
                 <SelectTrigger className="h-9 text-xs">
@@ -414,6 +504,42 @@ export default function ProductionRequestTab({
                       {p.name} &mdash; {p.category}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">
+                Select Recipe <span className="text-foreground">*</span>
+              </label>
+              <Select
+                value={effectiveRecipeId > 0 ? effectiveRecipeId.toString() : ""}
+                onValueChange={(value) => setSelectedRecipeId(Number(value))}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder={availableRecipes.length ? "Choose Recipe" : "No active recipe for this product"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRecipes.map((recipe) => (
+                    <SelectItem key={recipe.recipeId} value={recipe.recipeId.toString()} className="text-xs">
+                      {recipe.displayName || recipe.recipeName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">
+                Priority <span className="text-foreground">*</span>
+              </label>
+              <Select value={priority} onValueChange={(value) => setPriority(value as "Normal" | "Urgent")}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="Urgent" className="text-xs">Urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -443,7 +569,7 @@ export default function ProductionRequestTab({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1 block">
-                  Target Output Quantity (PCS) <span className="text-foreground">*</span>
+                  Target Yield (pieces / units) <span className="text-foreground">*</span>
                 </label>
                 <Input
                   type="number"
@@ -455,6 +581,9 @@ export default function ProductionRequestTab({
                   className="h-9 text-xs font-mono font-bold"
                   required
                 />
+                <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                  Ingredient requirements are automatically scaled from the selected Good For One recipe.
+                </p>
               </div>
 
               <div>
@@ -463,9 +592,10 @@ export default function ProductionRequestTab({
                 </label>
                 <Input
                   type="date"
-                  min={new Date().toISOString().split("T")[0]}
+                  min={toLocalDateInput(new Date())}
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className="h-9 text-xs cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto"
                   required
                 />
@@ -474,15 +604,34 @@ export default function ProductionRequestTab({
 
             <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">
-                Production Purpose / Notes
+                Production Purpose <span className="text-foreground">*</span>
               </label>
-              <Textarea
-                placeholder="e.g. Replenishment for weekly buffer, bulk store demand..."
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                className="text-xs resize-none"
-                rows={2}
-              />
+              <Select value={purpose} onValueChange={setPurpose}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select purpose" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PURPOSE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="text-xs">{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">
+                Production Notes <span className="text-foreground">*</span>
+              </label>
+              <Select value={notes} onValueChange={setNotes}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select notes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NOTES_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="text-xs">{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10 text-xs">
@@ -547,13 +696,21 @@ export default function ProductionRequestTab({
                     <span className="font-semibold text-foreground">{reviewingBatch.variant}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-border/40">
-                    <span className="text-muted-foreground">Target Output:</span>
-                    <span className="font-bold text-foreground">{reviewingBatch.targetYield} PCS</span>
+                    <span className="text-muted-foreground">Recipe:</span>
+                    <span className="font-semibold text-foreground">
+                      {reviewingBatch.recipeName || "Not recorded"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-border/40">
+                    <span className="text-muted-foreground">Target Yield:</span>
+                    <span className="font-bold text-foreground">
+                      {reviewingBatch.targetYield} {reviewingBatch.yieldUnit}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-border/40">
                     <span className="text-muted-foreground">Target Start Date:</span>
                     <span className="font-semibold text-foreground">
-                      {new Date(reviewingBatch.scheduleDate).toLocaleDateString()}
+                      {formatLocalDate(reviewingBatch.scheduleDate)}
                     </span>
                   </div>
                   <div className="flex justify-between py-1">
@@ -562,19 +719,34 @@ export default function ProductionRequestTab({
                       {reviewingBatch.purpose || "Standard production"}
                     </span>
                   </div>
+                  <div className="flex justify-between py-1 border-t border-border/40">
+                    <span className="text-muted-foreground">Notes:</span>
+                    <span className="text-foreground max-w-[200px] text-right truncate">
+                      {reviewingBatch.notes || "No Additional Notes"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-t border-border/40">
+                    <span className="text-muted-foreground">Priority:</span>
+                    <span className={reviewingBatch.priority === "Urgent" ? "font-bold text-red-600" : "text-foreground"}>
+                      {reviewingBatch.priority || "Normal"}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Rejection input when in reject mode */}
                 {isRejectMode ? (
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground block">
+                    <label className={`text-xs font-semibold block ${rejectReasonError ? "text-red-600" : "text-foreground"}`}>
                       Reason for Rejection
                     </label>
                     <Textarea
                       placeholder="Enter reason for rejecting this batch request..."
                       value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      className="text-xs resize-none"
+                      onChange={(e) => {
+                        setRejectReason(e.target.value);
+                        if (e.target.value.trim()) setRejectReasonError(false);
+                      }}
+                      className={`text-xs resize-none ${rejectReasonError ? "!border-red-500 focus-visible:!ring-red-500" : ""}`}
                       rows={3}
                       required
                     />
@@ -583,7 +755,10 @@ export default function ProductionRequestTab({
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setIsRejectMode(false)}
+                        onClick={() => {
+                          setIsRejectMode(false);
+                          setRejectReasonError(false);
+                        }}
                         className="text-xs font-semibold"
                       >
                         Back
@@ -618,7 +793,7 @@ export default function ProductionRequestTab({
                     </Button>
                     <Button
                       type="button"
-                      onClick={() => handleApprove(reviewingBatch.batchId)}
+                      onClick={() => setIsApproveConfirmOpen(true)}
                       className="text-xs font-semibold bg-foreground text-background hover:bg-foreground/90"
                     >
                       Approve
@@ -628,6 +803,26 @@ export default function ProductionRequestTab({
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isApproveConfirmOpen} onOpenChange={setIsApproveConfirmOpen}>
+        <DialogContent className="sm:max-w-sm bg-card border-border p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Confirm Production Request Approval</DialogTitle>
+            <DialogDescription className="text-xs">
+              Approve {reviewingBatch?.batchNumber}? This will authorize the batch for pre-production.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-3">
+            <Button variant="outline" onClick={() => setIsApproveConfirmOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => reviewingBatch && handleApprove(reviewingBatch.batchId)}
+              className="bg-foreground text-background"
+            >
+              Confirm Approval
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

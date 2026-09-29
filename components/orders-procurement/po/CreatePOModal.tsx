@@ -33,8 +33,8 @@ interface ItemRow {
   remaining: number;
   // editable
   orderQty: string;
-  /** User types the TOTAL price for all units (not per-unit) */
-  totalPrice: string;
+  /** Supplier catalog price; read-only and system generated. */
+  unitPrice: number;
 }
 
 interface CreatePOModalProps {
@@ -179,13 +179,13 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
           return {
             itemId: prItem.itemId,
             itemName: prItem.itemName,
-            uomName: prItem.uomName || catalogEntry.purchaseUomName || "pcs",
+            uomName: prItem.uomName || catalogEntry.purchaseUomName || "Unit",
             purchaseUomId: catalogEntry.purchaseUomId || prItem.purchaseUomId || 0,
             alreadyOrdered,
             requestedQty: prItem.requestedQuantity,
             remaining,
             orderQty: remaining > 0 ? String(remaining) : "0",
-            totalPrice: "",
+            unitPrice: Number(catalogEntry.unitPrice) || 0,
           } as ItemRow;
         })
         .filter(Boolean) as ItemRow[];
@@ -213,16 +213,15 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
     setStep(3);
   };
 
-  const updateRow = (idx: number, field: "orderQty" | "totalPrice", value: string) => {
+  const updateRow = (idx: number, field: "orderQty", value: string) => {
     // For orderQty — only allow whole numbers
-    if (field === "orderQty" && value !== "" && !/^\d*$/.test(value)) return;
+    if (field === "orderQty" && value !== "" && !/^\d*\.?\d{0,3}$/.test(value)) return;
     // For totalPrice — allow valid decimal format (up to 2 decimals)
-    if (field === "totalPrice" && value !== "" && !/^\d*\.?\d{0,2}$/.test(value)) return;
     setItemRows((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
   };
 
   const totalAmount = useMemo(
-    () => itemRows.reduce((sum, row) => sum + (parseFloat(row.totalPrice) || 0), 0),
+    () => itemRows.reduce((sum, row) => sum + (parseFloat(row.orderQty) || 0) * row.unitPrice, 0),
     [itemRows]
   );
 
@@ -231,15 +230,14 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
     if (!eta) errs.eta = "Expected arrival date is required.";
     if (itemRows.length === 0) errs.items = "No items available from this supplier.";
     itemRows.forEach((row, idx) => {
-      const qty = parseInt(row.orderQty, 10);
+      const qty = parseFloat(row.orderQty);
       if (!row.orderQty || isNaN(qty) || qty <= 0) {
         errs[`qty_${idx}`] = "Required";
       } else if (qty > row.remaining) {
         errs[`qty_${idx}`] = `Cannot exceed remaining qty (${row.remaining})`;
       }
-      const price = parseFloat(row.totalPrice);
-      if (row.totalPrice === "" || isNaN(price) || price < 0) {
-        errs[`price_${idx}`] = "Required";
+      if (row.unitPrice <= 0) {
+        errs[`price_${idx}`] = "Supplier price is not configured";
       }
     });
     setErrors(errs);
@@ -261,8 +259,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
         initialStatus,
         items: itemRows.map((row) => ({
           itemId: row.itemId,
-          poItemQuantity: parseInt(row.orderQty, 10),
-          totalPrice: parseFloat(row.totalPrice) || 0,
+          poItemQuantity: parseFloat(row.orderQty),
           purchaseUomId: row.purchaseUomId || undefined,
         })),
       };
@@ -663,7 +660,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <label className={`text-[10px] font-bold uppercase tracking-wider ${errors.items ? "text-destructive" : "text-muted-foreground"}`}>
                     Order Quantities &amp; Pricing <span className="text-destructive">*</span>
                   </label>
                   <div className="relative w-48">
@@ -690,7 +687,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                         QTY LEFT
                       </th>
                       <th className="px-4 py-3 text-right font-bold text-muted-foreground tracking-wider whitespace-nowrap">
-                        TOTAL PRICE <span className="text-foreground">*</span>
+                        SYSTEM PRICE
                       </th>
                     </tr>
                   </thead>
@@ -702,7 +699,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                         row.itemName?.toLowerCase().includes(itemSearch.toLowerCase())
                       )
                       .map(({ row, originalIndex: idx }) => {
-                        const qty = parseInt(row.orderQty, 10) || 0;
+                        const qty = parseFloat(row.orderQty) || 0;
                         const qtyLeft = row.remaining - qty;
                       const isOverQty = qty > row.remaining;
                       const isFullyOrdered = row.remaining <= 0;
@@ -722,7 +719,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                             <div className="flex flex-col items-end gap-0.5">
                               <input
                                 type="text"
-                                inputMode="numeric"
+                                inputMode="decimal"
                                 value={row.orderQty}
                                 onWheel={(e) => (e.target as HTMLElement).blur()}
                                 onChange={(e) => updateRow(idx, "orderQty", e.target.value)}
@@ -756,24 +753,12 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-right">
-                            <div className="flex flex-col items-end gap-0.5">
-                              <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₱</span>
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={row.totalPrice}
-                                  onWheel={(e) => (e.target as HTMLElement).blur()}
-                                  onChange={(e) => updateRow(idx, "totalPrice", e.target.value)}
-                                  placeholder="0.00"
-                                  disabled={isFullyOrdered}
-                                  className={`w-32 text-right rounded-lg border px-2 py-1 pl-6 text-xs bg-card focus:outline-none focus:ring-1 focus:ring-foreground/30 ${
-                                    errors[`price_${idx}`] ? "border-red-500 bg-red-50" : "border-border"
-                                  } ${isFullyOrdered ? "opacity-50 cursor-not-allowed" : ""}`}
-                                />
-                              </div>
+                            <div className={`flex flex-col items-end gap-0.5 ${errors[`price_${idx}`] ? "text-red-600" : "text-foreground"}`}>
+                              <span className="font-mono font-semibold whitespace-nowrap">
+                                {fmtCurrency(row.unitPrice)} × {qty} = {fmtCurrency(row.unitPrice * qty)}
+                              </span>
                               {errors[`price_${idx}`] && (
-                                <span className="text-[10px] text-red-500">Required</span>
+                                <span className="text-[10px] text-red-500">{errors[`price_${idx}`]}</span>
                               )}
                             </div>
                           </td>
@@ -790,7 +775,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Left: ETA */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-foreground">
+                <label className={`mb-1.5 block text-xs font-semibold ${errors.eta ? "text-destructive" : "text-foreground"}`}>
                   Expected Arrival Date <span className="text-foreground">*</span>
                 </label>
                 <div className="relative">
@@ -887,11 +872,11 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {itemRows.filter(row => parseInt(row.orderQty, 10) > 0).map((row, idx) => (
+                    {itemRows.filter(row => parseFloat(row.orderQty) > 0).map((row, idx) => (
                       <tr key={idx} className="hover:bg-muted/10">
                         <td className="px-3 py-2.5 font-medium">{row.itemName}</td>
                         <td className="px-3 py-2.5 text-right font-mono font-semibold">{row.orderQty} {row.uomName}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-semibold">{fmtCurrency(parseFloat(row.totalPrice) || 0)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono font-semibold">{fmtCurrency((parseFloat(row.orderQty) || 0) * row.unitPrice)}</td>
                       </tr>
                     ))}
                   </tbody>

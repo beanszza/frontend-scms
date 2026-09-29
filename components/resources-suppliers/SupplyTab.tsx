@@ -73,7 +73,7 @@ export default function SupplyTab({
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Supply List</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Raw materials and tools inventory</p>
+          <p className="mt-1 text-sm text-muted-foreground">Raw materials, ingredients, and tools inventory</p>
         </div>
         <div className="flex items-center gap-3">
           {isAuthorizedForReports && (
@@ -122,6 +122,7 @@ export default function SupplyTab({
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
                 <SelectItem value="Raw Materials">Raw Materials</SelectItem>
+                <SelectItem value="Ingredients">Ingredients</SelectItem>
                 <SelectItem value="Tools and Supplies">Tools & Supplies</SelectItem>
               </SelectContent>
             </Select>

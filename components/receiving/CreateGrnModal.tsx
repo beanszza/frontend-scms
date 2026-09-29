@@ -121,6 +121,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
   const [qaItems, setQaItems] = useState<QaItemRow[]>([]);
   const [inspectorName, setInspectorName] = useState("");
   const [qaOverallNotes, setQaOverallNotes] = useState("");
+  const [qaVerificationChoice, setQaVerificationChoice] = useState("");
   const [expandedQaItems, setExpandedQaItems] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
@@ -136,6 +137,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
     setQaItems([]);
     setInspectorName("");
     setQaOverallNotes("");
+    setQaVerificationChoice("");
     setExpandedQaItems({});
     setShowRejectModal(false);
     setRejectionReason("");
@@ -644,7 +646,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
 
   // Check if Step 2 QA is fully completed
   const isQaDone = Boolean(
-    inspectorName.trim() &&
+    inspectorName.trim() && qaVerificationChoice &&
       qaItems.length > 0 &&
       qaItems.every((i) => {
         const hasAccepted = typeof i.acceptedQuantity === "number" && !isNaN(i.acceptedQuantity);
@@ -656,6 +658,15 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
       })
   );
 
+  const isQaAllAccepted = qaItems.length > 0 && qaItems.every((i) => Number(i.acceptedQuantity) === Number(i.deliveredQuantity));
+  const isQaAllRejected = qaItems.length > 0 && qaItems.every((i) => Number(i.rejectedQuantity) === Number(i.deliveredQuantity));
+
+  useEffect(() => {
+    if (isQaAllAccepted) setQaVerificationChoice("All Accepted");
+    else if (isQaAllRejected) setQaVerificationChoice("All Rejected");
+    else if (qaVerificationChoice === "All Accepted" || qaVerificationChoice === "All Rejected") setQaVerificationChoice("");
+  }, [isQaAllAccepted, isQaAllRejected]);
+
   // STEP 2 Action: Finish GRN (Complete QA)
   const executeFinishGrn = async () => {
     if (!qaInspection || !activeGrn || !isQaDone) return;
@@ -664,9 +675,7 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
     setError(null);
     try {
       const payload = {
-        overallNotes: qaOverallNotes.trim()
-          ? `Inspector: ${inspectorName.trim()} | ${qaOverallNotes.trim()}`
-          : `Inspector: ${inspectorName.trim()}`,
+        overallNotes: [`Inspector: ${inspectorName.trim()}`, `VERIFICATION: ${qaVerificationChoice}`, qaOverallNotes.trim()].filter(Boolean).join(" | "),
         items: qaItems.map((i) => ({
           inspectionItemId: i.inspectionItemId,
           itemId: i.itemId,
@@ -1423,16 +1432,41 @@ export default function CreateGrnModal({ open, initialDeliveryId, onClose, onSuc
               </div>
 
               {/* Overall QA Notes moved to end */}
-              <label className="block space-y-1.5 pt-2">
-                <span className="text-xs font-semibold text-foreground">Overall Quality Assurance Notes</span>
-                <textarea
-                  value={qaOverallNotes}
-                  onChange={(e) => setQaOverallNotes(e.target.value)}
-                  rows={2}
-                  placeholder="Record any general quality observations or inspection summary..."
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-foreground"
-                />
-              </label>
+              <div className="pt-2 space-y-3">
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-semibold text-foreground">
+                    Verification Choice <span className="text-destructive">*</span>
+                  </span>
+                  <select
+                    value={qaVerificationChoice}
+                    onChange={(e) => setQaVerificationChoice(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                  >
+                    <option value="">Select a Verification Reason...</option>
+                    <optgroup label="Positive Outcomes (Accepted)">
+                      <option value="All Accepted">All Accepted</option>
+                      <option value="Partial Accept - Acceptable Quality">Partial Accept - Acceptable Quality</option>
+                      <option value="Partial Accept - Condition Satisfactory">Partial Accept - Condition Satisfactory</option>
+                    </optgroup>
+                    <optgroup label="Negative Outcomes (Rejected)">
+                      <option value="All Rejected">All Rejected</option>
+                      <option value="Rejected - Quality Issues">Rejected - Quality Issues</option>
+                      <option value="Rejected - Packaging Issues">Rejected - Packaging Issues</option>
+                      <option value="Rejected - Documentation Issues">Rejected - Documentation Issues</option>
+                    </optgroup>
+                  </select>
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-semibold text-foreground">Additional Remarks (Optional)</span>
+                  <textarea
+                    value={qaOverallNotes}
+                    onChange={(e) => setQaOverallNotes(e.target.value)}
+                    rows={2}
+                    placeholder="Record any general quality observations or inspection summary..."
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-foreground"
+                  />
+                </label>
+              </div>
 
               {/* Step 2 Footer Actions: Buttons styled after SupplierModal, without logos */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">

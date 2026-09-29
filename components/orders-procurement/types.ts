@@ -98,9 +98,9 @@ export type POItem = {
   itemName: string;
   poItemQuantity: number;
   receivedQuantity?: number;
-  /** Total price for this line (user-typed, not per-unit) */
+  /** Total price for this line, generated from supplier unit price × ordered quantity. */
   totalPrice: number;
-  /** Derived: totalPrice / poItemQuantity */
+  /** Supplier catalog unit price used for this order. */
   unitPrice: number;
   purchaseUomId?: number;
   purchaseUomName: string;
@@ -165,6 +165,8 @@ export type Delivery = {
   deliveryNoteNumber?: string;
   arrivalCondition?: string;
   arrivalNotes?: string;
+  isPerBatch?: boolean;
+  batchReference?: string;
   notes?: string;
   attachmentUrl?: string;
   scheduledAttachment?: string;

@@ -117,7 +117,7 @@ export default function ViewValuation() {
           itemId: i.itemId,
           itemName: i.itemName || "—",
           categoryName: i.categoryName || "Uncategorized",
-          uomName: i.uomName || "pcs",
+          uomName: i.uomName || "Unit",
           onHandQty: i.onHandQty || 0,
           movingAverageCost: i.movingAverageCost || i.averageCost || 0,
           totalValue: i.totalValue || (i.onHandQty || 0) * (i.movingAverageCost || 0),

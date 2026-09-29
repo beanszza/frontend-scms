@@ -128,7 +128,7 @@ export default function ViewMrp() {
           itemId: r.itemId,
           itemName: r.itemName || "—",
           categoryName: r.categoryName || "—",
-          uomName: r.uomName || "pcs",
+          uomName: r.uomName || "Unit",
           grossRequirement: r.grossRequirement || 0,
           onHandQty: r.onHandQty || 0,
           onOrderQty: r.onOrderQty || 0,

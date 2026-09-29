@@ -130,7 +130,7 @@ export default function ViewCycleCounts() {
           systemQty: i.systemQty || 0,
           countedQty: i.countedQty ?? i.systemQty ?? 0,
           variance: (i.countedQty ?? i.systemQty ?? 0) - (i.systemQty || 0),
-          uomName: i.uomName || "pcs",
+          uomName: i.uomName || "Unit",
           status: i.variance !== 0 ? "Variance" : "Matched",
         })));
       }

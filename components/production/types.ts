@@ -31,6 +31,8 @@ export interface MaterialRequestItem {
   suggestedLot: string;
   suggestedExpiry: string;
   isScanned: boolean;
+  shortfallRequested?: boolean;
+  linkedPrNumber?: string;
   scannedLot?: string;
   scannedAt?: string;
 }
@@ -136,9 +138,12 @@ export interface ProductionRequest {
   productId: number;
   productName: string;
   variant: string;
+  batchSize: number;
   targetYield: number;
   yieldUnit: string;
   purpose: string;
+  notes?: string;
+  priority?: "Normal" | "Urgent";
   status:
     | "Draft"
     | "Pending Approval"

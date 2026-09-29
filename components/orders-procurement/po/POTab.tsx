@@ -61,7 +61,7 @@ function mapPO(o: any): PurchaseOrderPO {
       unitPrice: i.unitPrice,
       totalPrice: i.totalPrice ?? i.lineTotal ?? (i.poItemQuantity * (i.unitPrice || 0)),
       purchaseUomId: i.purchaseUomId,
-      purchaseUomName: i.purchaseUomName || "pcs",
+      purchaseUomName: i.purchaseUomName || "Unit",
       lineTotal: i.lineTotal ?? i.totalPrice ?? (i.poItemQuantity * (i.unitPrice || 0)),
     })),
   };

@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { SupplyItem, Supplier, Recipe, FinishedProduct } from "@/components/resources-suppliers/types";
+import { SupplyItem, Supplier, Recipe, FinishedProduct, UomOption } from "@/components/resources-suppliers/types";
 import SupplyTab from "@/components/resources-suppliers/SupplyTab";
 import SupplierTab from "@/components/resources-suppliers/SupplierTab";
 import RecipeTab from "@/components/resources-suppliers/RecipeTab";
-import SupplyModal from "@/components/resources-suppliers/SupplyModal";
+import SupplyModal, { SupplyCategory } from "@/components/resources-suppliers/SupplyModal";
 import SupplyDetailsModal from "@/components/resources-suppliers/SupplyDetailsModal";
 import SupplierModal from "@/components/resources-suppliers/SupplierModal";
 import SupplierDetailsModal from "@/components/resources-suppliers/SupplierDetailsModal";
@@ -26,6 +26,8 @@ export default function ResourcesSuppliersPage() {
   const [supplierData, setSupplierData] = useState<Supplier[]>([]);
   const [recipeData, setRecipeData] = useState<Recipe[]>([]);
   const [finishedProductData, setFinishedProductData] = useState<FinishedProduct[]>([]);
+  const [supplyCategories, setSupplyCategories] = useState<SupplyCategory[]>([]);
+  const [uoms, setUoms] = useState<UomOption[]>([]);
 
   // Search & Filter State
   const [supplyFilter, setSupplyFilter] = useState("All");
@@ -58,8 +60,10 @@ export default function ResourcesSuppliersPage() {
         api.get(`/api/scms/api/Suppliers?page=1&pageSize=1000`),
         api.get("/api/scms/api/Recipes"),
         api.get("/api/scms/api/FinishedProducts"),
+        api.get("/api/scms/api/Categories/supplies"),
+        api.get("/api/scms/api/UnitOfMeasures"),
       ]);
-      const [itemsRes, suppliersRes, recipesRes, fpRes] = results.map((r) => (r.status === "fulfilled" ? r.value : null));
+      const [itemsRes, suppliersRes, recipesRes, fpRes, categoriesRes, uomsRes] = results.map((r) => (r.status === "fulfilled" ? r.value : null));
       if (itemsRes?.data?.success) {
         const rawItems = itemsRes.data.data.items || itemsRes.data.data || [];
         const suppliesOnly = rawItems.filter(
@@ -74,6 +78,8 @@ export default function ResourcesSuppliersPage() {
           productId: p.productId, itemName: p.itemName || "", variant: p.variant || "",
         })));
       }
+      if (categoriesRes?.data?.success) setSupplyCategories(categoriesRes.data.data || []);
+      if (uomsRes?.data?.success) setUoms(uomsRes.data.data || []);
     } catch (e) {
       console.error(e);
     }
@@ -175,7 +181,7 @@ export default function ResourcesSuppliersPage() {
   const handleSaveRecipe = async (data: any) => {
     try {
       const payload = {
-        recipeName: data.recipeName, productId: data.productId, outputQuantity: data.outputQuantity,
+        recipeName: data.recipeName, productId: data.productId,
         notes: data.notes, isActive: data.isActive, ingredients: data.ingredients,
       };
       if (editingRecipe) await api.put(`/api/scms/api/Recipes/${editingRecipe.recipeId}`, payload);
@@ -256,6 +262,8 @@ export default function ResourcesSuppliersPage() {
         editingItem={editingSupply}
         existingSupplies={supplyData}
         suppliers={supplierData.map((s: any) => ({ supplierId: s.supplierId, companyName: s.companyName, supplierCode: s.supplierCode }))}
+        categories={supplyCategories}
+        uoms={uoms}
         onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }}
         onSave={handleSaveSupply}
       />
@@ -270,7 +278,7 @@ export default function ResourcesSuppliersPage() {
       />
       <SupplierModal open={openSupplierModal} editingSupplier={editingSupplier} onClose={() => { setOpenSupplierModal(false); setEditingSupplier(null); }} onSave={handleSaveSupplier} />
       <SupplierDetailsModal supplier={viewSupplier} onClose={() => setViewSupplier(null)} />
-      <RecipeModal open={openRecipeModal} editingRecipe={editingRecipe} finishedProducts={finishedProductData} baseSupplies={supplyData} onClose={() => { setOpenRecipeModal(false); setEditingRecipe(null); }} onSave={handleSaveRecipe} />
+      <RecipeModal open={openRecipeModal} editingRecipe={editingRecipe} finishedProducts={finishedProductData} baseSupplies={supplyData.filter((item) => item.categoryName === "Ingredients")} onClose={() => { setOpenRecipeModal(false); setEditingRecipe(null); }} onSave={handleSaveRecipe} />
     </div>
   );
 }

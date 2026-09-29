@@ -71,7 +71,7 @@ const ACTION_CONFIG: Record<
   order: {
     title: "Mark as Ordered",
     icon: <ShoppingBag className="w-5 h-5 text-foreground" />,
-    description: "Marking as Ordered confirms the Purchase Order has been sent to the supplier. The status will change to Ordered.",
+    description: "Marking as Ordered sends the Purchase Order to the supplier through the configured Gmail account, then changes the status to Ordered.",
     requiresNotes: false,
     notesLabel: "",
     notesPlaceholder: "",

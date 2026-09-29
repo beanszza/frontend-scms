@@ -97,12 +97,18 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
   const tier = STATUS_MAP[status] ?? "muted";
+  
+  let displayStatus = status.replace(/([A-Z])/g, " $1").trim();
+  if (status === "QaCompleted" || status === "QA Completed") {
+    displayStatus = "Completed";
+  }
+
   return (
     <Badge
       variant="outline"
       className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${TIER_CLASSES[tier]} ${className}`}
     >
-      {status.replace(/([A-Z])/g, " $1").trim()}
+      {displayStatus}
     </Badge>
   );
 }

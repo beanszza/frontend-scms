@@ -24,7 +24,7 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
             <th className="px-5 py-4">Recipe No.</th>
             <th className="px-5 py-4">Recipe Name</th>
             <th className="px-5 py-4">Finished Product</th>
-            <th className="px-5 py-4">Target Yield</th>
+            <th className="px-5 py-4">Recipe Basis</th>
             <th className="px-5 py-4">Status</th>
             <th className="px-5 py-4 text-center">Actions</th>
           </tr>
@@ -46,19 +46,19 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
                   <HoverCard>
                     <HoverCardTrigger asChild>
                       <span className="cursor-default whitespace-nowrap">
-                        {recipe.recipeName}
+                        {recipe.displayName || recipe.recipeName}
                       </span>
                     </HoverCardTrigger>
                     <HoverCardContent className="w-72">
                       <div className="space-y-1.5">
-                        <p className="text-xs font-bold text-foreground">{recipe.recipeName}</p>
+                        <p className="text-xs font-bold text-foreground">{recipe.displayName || recipe.recipeName}</p>
                         {recipe.recipeCode && (
                           <p className="text-xs font-mono text-muted-foreground">Recipe No: {recipe.recipeCode}</p>
                         )}
                         {recipe.finishedProduct && (
                           <p className="text-xs text-muted-foreground">Product: {recipe.finishedProduct}</p>
                         )}
-                        <p className="text-xs text-muted-foreground">Target Yield: {recipe.outputQuantity}</p>
+                        <p className="text-xs text-muted-foreground">Basis: {recipe.yieldLabel || "Good for 1"}</p>
                         {recipe.notes && (
                           <p className="text-xs text-muted-foreground">Notes: {recipe.notes}</p>
                         )}
@@ -70,7 +70,7 @@ export default function RecipeTable({ recipes, currentPage, pageSize, onEdit }: 
                   </HoverCard>
                 </td>
                 <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.finishedProduct || "N/A"}</td>
-                <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.outputQuantity}</td>
+                <td className="px-5 py-4 text-sm text-muted-foreground">{recipe.yieldLabel || "Good for 1"}</td>
                 <td className="px-5 py-4">
                   <StatusBadge status={recipe.isActive ? "Active" : "Inactive"} />
                 </td>
