@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Save } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { GRN, StockIn } from "./types";
@@ -162,7 +162,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
           quantityToStock: Number(l.quantityToStock),
           currentStockBeforeCommit: Number(l.currentStock),
           lotCode: l.lotCode.trim(),
-          expiryDate: l.expiryDate ? new Date(l.expiryDate).toISOString() : undefined,
+          expiryDate: l.expiryDate ? `${l.expiryDate.split("T")[0]}T12:00:00Z` : undefined,
           notes: l.notes.trim() || undefined,
         })),
       };
@@ -191,11 +191,11 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
       open={open}
       title="Create Stock-In Report"
       onClose={onClose}
-      size="max-w-3xl"
+      size="max-w-5xl"
     >
       <div className="space-y-5 text-foreground">
         {error && (
-          <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-foreground flex items-center justify-between">
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive flex items-center justify-between">
             <span>{error}</span>
             <button
               type="button"
@@ -219,7 +219,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                 const id = Number(e.target.value);
                 if (id) handleSelectGrn(id);
               }}
-              className="w-52 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+              className="w-56 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
             >
               <option value="" disabled>
                 Select Goods Receipt Note
@@ -256,13 +256,16 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                     <th className="px-3 py-3 text-center">Unit of Measure</th>
                     <th className="px-3 py-3 text-right">Stock to Put In</th>
                     <th className="px-3 py-3 text-right">Current Stock</th>
-                    <th className="px-3 py-3">Lot No.</th>
-                    <th className="px-3 py-3 text-center">Expiry Date</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Lot No.</th>
+                    <th className="px-4 py-3 text-center whitespace-nowrap">Expiry Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {lines.map((line, lineIndex) => (
-                    <tr key={line.itemId} className="hover:bg-muted/20 transition-colors">
+                    <tr
+                      key={`${line.grnItemId || line.itemId}-${lineIndex}`}
+                      className="hover:bg-muted/20 transition-colors"
+                    >
                       <td className="px-4 py-3 font-medium text-foreground">
                         {line.itemName}
                       </td>
@@ -275,23 +278,17 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                       <td className="px-3 py-3 text-right font-mono text-muted-foreground">
                         {line.currentStock}
                       </td>
-                      <td className="px-3 py-3 font-mono text-xs text-foreground">
+                      <td className="px-4 py-3 font-mono text-xs text-foreground whitespace-nowrap">
                         {line.lotCode}
                       </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="date"
-                          value={line.expiryDate || ""}
-                          min={new Date().toISOString().split("T")[0]}
-                          onChange={(e) => {
-                            setLines((current) =>
-                              current.map((entry, index) =>
-                                index === lineIndex ? { ...entry, expiryDate: e.target.value } : entry
-                              )
-                            );
-                          }}
-                          className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-foreground focus:outline-none"
-                        />
+                      <td className="px-4 py-3 text-center font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {line.expiryDate
+                          ? new Date(line.expiryDate).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                            })
+                          : "—"}
                       </td>
                     </tr>
                   ))}
@@ -319,7 +316,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Cancel
           </button>
@@ -327,7 +324,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
             type="button"
             disabled={lines.length === 0 || submitting}
             onClick={() => handleTrySubmit(false)}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {submitting ? "Saving…" : "Save as Draft"}
           </button>
@@ -335,60 +332,55 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
             type="button"
             disabled={lines.length === 0 || submitting}
             onClick={() => handleTrySubmit(true)}
-            className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
           >
             {submitting ? "Submitting…" : "Submit for Approval"}
           </button>
         </div>
       </div>
 
-      {/* Review Modal Portal */}
+      {/* Review Confirmation Modal (Matching POActionModal layout) */}
       {confirmModal.open &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-background rounded-2xl shadow-xl w-full max-w-[500px] border border-border overflow-hidden">
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <Save className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">
-                      Review Stock-In
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      You are about to {confirmModal.submitForApproval ? "submit this Stock-In for approval" : "save this Stock-In as draft"}.
-                    </p>
-                  </div>
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setConfirmModal({ open: false, submitForApproval: false })}
+          >
+            <div
+              style={{ width: "100%", maxWidth: "440px" }}
+              className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col p-6 text-foreground shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center justify-center text-center">
+                {/* Circular Alert Icon */}
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-foreground">
+                  <AlertTriangle className="w-6 h-6" />
                 </div>
 
-                <div className="bg-muted/30 rounded-xl p-4 mb-6 space-y-2 border border-border">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Goods Receipt Note Source:</span>
-                    <span className="font-semibold text-foreground">
-                      {grns.find((g) => g.grnId === Number(selectedGrnId))?.grnNumber || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Total Lines:</span>
-                    <span className="font-mono text-foreground font-semibold">
-                      {lines.length} items
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Action:</span>
-                    <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
-                      {confirmModal.submitForApproval ? "Submit for Approval" : "Save as Draft"}
-                    </span>
-                  </div>
-                </div>
+                {/* Title */}
+                <h2 className="text-xl font-bold text-foreground mb-1">
+                  {confirmModal.submitForApproval ? "Submit Stock-In Report" : "Save Stock-In as Draft"}
+                </h2>
 
-                <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
+                {/* Reference */}
+                <p className="text-xs font-mono font-semibold text-muted-foreground mb-3">
+                  GRN Reference: {grns.find((g) => g.grnId === Number(selectedGrnId))?.grnNumber || "N/A"}
+                </p>
+
+                {/* Description */}
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                  {confirmModal.submitForApproval
+                    ? `Are you sure you want to submit this stock-in report with ${lines.length} item${lines.length === 1 ? "" : "s"} for admin approval? Once submitted, it will be routed for review.`
+                    : `Save this stock-in report with ${lines.length} item${lines.length === 1 ? "" : "s"} as a draft? You can continue editing or submit it later.`}
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-3 w-full">
                   <button
                     type="button"
                     onClick={() => setConfirmModal({ open: false, submitForApproval: false })}
                     disabled={submitting}
-                    className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+                    className="flex-1 px-5 py-2.5 text-sm font-semibold text-foreground border border-border bg-card hover:bg-muted rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -396,9 +388,9 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
                     type="button"
                     disabled={submitting}
                     onClick={() => executeSubmit(confirmModal.submitForApproval)}
-                    className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                    className="flex-1 px-5 py-2.5 text-sm font-semibold bg-foreground text-background hover:bg-foreground/85 rounded-xl transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                   >
-                    {submitting ? "Processing..." : "Confirm"}
+                    {submitting ? "Processing…" : "Confirm"}
                   </button>
                 </div>
               </div>

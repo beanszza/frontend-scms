@@ -53,7 +53,11 @@ export default function DiscrepancyTable({
               const isOver = d.discrepancyType === "OverSupply" || d.discrepancyType === "Over";
 
               return (
-                <tr key={d.discrepancyId} className="hover:bg-muted/20 transition-colors">
+                <tr
+                  key={d.discrepancyId}
+                  onClick={() => onSelectDiscrepancy(d)}
+                  className="hover:bg-muted/20 transition-colors cursor-pointer"
+                >
                   <td className="px-4 py-3 font-mono font-semibold text-foreground whitespace-nowrap">
                     {d.discrepancyNumber}
                   </td>

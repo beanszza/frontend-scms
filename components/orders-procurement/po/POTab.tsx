@@ -87,9 +87,8 @@ export function POTab() {
   const [selectedPO, setSelectedPO] = useState<PurchaseOrderPO | null>(null);
   const [actionModal, setActionModal] = useState<{ po: PurchaseOrderPO; type: POActionType } | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [editingPO, setEditingPO] = useState<PurchaseOrderPO | null>(null);
   const [deliveryPO, setDeliveryPO] = useState<PurchaseOrderPO | null>(null);
-  // For editing a Draft/Returned PO — we open CreatePOModal pre-filled (future enhancement)
-  // For now we just open view on edit click
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -225,10 +224,10 @@ export function POTab() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectTrigger className="h-10 min-w-[210px] w-auto rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                   <SelectValue placeholder="All Suppliers" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[210px]">
                   <SelectItem value="all">All Suppliers</SelectItem>
                   {uniqueSuppliers.map((sup) => (
                     <SelectItem key={sup} value={sup}>
@@ -324,10 +323,10 @@ export function POTab() {
         po={selectedPO}
         isAdmin={isAdmin}
         onClose={() => setSelectedPO(null)}
+        onEdit={(po) => { setSelectedPO(null); setEditingPO(po); }}
         onApprove={(po) => { setSelectedPO(null); setActionModal({ po, type: "approve" }); }}
         onReject={(po) => { setSelectedPO(null); setActionModal({ po, type: "reject" }); }}
         onReturn={(po) => { setSelectedPO(null); setActionModal({ po, type: "return" }); }}
-        onOrder={(po) => { setSelectedPO(null); setActionModal({ po, type: "order" }); }}
         onCancel={(po) => { setSelectedPO(null); setActionModal({ po, type: "cancel" }); }}
         onCreateDelivery={(po) => { setSelectedPO(null); setDeliveryPO(po); }}
       />
@@ -348,8 +347,6 @@ export function POTab() {
               await handleStatusUpdate(po.poId, "Returned", notes);
             } else if (type === "cancel") {
               await handleStatusUpdate(po.poId, "Cancelled", notes);
-            } else if (type === "order") {
-              await handleStatusUpdate(po.poId, "Ordered");
             }
             setActionModal(null);
           }}
@@ -363,6 +360,20 @@ export function POTab() {
           onClose={() => setOpenCreateModal(false)}
           onSuccess={() => {
             setOpenCreateModal(false);
+            fetchOrders();
+          }}
+        />
+      )}
+
+      {/* Edit PO Modal */}
+      {editingPO && (
+        <CreatePOModal
+          open={!!editingPO}
+          initialPo={editingPO}
+          isEdit={true}
+          onClose={() => setEditingPO(null)}
+          onSuccess={() => {
+            setEditingPO(null);
             fetchOrders();
           }}
         />

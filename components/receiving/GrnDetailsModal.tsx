@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Printer } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Printer, AlertTriangle } from "lucide-react";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import api from "@/lib/api";
@@ -18,6 +19,7 @@ interface GrnDetailsModalProps {
 export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPosted }: GrnDetailsModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   if (!grn) return null;
 
@@ -42,13 +44,13 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
     }
   };
 
-  const handleCancel = async () => {
-    if (!confirm(`Are you sure you want to cancel Draft GRN ${grn.grnNumber}?`)) return;
+  const executeCancel = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await api.post(`/api/GoodsReceipts/${grn.grnId}/cancel`);
       if (res.data?.success) {
+        setCancelModalOpen(false);
         onUpdated();
         onClose();
       } else {
@@ -58,13 +60,16 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
       setError(err.response?.data?.message || err.message || "Failed to cancel Goods Receipt Note.");
     } finally {
       setLoading(false);
+      setCancelModalOpen(false);
     }
   };
 
   const handleExport = async () => {
     try {
-      const { jsPDF } = await import("jspdf");
-      const autoTable = (await import("jspdf-autotable")).default;
+      const jspdfModule = await import("jspdf");
+      const jsPDF = jspdfModule.jsPDF || (jspdfModule as any).default;
+      const autoTableModule = await import("jspdf-autotable");
+      const autoTable = (autoTableModule as any).default || autoTableModule;
 
       const receivedDate = new Date(grn.receivedDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
       const printedAt = new Date().toLocaleString("en-PH");
@@ -90,19 +95,15 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
       // Info box
       doc.setDrawColor(200);
       doc.setFillColor(248, 250, 252);
-      doc.rect(14, 40, 182, 35, "FD");
+      doc.rect(14, 40, 182, 28, "FD");
 
       doc.setFontSize(9);
       doc.setTextColor(0);
       doc.text(`Supplier: ${grn.supplierName}`, 18, 47);
-      doc.text(`Purchase Order Number: ${grn.poNumber}`, 18, 54);
-      doc.text(`Purchase Requisition Reference: ${grn.prNumber || "—"}`, 18, 61);
-      doc.text(`Delivery No.: ${grn.deliveryNumber || "—"}`, 18, 68);
+      doc.text(`Delivery No.: ${grn.deliveryNumber || "—"}`, 18, 55);
 
       doc.text(`Received Date: ${receivedDate}`, 105, 47);
-      doc.text(`Receiving Bay: ${grn.receivingBay || "Main Receiving Bay"}`, 105, 54);
-      doc.text(`Supplier DR #: ${grn.supplierDrNumber || "N/A"}`, 105, 61);
-      doc.text(`Supplier Invoice #: ${grn.supplierInvoiceNumber || "N/A"}`, 105, 68);
+      doc.text(`Receiving Bay: ${grn.receivingBay || "Main Receiving Bay"}`, 105, 55);
 
       // Table
       const tableData = grn.items.map((item) => {
@@ -126,8 +127,8 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
       });
 
       autoTable(doc, {
-        startY: 85,
-        head: [["Item Name", "Unit of Measure", "Purchase Order Quantity", "Delivered Quantity", "Variance", "Supplier Lot #", "Expiry Date"]],
+        startY: 75,
+        head: [["Item Name", "Unit of Measure", "Ordered Quantity", "Delivered Quantity", "Variance", "Supplier Lot #", "Expiry Date"]],
         body: tableData,
         theme: "grid",
         styles: { fontSize: 8 },
@@ -150,7 +151,7 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
       doc.line(14, finalY + 15, 64, finalY + 15);
       doc.setFontSize(8);
       doc.setTextColor(100);
-      doc.text(grn.receivedBy, 14, finalY + 20);
+      doc.text(grn.receivedBy || "Receiving Officer", 14, finalY + 20);
 
       doc.setFontSize(9);
       doc.setTextColor(0);
@@ -180,7 +181,7 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
 
   return (
     <ModalWrapper open={open} title={`Goods Receipt Note — ${grn.grnNumber}`} onClose={onClose} size="max-w-4xl">
-      <div className="space-y-6 text-foreground">
+      <div className="space-y-5 text-foreground">
         {error && (
           <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-xl p-3">
             {error}
@@ -188,29 +189,17 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
         )}
 
         {/* HEADER SUMMARY CARD */}
-        <div className="rounded-xl border border-border bg-muted/20 p-4 text-xs space-y-3">
-          {/* Top Badge & Number Row */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-base font-bold text-foreground">
-                {grn.grnNumber}
-              </span>
-              <StatusBadge status={grn.status} />
-            </div>
+        <div className="rounded-2xl border border-border bg-muted/20 p-4 text-xs space-y-3">
+          {/* Status Row */}
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Receipt Overview</span>
+            <StatusBadge status={grn.status} />
           </div>
 
-          {/* Reference Numbers Grid */}
+          {/* Clean Information Grid without PO / PR clutter */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Purchase Requisition Number</span>
-              <span className="font-mono font-semibold text-foreground">{grn.prNumber || "—"}</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Purchase Order Number</span>
-              <span className="font-mono font-semibold text-foreground">{grn.poNumber}</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Delivery Number</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Delivery No.</span>
               <span className="font-mono font-semibold text-foreground">{grn.deliveryNumber || "—"}</span>
             </div>
             <div>
@@ -219,10 +208,6 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
                 {grn.supplierName}
               </span>
             </div>
-          </div>
-
-          {/* Logistics & Personnel Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2.5 border-t border-border/60">
             <div>
               <span className="text-[10px] font-bold uppercase text-muted-foreground block">Received Date</span>
               <span className="font-medium text-foreground">
@@ -230,41 +215,42 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
               </span>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Received By</span>
-              <span className="font-medium text-foreground">{grn.receivedBy || "Warehouse Staff"}</span>
-            </div>
-            <div>
               <span className="text-[10px] font-bold uppercase text-muted-foreground block">Receiving Bay</span>
               <span className="font-medium text-foreground">{grn.receivingBay || "Main Bay"}</span>
             </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Posted By</span>
-              <span className="font-medium text-foreground">{grn.postedBy || (isDraft ? "Not Posted" : "System")}</span>
-            </div>
           </div>
 
-          {(grn.supplierDrNumber || grn.supplierInvoiceNumber || grn.carrier) && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2.5 border-t border-border/60 text-muted-foreground">
-              {grn.supplierDrNumber && grn.supplierDrNumber !== "N/A" && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground block">Supplier DR #</span>
-                  <span className="font-mono text-foreground">{grn.supplierDrNumber}</span>
-                </div>
-              )}
-              {grn.supplierInvoiceNumber && grn.supplierInvoiceNumber !== "N/A" && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground block">Supplier Invoice #</span>
-                  <span className="font-mono text-foreground">{grn.supplierInvoiceNumber}</span>
-                </div>
-              )}
-              {grn.carrier && grn.carrier !== "N/A" && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground block">Carrier / Vehicle</span>
-                  <span className="text-foreground">{grn.carrier}</span>
-                </div>
-              )}
+          {/* Personnel Row (Only show Posted By if actually present) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2.5 border-t border-border/60">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground block">Received By</span>
+              <span className="font-medium text-foreground">{grn.receivedBy || "Warehouse Staff"}</span>
             </div>
-          )}
+            {grn.postedBy && grn.postedBy !== "System" && grn.postedBy !== "Not Posted" && (
+              <div>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground block">Posted By</span>
+                <span className="font-medium text-foreground">{grn.postedBy}</span>
+              </div>
+            )}
+            {grn.carrier && grn.carrier !== "N/A" && (
+              <div>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground block">Carrier / Vehicle</span>
+                <span className="text-foreground">{grn.carrier}</span>
+              </div>
+            )}
+            {grn.supplierDrNumber && grn.supplierDrNumber !== "N/A" && (
+              <div>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground block">Supplier DR #</span>
+                <span className="font-mono text-foreground">{grn.supplierDrNumber}</span>
+              </div>
+            )}
+            {grn.supplierInvoiceNumber && grn.supplierInvoiceNumber !== "N/A" && (
+              <div>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground block">Supplier Invoice #</span>
+                <span className="font-mono text-foreground">{grn.supplierInvoiceNumber}</span>
+              </div>
+            )}
+          </div>
 
           {grn.notes && (
             <div className="pt-2 border-t border-border/60 text-xs">
@@ -276,9 +262,9 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
 
         {/* WORKFLOW STATUS BANNER */}
         {grn.status === "Received" && (
-          <div className="bg-amber-500/10 border border-amber-500/20 text-foreground rounded-xl p-3.5 flex items-center justify-between text-xs">
+          <div className="bg-muted/30 border border-border text-foreground rounded-2xl p-3.5 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-foreground shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">Awaiting Quality Assurance Inspection</div>
                 <div className="text-muted-foreground text-[11px] mt-0.5">
@@ -290,9 +276,9 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
         )}
 
         {(grn.status === "QaCompleted" || grn.status === "PartiallyPutAway" || grn.status === "FullyPutAway") && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-foreground rounded-xl p-3.5 flex items-center justify-between text-xs">
+          <div className="bg-muted/30 border border-border text-foreground rounded-2xl p-3.5 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-foreground shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">Quality Assurance Inspection Completed</div>
                 <div className="text-muted-foreground text-[11px] mt-0.5">
@@ -308,13 +294,13 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
           <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
             Received Line Items
           </div>
-          <div className="overflow-x-auto border border-border rounded-xl bg-card">
+          <div className="overflow-x-auto border border-border rounded-2xl bg-card">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-muted/30 uppercase text-muted-foreground font-bold tracking-wider text-[11px] border-b border-border">
                 <tr>
                   <th className="px-4 py-3">Item Name</th>
                   <th className="px-3 py-3 text-center">Unit of Measure</th>
-                  <th className="px-3 py-3 text-right">Purchase Order Ordered</th>
+                  <th className="px-3 py-3 text-right">Ordered</th>
                   <th className="px-3 py-3 text-right">Delivered Qty</th>
                   <th className="px-3 py-3 text-center">Variance</th>
                   <th className="px-4 py-3">Supplier Lot #</th>
@@ -362,35 +348,36 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
           </div>
         </div>
 
-        {/* FOOTER ACTIONS - Lower right corner */}
+        {/* FOOTER ACTIONS */}
         <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-border">
           {/* Cancel draft button */}
           {isDraft && (
             <button
               type="button"
-              onClick={handleCancel}
+              onClick={() => setCancelModalOpen(true)}
               disabled={loading}
-              className="rounded-xl border border-destructive/30 bg-destructive/10 text-destructive px-5 py-2.5 text-sm font-semibold hover:bg-destructive/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 text-destructive px-5 py-2.5 text-sm font-semibold hover:bg-destructive/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? "Cancelling…" : "Cancel Draft"}
+              Cancel Draft
             </button>
           )}
 
-          {/* Print button without logo */}
+          {/* Export button */}
           <button
             type="button"
             onClick={handleExport}
             disabled={loading}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Export Goods Receipt Note
           </button>
 
+          {/* Close button in black primary style */}
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
           >
             Close
           </button>
@@ -401,13 +388,62 @@ export default function GrnDetailsModal({ grn, open, onClose, onUpdated, onPoste
               type="button"
               onClick={handlePost}
               disabled={loading}
-              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? "Posting…" : "Post Goods Receipt Note"}
             </button>
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal: Cancel Draft GRN */}
+      {cancelModalOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setCancelModalOpen(false)}
+          >
+            <div
+              style={{ width: "100%", maxWidth: "440px" }}
+              className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col p-6 text-foreground shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-foreground">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground mb-1">
+                  Cancel Goods Receipt Note
+                </h2>
+                <p className="text-xs font-mono font-semibold text-muted-foreground mb-3">
+                  GRN No: {grn.grnNumber}
+                </p>
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                  Are you sure you want to cancel Draft Goods Receipt Note {grn.grnNumber}? This action cannot be undone.
+                </p>
+                <div className="flex justify-center gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setCancelModalOpen(false)}
+                    disabled={loading}
+                    className="flex-1 px-5 py-2.5 text-sm font-semibold text-foreground border border-border bg-card hover:bg-muted rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={executeCancel}
+                    className="flex-1 px-5 py-2.5 text-sm font-semibold bg-foreground text-background hover:bg-foreground/85 rounded-xl transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    {loading ? "Cancelling…" : "Confirm Cancel"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </ModalWrapper>
   );
 }

@@ -19,11 +19,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ProductionRequest } from "./types";
-import { productionStorage } from "./productionStorage";
+import { ProductionRequest, FinishedProductItem, ProductionBatchItem } from "./types";
 import ProductionKpiCards from "./ProductionKpiCards";
 import ProductionSummaryModal from "./ProductionSummaryModal";
+import ProductionBatchDetailsModal from "./ProductionBatchDetailsModal";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import api from "@/lib/api";
 
@@ -70,11 +71,21 @@ const formatLocalDate = (value: string) => {
   return new Date(year, month - 1, day).toLocaleDateString();
 };
 
+interface RecipeOption {
+  recipeId: number;
+  recipeName: string;
+  productId: number;
+  outputQuantity: number;
+  yieldUom?: { abbreviation?: string };
+}
+
 interface ProductionRequestTabProps {
   isAdmin: boolean;
   isHeadCook: boolean;
   onNavigateToTracking: (batchId: number) => void;
 }
+
+const DRAFTS_STORAGE_KEY = "production_draft_requests_v2";
 
 export default function ProductionRequestTab({
   isAdmin,
@@ -124,21 +135,131 @@ export default function ProductionRequestTab({
 
   // Summary Report Modal state
   const [viewingSummaryBatch, setViewingSummaryBatch] = useState<ProductionRequest | null>(null);
+  const [rejectingBatch, setRejectingBatch] = useState<ProductionRequest | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const refreshRequests = () => {
-    setRequests(productionStorage.getRequests());
+  // 3-dots dropdown state
+  const [openDropdownId, setOpenDropdownId] = useState<number | string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdownId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Load drafts from localStorage
+  const loadDrafts = () => {
+    try {
+      const saved = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      if (saved) {
+        setDrafts(JSON.parse(saved));
+      } else {
+        setDrafts([]);
+      }
+    } catch {
+      setDrafts([]);
+    }
   };
 
-  // Tabs list based on role
-  const allTabs = [
+  const saveDraftsToStorage = (newDrafts: ProductionRequest[]) => {
+    setDrafts(newDrafts);
+    try {
+      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(newDrafts));
+    } catch (e) {
+      console.error("Failed to save drafts", e);
+    }
+  };
+
+  const mapStatus = (statusStr: string): ProductionRequest["status"] => {
+    const s = (statusStr || "").toLowerCase().trim();
+    if (s === "scheduled") return "Pending Approval";
+    if (s === "approved") return "Approved";
+    if (s === "in progress" || s === "inprogress") return "In Progress";
+    if (s === "passed qa" || s === "passedqa") return "Passed QA";
+    if (s === "completed") return "Completed";
+    if (s === "inventory added" || s === "inventoryadded") return "Completed";
+    if (s === "rejected") return "Rejected";
+    if (s === "cancelled") return "Cancelled";
+    return "Pending Approval";
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [batchesRes, prodsRes, recipesRes] = await Promise.all([
+        api.get("/api/ProductionBatches"),
+        api.get("/api/FinishedProducts"),
+        api.get("/api/Recipes"),
+      ]);
+
+      const rawBatches = batchesRes.data || [];
+      const mappedBatches: ProductionRequest[] = rawBatches.map((b: ProductionBatchItem) => ({
+        batchId: b.batchId,
+        batchNumber: b.batchNumber,
+        productId: b.productId,
+        productName: b.productName,
+        variant: b.variant,
+        targetYield: b.estimatedQuantity,
+        yieldUnit: "PCS",
+        purpose: b.purpose || b.notes || "",
+        status: mapStatus(b.status),
+        stage: b.stage,
+        scheduleDate: b.productionDate,
+        rejectionReason: b.rejectionReason,
+        recipeId: b.recipeId,
+        recipeName: b.recipeName,
+        batchMultiplier: b.batchMultiplier,
+        actualQuantity: b.actualQuantity,
+        scrapQuantity: b.scrapQuantity,
+        scrapReason: b.scrapReason,
+        fgLotId: b.fgLotId,
+        assignedCook: b.assignedCook,
+        imageUrl: b.imageUrl,
+        qualityStatus: b.qualityStatus,
+        createdAt: b.productionDate,
+      }));
+
+      setBatches(mappedBatches);
+
+      const prodsList = prodsRes.data?.data || prodsRes.data || [];
+      setFinishedProducts(prodsList);
+
+      const recipesList = recipesRes.data?.data || recipesRes.data || [];
+      setRecipes(recipesList);
+
+      loadDrafts();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to load production data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Combined requests: API batches + local drafts
+  const allRequests: ProductionRequest[] = isAdmin ? batches : [...drafts, ...batches];
+
+  // Tabs
+  const nonAdminTabs = [
     { key: "All", label: "All Requests" },
     { key: "Draft", label: "Draft" },
     { key: "Pending Approval", label: "Pending Approval" },
-    { key: "In Progress", label: "In Progress" },
     { key: "Approved", label: "Approved" },
+    { key: "In Progress", label: "In Progress" },
+    { key: "Passed QA", label: "Passed QA" },
+    { key: "Completed", label: "Completed" },
     { key: "Rejected", label: "Rejected" },
     { key: "Cancelled", label: "Cancelled" },
-    { key: "Completed", label: "Completed" },
   ];
 
   const adminTabs = [
@@ -146,20 +267,28 @@ export default function ProductionRequestTab({
     { key: "Approved", label: "Approved Requests" },
   ];
 
-  const currentTabs = isAdmin ? adminTabs : allTabs;
+  const currentTabs = isAdmin ? adminTabs : nonAdminTabs;
 
   // Filter requests
-  const filteredRequests = requests.filter((r) => {
+  const filteredRequests = allRequests.filter((r) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      r.batchNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.variant.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      r.batchNumber?.toLowerCase().includes(q) ||
+      r.productName?.toLowerCase().includes(q) ||
+      r.variant?.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
 
     if (isAdmin) {
       if (activeTab === "Pending Approval") return r.status === "Pending Approval";
-      if (activeTab === "Approved") return r.status === "Approved" || r.status === "In Progress" || r.status === "Completed";
+      if (activeTab === "Approved")
+        return (
+          r.status === "Approved" ||
+          r.status === "In Progress" ||
+          r.status === "Passed QA" ||
+          r.status === "Completed"
+        );
       return true;
     }
 
@@ -186,7 +315,7 @@ export default function ProductionRequestTab({
     : availableRecipes[0]?.recipeId ?? 0;
 
   const handleOpenCreateModal = () => {
-    if (products.length === 0) {
+    if (finishedProducts.length === 0) {
       toast.error("Please configure at least one finished product in Configuration first.");
       return;
     }
@@ -205,13 +334,41 @@ export default function ProductionRequestTab({
     setIsCreateOpen(true);
   };
 
-  const handleSaveRequest = (status: "Draft" | "Pending Approval") => {
-    if (!currentProduct) {
-      toast.error("Product configuration required");
+  const handleProductChange = (prodId: number) => {
+    setSelectedProdId(prodId);
+    const prod = finishedProducts.find((p) => p.productId === prodId);
+    const matchingRecipes = recipes.filter((rc) => rc.productId === prodId);
+    if (matchingRecipes.length > 0) {
+      setSelectedRecipeId(matchingRecipes[0].recipeId);
+    } else if (recipes.length > 0) {
+      const nameMatch = recipes.find(
+        (r) =>
+          prod &&
+          (r.recipeName.toLowerCase().includes(prod.itemName.toLowerCase()) ||
+            prod.itemName.toLowerCase().includes(r.recipeName.toLowerCase()))
+      );
+      if (nameMatch) {
+        setSelectedRecipeId(nameMatch.recipeId);
+      } else if (!selectedRecipeId || !recipes.some((r) => r.recipeId === selectedRecipeId)) {
+        setSelectedRecipeId(recipes[0].recipeId);
+      }
+    }
+  };
+
+  const currentSelectedProduct = finishedProducts.find((p) => p.productId === selectedProdId);
+  const currentSelectedRecipe = recipes.find((r) => r.recipeId === selectedRecipeId);
+  const estimatedOutput = currentSelectedRecipe
+    ? (currentSelectedRecipe.outputQuantity || 100) * (batchMultiplier || 1)
+    : 100 * (batchMultiplier || 1);
+
+  // Submit / Save Request
+  const handleSaveRequest = async (isDraftMode: boolean) => {
+    if (!selectedProdId) {
+      toast.error("Please select a finished product");
       return;
     }
-    if (!targetQuantity || Number(targetQuantity) <= 0) {
-      toast.error("Please specify a valid target quantity");
+    if (!selectedRecipeId) {
+      toast.error("Please select a recipe/BOM");
       return;
     }
     const selectedRecipe = availableRecipes.find((recipe) => recipe.recipeId === effectiveRecipeId);
@@ -220,7 +377,7 @@ export default function ProductionRequestTab({
       return;
     }
     if (!targetDate) {
-      toast.error("Please specify target date to start production");
+      toast.error("Please choose a schedule date");
       return;
     }
     if (targetDate < toLocalDateInput(new Date())) {
@@ -268,20 +425,118 @@ export default function ProductionRequestTab({
       return;
     }
 
-    productionStorage.rejectRequest(reviewingBatch.batchId, rejectReason.trim());
-    toast.error(`Batch ${reviewingBatch.batchNumber} has been rejected.`);
-    setReviewingBatch(null);
-    setIsRejectMode(false);
+    // Submit directly to API
+    try {
+      setSubmitting(true);
+      const res = await api.post("/api/ProductionBatches", {
+        recipeId: selectedRecipeId,
+        productId: selectedProdId,
+        batchMultiplier: Number(batchMultiplier) || 1,
+        scheduleDate: new Date(targetDate).toISOString(),
+        assignedCook,
+        purpose: purpose.trim() || "Batch Replenishment",
+      });
+
+      const created = res.data;
+      toast.success(
+        `Production request submitted for approval! Batch: ${created.batchNumber || "Scheduled"}`
+      );
+      setIsCreateOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to create production request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitDraft = async (draft: ProductionRequest) => {
+    try {
+      toast.loading("Submitting request...", { id: "submit-draft" });
+      const res = await api.post("/api/ProductionBatches", {
+        recipeId: draft.recipeId || recipes[0]?.recipeId || 1,
+        productId: draft.productId,
+        batchMultiplier: Number(draft.batchMultiplier) || 1,
+        scheduleDate: new Date(draft.scheduleDate || Date.now()).toISOString(),
+        assignedCook: draft.assignedCook || "Elena Reyes",
+        purpose: draft.purpose || "Batch Replenishment",
+      });
+
+      // Remove from drafts
+      const remainingDrafts = drafts.filter((d) => d.batchId !== draft.batchId);
+      saveDraftsToStorage(remainingDrafts);
+
+      toast.success(
+        `Request submitted! Batch: ${res.data?.batchNumber || "Scheduled"}`,
+        { id: "submit-draft" }
+      );
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to submit draft", {
+        id: "submit-draft",
+      });
+    }
+  };
+
+  const handleDeleteDraft = (draftId: number) => {
+    const remainingDrafts = drafts.filter((d) => d.batchId !== draftId);
+    saveDraftsToStorage(remainingDrafts);
+    toast.success("Draft removed");
+  };
+
+  const handleApprove = async (batchId: number) => {
+    try {
+      setActionLoading(true);
+      await api.put(`/api/ProductionBatches/${batchId}/approve`);
+      toast.success("Production batch approved!");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to approve batch");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenReject = (batch: ProductionRequest) => {
+    setRejectingBatch(batch);
     setRejectReason("");
     setRejectReasonError(false);
     refreshRequests();
   };
 
-  const handleStartPreProduction = (batchId: number) => {
-    productionStorage.startPreProduction(batchId);
-    toast.success("Pre-production initiated! Proceeding to Production Tracking...");
-    refreshRequests();
-    onNavigateToTracking(batchId);
+  const handleConfirmReject = async () => {
+    if (!rejectingBatch) return;
+    if (!rejectReason.trim()) {
+      toast.error("Please enter a rejection reason");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      await api.put(`/api/ProductionBatches/${rejectingBatch.batchId}/reject`, {
+        reason: rejectReason.trim(),
+      });
+      toast.success(`Batch ${rejectingBatch.batchNumber} has been rejected`);
+      setRejectingBatch(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to reject batch");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelBatch = async (batchId: number) => {
+    try {
+      setActionLoading(true);
+      await api.put(`/api/ProductionBatches/${batchId}/cancel`);
+      toast.success("Batch has been cancelled");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to cancel batch");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -289,20 +544,34 @@ export default function ProductionRequestTab({
       {/* Top Header & New Request Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Production Requests</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h2 className="text-2xl font-bold text-foreground">Production Requests</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Submit, review, and approve planned batches for production.
           </p>
         </div>
 
-        {!isAdmin && (
+        <div className="flex items-center gap-2">
           <Button
-            onClick={handleOpenCreateModal}
-            className="h-9 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 shrink-0 transition-colors shadow-xs"
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-1.5 h-9 rounded-xl border-border hover:bg-muted font-semibold text-xs text-foreground cursor-pointer shadow-sm"
           >
-            New Production Request
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
           </Button>
-        )}
+
+          {!isAdmin && (
+            <Button
+              onClick={handleOpenCreateModal}
+              className="flex items-center justify-center gap-2 rounded-xl bg-foreground px-5 py-2 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              New Production Request
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards (Exact Inventory Design) */}
@@ -348,14 +617,19 @@ export default function ProductionRequestTab({
           </div>
         </div>
 
-        {/* Requests Table (Purpose removed, Variant added, Target Date added, StatusBadge, no logo buttons) */}
+        {/* Requests Table */}
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-          {filteredRequests.length === 0 ? (
+          {loading ? (
+            <div className="p-12 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Loading production requests...
+            </div>
+          ) : filteredRequests.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground text-xs">
               No production requests found in this view.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-h-[260px]">
               <table className="w-full text-xs text-left">
                 <thead className="bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[10px] border-b border-border">
                   <tr>
@@ -365,7 +639,7 @@ export default function ProductionRequestTab({
                     <th className="py-3 px-4">Target Yield</th>
                     <th className="py-3 px-4">Target Date</th>
                     <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4 text-right w-16">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -402,60 +676,178 @@ export default function ProductionRequestTab({
                                 setRejectReason("");
                                 setRejectReasonError(false);
                               }}
-                              className="h-7 px-2.5 text-xs font-semibold border-border hover:bg-muted"
-                              title="Review Request"
+                              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                isOpen
+                                  ? "bg-muted border-border text-foreground shadow-sm"
+                                  : "border-transparent text-foreground hover:bg-muted/80"
+                              }`}
+                              aria-label="Actions menu"
                             >
-                              <MoreHorizontal size={14} />
-                            </Button>
-                          )}
+                              <MoreHorizontal className="w-4 h-4 text-foreground" />
+                            </button>
 
-                          {/* Requester: Start Pre-Prod (solid black button, no logo, like Order Now) */}
-                          {!isAdmin && req.status === "Approved" && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleStartPreProduction(req.batchId)}
-                              className="h-7 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
-                            >
-                              Start Pre-Prod
-                            </Button>
-                          )}
+                            {isOpen && (
+                              <div
+                                ref={dropdownRef}
+                                style={{ minWidth: "185px" }}
+                                className={`absolute right-0 ${
+                                  rowIdx >= filteredRequests.length - 1 && filteredRequests.length <= 2
+                                    ? "bottom-full mb-1.5"
+                                    : "top-full mt-1.5"
+                                } z-[200] rounded-xl border border-border bg-card py-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100 text-left`}
+                              >
+                                {/* View Details (Always available) */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenDropdownId(null);
+                                    setDetailsBatch(req);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                  <span className="truncate text-foreground">View Details</span>
+                                </button>
 
-                          {/* In Progress: Track */}
-                          {req.status === "In Progress" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onNavigateToTracking(req.batchId)}
-                              className="h-7 px-3 text-xs font-semibold border-border hover:bg-muted transition-colors rounded-md"
-                            >
-                              Track Batch
-                            </Button>
-                          )}
+                                {/* ADMIN ACTIONS for Pending Approval */}
+                                {isAdmin && isPending && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        handleApprove(req.batchId);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left cursor-pointer"
+                                    >
+                                      <Check className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                      <span className="truncate text-foreground">Approve Request</span>
+                                    </button>
 
-                          {/* Completed: View Report */}
-                          {req.status === "Completed" && req.summaryReport && (
-                            <Button
-                              size="sm"
-                              onClick={() => setViewingSummaryBatch(req)}
-                              className="h-7 px-3 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors rounded-md shadow-xs cursor-pointer"
-                            >
-                              View Report
-                            </Button>
-                          )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        handleOpenReject(req);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-destructive text-left cursor-pointer"
+                                    >
+                                      <XIcon className="w-3.5 h-3.5 text-destructive shrink-0" />
+                                      <span className="truncate text-destructive">Reject Request</span>
+                                    </button>
+                                  </>
+                                )}
 
-                          {/* Rejected status info */}
-                          {req.status === "Rejected" && req.rejectionReason && (
-                            <span
-                              className="text-[10px] text-muted-foreground italic truncate max-w-[140px]"
-                              title={req.rejectionReason}
-                            >
-                              {req.rejectionReason}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                                {/* DRAFT ACTIONS */}
+                                {!isAdmin && isDraft && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        handleSubmitDraft(req);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left cursor-pointer"
+                                    >
+                                      <Send className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                      <span className="truncate text-foreground">Submit for Approval</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        handleDeleteDraft(req.batchId);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-destructive text-left cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-destructive shrink-0" />
+                                      <span className="truncate text-destructive">Delete Draft</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* ACTIONS FOR APPROVED (Available to both Admin and Head Cook) */}
+                                {isApproved && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        onNavigateToTracking(req.batchId);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left cursor-pointer"
+                                    >
+                                      <Play className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                      <span className="truncate text-foreground">
+                                        {isAdmin ? "Track / Pre-Prod" : "Start Pre-Prod"}
+                                      </span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        handleCancelBatch(req.batchId);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-destructive text-left cursor-pointer"
+                                    >
+                                      <Ban className="w-3.5 h-3.5 text-destructive shrink-0" />
+                                      <span className="truncate text-destructive">Cancel Batch</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* ACTIONS FOR IN PROGRESS (Both Admin and Head Cook) */}
+                                {isInProgress && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        onNavigateToTracking(req.batchId);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left cursor-pointer"
+                                    >
+                                      <Play className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                      <span className="truncate text-foreground">Track Batch</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        handleCancelBatch(req.batchId);
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-destructive text-left cursor-pointer"
+                                    >
+                                      <Ban className="w-3.5 h-3.5 text-destructive shrink-0" />
+                                      <span className="truncate text-destructive">Cancel Batch</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* COMPLETED: View Summary Report */}
+                                {(isCompleted || isPassedQa) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      setViewingSummaryBatch(req);
+                                    }}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors hover:bg-muted text-foreground text-left cursor-pointer"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                    <span className="truncate text-foreground">View Summary Report</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -463,7 +855,7 @@ export default function ProductionRequestTab({
         </div>
       </div>
 
-      {/* ── Create Production Request Modal (Radix Dialog - Guaranteed Visible) ── */}
+      {/* ── Create Production Request Modal ── */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg bg-card border-border p-6 shadow-2xl">
           <DialogHeader className="border-b border-border pb-3">
@@ -496,18 +888,23 @@ export default function ProductionRequestTab({
                 }}
               >
                 <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Choose Product" />
+                  <SelectValue placeholder="Choose Finished Product" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.productId} value={p.productId.toString()} className="text-xs">
-                      {p.name} &mdash; {p.category}
+                  {finishedProducts.map((p) => (
+                    <SelectItem
+                      key={p.productId}
+                      value={p.productId.toString()}
+                      className="text-xs"
+                    >
+                      {p.itemName} &bull; {p.variant || "Standard"} ({p.sku})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Recipe / BOM Selection */}
             <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">
                 Select Recipe <span className="text-foreground">*</span>
@@ -548,18 +945,21 @@ export default function ProductionRequestTab({
               <label className="text-xs font-semibold text-foreground mb-1 block">
                 Select Product Variant <span className="text-foreground">*</span>
               </label>
-              <Select value={selectedVariant} onValueChange={setSelectedVariant}>
+              <Select
+                value={selectedRecipeId ? selectedRecipeId.toString() : ""}
+                onValueChange={(val) => setSelectedRecipeId(parseInt(val, 10))}
+              >
                 <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Choose Variant" />
+                  <SelectValue placeholder="Choose Recipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {currentProduct?.variations.map((v) => (
+                  {recipes.map((r) => (
                     <SelectItem
-                      key={v.id}
-                      value={`${v.size} (${v.packagingType})`}
+                      key={r.recipeId}
+                      value={r.recipeId.toString()}
                       className="text-xs"
                     >
-                      {v.size} ({v.packagingType}) &mdash; {v.sku}
+                      {r.recipeName} (Yield: {r.outputQuantity || 100} pcs)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -573,12 +973,14 @@ export default function ProductionRequestTab({
                 </label>
                 <Input
                   type="number"
-                  min="1"
-                  value={targetQuantity}
+                  min="0.1"
+                  step="0.1"
+                  placeholder="1.0"
+                  value={batchMultiplier}
                   onChange={(e) =>
-                    setTargetQuantity(e.target.value === "" ? "" : parseInt(e.target.value, 10))
+                    setBatchMultiplier(Math.max(0.1, Number(e.target.value) || 1))
                   }
-                  className="h-9 text-xs font-mono font-bold"
+                  className="h-9 text-xs font-mono"
                   required
                 />
                 <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
@@ -588,7 +990,21 @@ export default function ProductionRequestTab({
 
               <div>
                 <label className="text-xs font-semibold text-foreground mb-1 block">
-                  Target Date to Start Production <span className="text-foreground">*</span>
+                  Est. Output (PCS)
+                </label>
+                <Input
+                  type="text"
+                  value={`${estimatedOutput} PCS`}
+                  disabled
+                  className="h-9 text-xs font-mono font-bold bg-muted/30"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">
+                  Schedule Date <span className="text-foreground">*</span>
                 </label>
                 <Input
                   type="date"
@@ -598,6 +1014,18 @@ export default function ProductionRequestTab({
                   onClick={(e) => e.currentTarget.showPicker?.()}
                   className="h-9 text-xs cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">
+                  Assigned Cook / In-Charge
+                </label>
+                <Input
+                  placeholder="e.g. Elena Reyes"
+                  value={assignedCook}
+                  onChange={(e) => setAssignedCook(e.target.value)}
+                  className="h-9 text-xs"
                 />
               </div>
             </div>
@@ -634,55 +1062,51 @@ export default function ProductionRequestTab({
               </Select>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10 text-xs">
-              <span className="text-muted-foreground">Batch Number:</span>
-              <span className="font-mono font-bold text-foreground">
-                System Generated (Unique sequence)
-              </span>
-            </div>
-
             <div className="flex justify-end gap-2 pt-3 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsCreateOpen(false)}
-                className="text-xs font-semibold border-border hover:bg-muted"
+                className="text-xs font-semibold border-border hover:bg-muted cursor-pointer"
               >
                 Cancel
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleSaveRequest("Draft")}
-                className="text-xs font-semibold border-border hover:bg-muted"
+                onClick={() => handleSaveRequest(true)}
+                disabled={submitting}
+                className="text-xs font-semibold border-border hover:bg-muted cursor-pointer"
               >
                 Save as Draft
               </Button>
               <Button
                 type="button"
-                onClick={() => handleSaveRequest("Pending Approval")}
-                className="text-xs font-semibold bg-foreground text-background hover:bg-foreground/90"
+                onClick={() => handleSaveRequest(false)}
+                disabled={submitting}
+                className="text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 cursor-pointer"
               >
-                Submit for Approval
+                {submitting ? "Submitting..." : "Submit for Approval"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* ── Admin Review Modal (Radix Dialog - Guaranteed Visible) ── */}
-      <Dialog open={!!reviewingBatch} onOpenChange={(open) => { if (!open) setReviewingBatch(null); }}>
+      {/* ── Admin Rejection Reason Modal ── */}
+      <Dialog
+        open={Boolean(rejectingBatch)}
+        onOpenChange={(open) => !open && setRejectingBatch(null)}
+      >
         <DialogContent className="sm:max-w-md bg-card border-border p-6 shadow-2xl">
-          {reviewingBatch && (
-            <>
-              <DialogHeader className="border-b border-border pb-3">
-                <DialogTitle className="text-base font-bold text-foreground">
-                  Review Production Request
-                </DialogTitle>
-                <DialogDescription className="text-xs font-mono text-muted-foreground">
-                  {reviewingBatch.batchNumber}
-                </DialogDescription>
-              </DialogHeader>
+          <DialogHeader className="border-b border-border pb-3">
+            <DialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
+              <XIcon size={16} /> Reject Production Request
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Please specify the reason for rejecting batch {rejectingBatch?.batchNumber}
+            </DialogDescription>
+          </DialogHeader>
 
               <div className="space-y-4 pt-2">
                 {/* Request Details Review */}
@@ -829,9 +1253,43 @@ export default function ProductionRequestTab({
       {/* ── View Summary Report Modal ── */}
       {viewingSummaryBatch && viewingSummaryBatch.summaryReport && (
         <ProductionSummaryModal
-          open={!!viewingSummaryBatch}
+          open={Boolean(viewingSummaryBatch)}
           onClose={() => setViewingSummaryBatch(null)}
-          report={viewingSummaryBatch.summaryReport}
+          report={
+            viewingSummaryBatch.summaryReport || {
+              batchNumber: viewingSummaryBatch.batchNumber,
+              productName: viewingSummaryBatch.productName,
+              variant: viewingSummaryBatch.variant || "Standard",
+              targetYield: viewingSummaryBatch.targetYield,
+              actualGoodOutput: viewingSummaryBatch.actualQuantity || viewingSummaryBatch.targetYield,
+              purpose: viewingSummaryBatch.purpose,
+              createdAt: viewingSummaryBatch.scheduleDate,
+              approvedBy: "Administrator",
+              completedAt: viewingSummaryBatch.scheduleDate,
+              materialsUsed: [],
+              stageLogs: [],
+              qaResults: {
+                overallAppearance: "Pass",
+                aroma: "Pass",
+                texture: "Pass",
+                tasteTest: "Pass",
+                consistency: "Pass",
+                inspector: "QA Inspector",
+                notes: "Passed quality standards",
+                decision: "Approved",
+                decisionDate: new Date().toLocaleDateString(),
+              },
+              packaging: {
+                packagingSize: viewingSummaryBatch.variant || "Standard",
+                goodQty: viewingSummaryBatch.actualQuantity || viewingSummaryBatch.targetYield,
+                damagedQty: viewingSummaryBatch.scrapQuantity || 0,
+                wasteQty: 0,
+                fgLotNumber: `FG-${viewingSummaryBatch.batchNumber}`,
+                expiryDate: new Date(Date.now() + 365 * 86400000).toLocaleDateString(),
+                packagerName: viewingSummaryBatch.assignedCook || "Packager",
+              },
+            }
+          }
         />
       )}
     </div>

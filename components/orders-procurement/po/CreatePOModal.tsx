@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
-import { PurchaseRequisition } from "../types";
+import { PurchaseRequisition, PurchaseOrderPO } from "../types";
 import { useAuth } from "@/context/AuthContext";
 
 interface ItemRow {
@@ -40,6 +40,8 @@ interface ItemRow {
 interface CreatePOModalProps {
   open: boolean;
   initialPrId?: number;
+  initialPo?: PurchaseOrderPO | null;
+  isEdit?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -47,7 +49,7 @@ interface CreatePOModalProps {
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 }).format(n);
 
-export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreatePOModalProps) {
+export function CreatePOModal({ open, initialPrId, initialPo, isEdit = false, onClose, onSuccess }: CreatePOModalProps) {
   const { user } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -66,7 +68,6 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
   // Step 3
   const [itemRows, setItemRows] = useState<ItemRow[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
-  const [eta, setEta] = useState("");
   const [notes, setNotes] = useState("");
   const [nextPoNumber, setNextPoNumber] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -76,23 +77,56 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
 
   useEffect(() => {
     if (open) {
-      setStep(1);
-      setPrSearch("");
-      setSelectedPR(null);
-      setSelectedSupplierId(null);
-      setItemRows([]);
-      setEta("");
-      setNotes("");
-      setErrors({});
-      setItemSearch("");
-      setConfirmModal(null);
-      fetchApprovedPRs();
-      fetchNextPoNumber();
+      if (isEdit && initialPo) {
+        setStep(3);
+        setNextPoNumber(initialPo.poNumber);
+        setSelectedSupplierId(initialPo.supplierId);
+        setEligibleSuppliers([{ supplierId: initialPo.supplierId, supplierName: initialPo.supplierName }]);
+        if (initialPo.prId) {
+          setSelectedPR({
+            prId: initialPo.prId,
+            prNumber: initialPo.prNumber || `PR-${initialPo.prId}`,
+            requestedBy: initialPo.requestedBy,
+            items: [],
+          } as any);
+        } else {
+          setSelectedPR(null);
+        }
+        setItemRows(
+          (initialPo.items || []).map((it: any) => ({
+            itemId: it.itemId,
+            itemName: it.itemName,
+            uomName: it.purchaseUomName || "pcs",
+            purchaseUomId: it.purchaseUomId || 0,
+            alreadyOrdered: 0,
+            requestedQty: it.poItemQuantity,
+            remaining: it.poItemQuantity,
+            orderQty: String(it.poItemQuantity),
+            totalPrice: String(it.totalPrice || it.lineTotal || 0),
+          }))
+        );
+        setNotes("");
+        setErrors({});
+        setItemSearch("");
+        setConfirmModal(null);
+      } else {
+        setStep(1);
+        setPrSearch("");
+        setSelectedPR(null);
+        setSelectedSupplierId(null);
+        setItemRows([]);
+        setNotes("");
+        setErrors({});
+        setItemSearch("");
+        setConfirmModal(null);
+        fetchApprovedPRs();
+        fetchNextPoNumber();
+      }
     }
-  }, [open]);
+  }, [open, isEdit, initialPo]);
 
   useEffect(() => {
-    if (initialPrId && approvedPRs.length > 0) {
+    if (!isEdit && initialPrId && approvedPRs.length > 0) {
       const pr = approvedPRs.find((p) => p.prId === initialPrId);
       if (pr) {
         setSelectedPR(pr);
@@ -100,13 +134,40 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
         setStep(2);
       }
     }
-  }, [initialPrId, approvedPRs]);
+  }, [initialPrId, approvedPRs, isEdit]);
 
   const fetchApprovedPRs = async () => {
     setLoadingPRs(true);
     try {
       const res = await api.get("/api/scms/api/PurchaseRequisitions?status=Approved");
-      if (res.data?.success) setApprovedPRs(res.data.data || []);
+      if (res.data?.success) {
+        const prs: PurchaseRequisition[] = res.data.data || [];
+        const eligible: PurchaseRequisition[] = [];
+        await Promise.all(
+          prs.map(async (pr) => {
+            try {
+              const ordRes = await api.get(`/api/scms/api/PurchaseOrders/pr/${pr.prId}/ordered-qty`);
+              const orderedMap: Record<number, number> = {};
+              if (ordRes.data?.success && Array.isArray(ordRes.data.data)) {
+                ordRes.data.data.forEach((o: any) => {
+                  orderedMap[o.itemId] = Number(o.orderedQty) || 0;
+                });
+              }
+              const hasRemaining = (pr.items || []).some((item) => {
+                const ordered = orderedMap[item.itemId] || 0;
+                return item.requestedQuantity > ordered;
+              });
+              if (hasRemaining) {
+                eligible.push(pr);
+              }
+            } catch {
+              eligible.push(pr);
+            }
+          })
+        );
+        eligible.sort((a, b) => b.prId - a.prId);
+        setApprovedPRs(eligible);
+      }
     } catch (e) {
       console.error("Failed to fetch PRs:", e);
     } finally {
@@ -227,8 +288,10 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!eta) errs.eta = "Expected arrival date is required.";
-    if (itemRows.length === 0) errs.items = "No items available from this supplier.";
+    const hasAnyQty = itemRows.some((row) => (parseInt(row.orderQty, 10) || 0) > 0);
+    if (!hasAnyQty) {
+      errs.items = "Please enter an order quantity greater than 0 for at least one item.";
+    }
     itemRows.forEach((row, idx) => {
       const qty = parseFloat(row.orderQty);
       if (!row.orderQty || isNaN(qty) || qty <= 0) {
@@ -244,35 +307,59 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
     return Object.keys(errs).length === 0;
   };
 
+  const isStep3Valid = useMemo(() => {
+    const activeRows = itemRows.filter((r) => (parseInt(r.orderQty, 10) || 0) > 0);
+    if (activeRows.length === 0) return false;
+    return activeRows.every((r) => {
+      const qty = parseInt(r.orderQty, 10) || 0;
+      if (!isEdit && qty > r.remaining) return false;
+      const price = parseFloat(r.totalPrice);
+      if (r.totalPrice === "" || isNaN(price) || price < 0) return false;
+      return true;
+    });
+  }, [itemRows, isEdit]);
+
   const handleSubmit = async (initialStatus: "Draft" | "Pending Approval") => {
     if (!validate()) return;
     setSubmitting(true);
     try {
+      const activeRows = itemRows.filter((row) => (parseInt(row.orderQty, 10) || 0) > 0);
       const payload = {
-        prId: selectedPR?.prId ?? null,
+        prId: selectedPR?.prId ?? initialPo?.prId ?? null,
         supplierId: selectedSupplierId,
-        expectedArrivalDate: new Date(eta).toISOString(),
+        expectedArrivalDate: new Date(Date.now() + 7 * 86400000).toISOString(),
         totalAmount,
         requestedBy: user?.firstName
           ? `${user.firstName} ${user.lastName || ""}`.trim()
           : user?.username || "Inventory Manager",
         initialStatus,
-        items: itemRows.map((row) => ({
+        items: activeRows.map((row) => ({
           itemId: row.itemId,
           poItemQuantity: parseFloat(row.orderQty),
           purchaseUomId: row.purchaseUomId || undefined,
         })),
       };
 
-      const res = await api.post("/api/scms/api/PurchaseOrders", payload);
+      const res = isEdit && initialPo?.poId
+        ? await api.put(`/api/scms/api/PurchaseOrders/${initialPo.poId}`, payload)
+        : await api.post("/api/scms/api/PurchaseOrders", payload);
+
       if (res.data?.success) {
         onSuccess();
         onClose();
       } else {
-        setErrors((p) => ({ ...p, general: res.data?.message || "Failed to create purchase order." }));
+        setErrors((p) => ({ ...p, general: res.data?.message || "Failed to save purchase order." }));
       }
     } catch (e: any) {
-      setErrors((p) => ({ ...p, general: e?.response?.data?.message || "Failed to create purchase order." }));
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.title ||
+        (e?.response?.data?.errors
+          ? Object.values(e.response.data.errors).flat().filter(Boolean).join("; ")
+          : null) ||
+        e?.message ||
+        "Failed to save purchase order.";
+      setErrors((p) => ({ ...p, general: msg }));
     } finally {
       setSubmitting(false);
     }
@@ -292,7 +379,12 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
   const selectedSupplier = eligibleSuppliers.find((s) => s.supplierId === selectedSupplierId);
 
   return (
-    <ModalWrapper open={open} title="Create Purchase Order" onClose={onClose} size="max-w-5xl">
+    <ModalWrapper
+      open={open}
+      title={isEdit ? `Edit Purchase Order — ${initialPo?.poNumber}` : "Create Purchase Order"}
+      onClose={onClose}
+      size="max-w-5xl"
+    >
       <div className="space-y-6">
         {errors.general && (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center justify-between animate-in fade-in-50">
@@ -312,37 +404,47 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             </button>
           </div>
         )}
-        {/* Step Progress */}
-        <div className="flex items-center gap-0">
-          {[1, 2, 3].map((s) => (
-            <React.Fragment key={s}>
-              <div
-                onClick={() => {
-                  if (step > s) setStep(s);
-                }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  step > s ? "cursor-pointer hover:bg-muted/80" : ""
-                } ${
-                  step === s
-                    ? "bg-foreground text-background"
-                    : step > s
-                    ? "bg-muted text-foreground"
-                    : "bg-muted/40 text-muted-foreground"
-                }`}
-              >
-                {step > s ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                ) : (
-                  <span className="w-4 h-4 flex items-center justify-center">{s}</span>
-                )}
-                <span className="hidden sm:inline">
-                  {["Select Purchase Requisition", "Select Supplier", "Order Details"][s - 1]}
-                </span>
-              </div>
-              {s < 3 && <ChevronRight className="w-4 h-4 text-muted-foreground mx-1 shrink-0" />}
-            </React.Fragment>
-          ))}
-        </div>
+        {/* Step Progress (only in create mode) */}
+        {!isEdit && (
+          <div className="flex items-center gap-0">
+            {[1, 2, 3].map((s) => (
+              <React.Fragment key={s}>
+                <div
+                  onClick={() => {
+                    if (step > s) setStep(s);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    step > s ? "cursor-pointer hover:bg-muted/80" : ""
+                  } ${
+                    step === s
+                      ? "bg-foreground text-background"
+                      : step > s
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      step === s
+                        ? "bg-background text-foreground"
+                        : step > s
+                        ? "bg-foreground text-background"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {step > s ? "✓" : s}
+                  </span>
+                  <span>
+                    {s === 1 && "Select Purchase Requisition"}
+                    {s === 2 && "Select Supplier"}
+                    {s === 3 && "Order Details"}
+                  </span>
+                </div>
+                {s < 3 && <ChevronRight className="w-4 h-4 text-muted-foreground mx-1 shrink-0" />}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
         {/* ─── STEP 1: Select PR ─────────────────────────────────────────────── */}
         {step === 1 && (
@@ -806,7 +908,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             </div>
 
             {/* Footer Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+            <div className="flex justify-end gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2">
               <Button
                 type="button"
                 variant="outline"
@@ -819,30 +921,34 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
               <Button
                 type="button"
                 variant="outline"
-                disabled={submitting}
+                disabled={submitting || !isStep3Valid}
                 onClick={() => {
                   if (validate()) setConfirmModal("Draft");
                 }}
-                className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {submitting ? "Saving..." : "Save as Draft"}
               </Button>
               <Button
                 type="button"
-                disabled={submitting}
+                disabled={submitting || !isStep3Valid}
                 onClick={() => {
                   if (validate()) setConfirmModal("Pending Approval");
                 }}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
-                {submitting ? "Submitting..." : "Submit for Approval"}
+                {submitting
+                  ? "Submitting..."
+                  : isEdit && initialPo?.status === "Returned"
+                  ? "Submit for Revision"
+                  : "Submit for Approval"}
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Review Modal for Submit/Draft */}
+      {/* Review Modal for Submit/Draft (matching PR & Delivery layout) */}
       {confirmModal && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div
@@ -856,10 +962,22 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
 
             <div className="space-y-4 text-sm text-foreground">
               <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
-                <div><span className="text-muted-foreground block text-xs mb-1">Purchase Requisition Reference</span> <span className="font-semibold">{selectedPR?.prNumber}</span></div>
-                <div><span className="text-muted-foreground block text-xs mb-1">Supplier</span> <span className="font-semibold">{selectedSupplier?.supplierName}</span></div>
-                <div><span className="text-muted-foreground block text-xs mb-1">Expected Arrival</span> <span className="font-semibold">{eta}</span></div>
-                <div><span className="text-muted-foreground block text-xs mb-1">Total Amount</span> <span className="font-semibold">{fmtCurrency(totalAmount)}</span></div>
+                <div>
+                  <span className="text-muted-foreground block text-xs mb-1">Purchase Requisition Reference</span>
+                  <span className="font-semibold">{selectedPR?.prNumber || initialPo?.prNumber || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-xs mb-1">Supplier</span>
+                  <span className="font-semibold">{selectedSupplier?.supplierName || initialPo?.supplierName || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-xs mb-1">Purchase Order No.</span>
+                  <span className="font-semibold font-mono">{nextPoNumber || "Auto-assigned"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-xs mb-1">Total Amount</span>
+                  <span className="font-semibold font-mono">{fmtCurrency(totalAmount)}</span>
+                </div>
               </div>
 
               <div className="mt-4 border border-border rounded-xl overflow-hidden bg-card">
@@ -867,6 +985,7 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
                   <thead className="bg-muted/40 border-b border-border">
                     <tr>
                       <th className="px-3 py-2.5 text-left font-bold text-muted-foreground">ITEM NAME</th>
+                      <th className="px-3 py-2.5 text-left font-bold text-muted-foreground">Unit of Measure</th>
                       <th className="px-3 py-2.5 text-right font-bold text-muted-foreground">ORDER QTY</th>
                       <th className="px-3 py-2.5 text-right font-bold text-muted-foreground">TOTAL PRICE</th>
                     </tr>
@@ -885,13 +1004,30 @@ export function CreatePOModal({ open, initialPrId, onClose, onSuccess }: CreateP
             </div>
 
             <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setConfirmModal(null)} className="rounded-xl px-6">Back to Edit</Button>
-              <Button onClick={() => {
-                const act = confirmModal;
-                setConfirmModal(null);
-                handleSubmit(act);
-              }} className="rounded-xl px-6 shadow-sm">
-                Confirm &amp; {confirmModal === "Pending Approval" ? "Submit" : "Save"}
+              <Button
+                variant="outline"
+                onClick={() => setConfirmModal(null)}
+                disabled={submitting}
+                className="rounded-xl px-6"
+              >
+                Back to Edit
+              </Button>
+              <Button
+                disabled={submitting}
+                onClick={async () => {
+                  const action = confirmModal;
+                  setConfirmModal(null);
+                  await handleSubmit(action);
+                }}
+                className="rounded-xl px-6 shadow-sm bg-foreground text-background hover:bg-foreground/85"
+              >
+                {submitting
+                  ? "Processing..."
+                  : confirmModal === "Pending Approval"
+                  ? isEdit && initialPo?.status === "Returned"
+                    ? "Confirm & Submit Revision"
+                    : "Confirm & Submit"
+                  : "Confirm & Save Draft"}
               </Button>
             </div>
           </div>

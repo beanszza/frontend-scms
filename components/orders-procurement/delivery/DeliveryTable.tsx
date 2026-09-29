@@ -53,7 +53,7 @@ export function DeliveryTable({
       : "—";
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm min-h-[300px]">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-muted/40">
@@ -70,7 +70,7 @@ export function DeliveryTable({
         <tbody className="divide-y divide-border">
           {deliveries.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-12 text-center text-xs font-medium text-muted-foreground">
+              <td colSpan={8} className="px-5 py-8 text-center text-xs font-medium text-muted-foreground">
                 No delivery shipments found.
               </td>
             </tr>
@@ -96,17 +96,7 @@ export function DeliveryTable({
 
               // Only inventory manager has actions; admin side just checks/views
               if (!isAdmin) {
-                if (isScheduled && onDispatch) {
-                  actions.push({
-                    label: "Mark Dispatched",
-                    icon: <Truck className="w-4 h-4 text-foreground" />,
-                    onClick: () => {
-                      setOpenDropdownId(null);
-                      onDispatch(delivery);
-                    },
-                  });
-                }
-                if (isInTransit && onArrive) {
+                if ((isScheduled || isInTransit) && onArrive) {
                   actions.push({
                     label: "Mark Arrived",
                     icon: <CheckCircle className="w-4 h-4 text-foreground" />,

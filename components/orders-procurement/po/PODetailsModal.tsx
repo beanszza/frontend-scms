@@ -16,6 +16,7 @@ interface PODetailsModalProps {
   po: PurchaseOrderPO | null;
   isAdmin?: boolean;
   onClose: () => void;
+  onEdit?: (po: PurchaseOrderPO) => void;
   onApprove?: (po: PurchaseOrderPO) => void;
   onReject?: (po: PurchaseOrderPO) => void;
   onReturn?: (po: PurchaseOrderPO) => void;
@@ -28,6 +29,7 @@ export function PODetailsModal({
   po,
   isAdmin = false,
   onClose,
+  onEdit,
   onApprove,
   onReject,
   onReturn,
@@ -73,26 +75,39 @@ export function PODetailsModal({
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-3">
             <StatusBadge status={po.status} />
-            <span className="font-mono text-sm font-bold text-foreground">{po.poNumber}</span>
           </div>
           <div className="text-xs text-muted-foreground">
             Supplier: <span className="font-medium text-foreground">{po.supplierName || "—"}</span>
           </div>
         </div>
-        {/* Admin Notes / Return Reason */}
+
+        {/* Admin Notes / Return / Rejection / Cancellation Reason */}
         {po.adminNotes && (
-          <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <AlertCircle className="w-4 h-4 text-foreground shrink-0" />
-              <span>Admin Feedback / Revision Reason:</span>
+          <div
+            className={`p-4 rounded-xl border space-y-1.5 ${
+              po.status === "Rejected"
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : po.status === "Cancelled"
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                : "border-border bg-muted/40 text-foreground"
+            }`}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                {po.status === "Rejected"
+                  ? "Admin Rejection Reason:"
+                  : po.status === "Cancelled"
+                  ? "Cancellation Reason:"
+                  : "Admin Feedback / Revision Reason:"}
+              </span>
             </div>
             <p className="text-xs text-muted-foreground pl-6 whitespace-pre-wrap">{po.adminNotes}</p>
           </div>
         )}
 
-        {/* Header Details — 2-column grid */}
+        {/* Header Details — 3-column / 2-column clean grid */}
         <div className="space-y-4">
-          {/* Row 1: PO Number & PR Reference */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">Purchase Order Number</label>
@@ -112,7 +127,6 @@ export function PODetailsModal({
             </div>
           </div>
 
-          {/* Row 2: Supplier & Requested By */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">Supplier</label>
@@ -132,7 +146,6 @@ export function PODetailsModal({
             </div>
           </div>
 
-          {/* Row 3: Order Date & Expected Arrival */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">Order Date</label>
@@ -143,34 +156,11 @@ export function PODetailsModal({
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">Expected Arrival</label>
-              <div className="relative">
-                <Input
-                  readOnly
-                  value={fmt(po.expectedArrivalDate)}
-                  className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 pr-10 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-                />
-                <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
-            </div>
-          </div>
-
-          {/* Row 4: Payment Type & Status */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">Payment Type</label>
               <Input
                 readOnly
                 value={po.paymentType || "Payable"}
                 className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">Purchase Order Status</label>
-              <Input
-                readOnly
-                value={po.status}
-                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground cursor-not-allowed shadow-none focus-visible:ring-0"
               />
             </div>
           </div>
@@ -236,7 +226,7 @@ export function PODetailsModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-4 flex-wrap">
+        <div className="flex items-center justify-end gap-3 pt-5 pb-3 border-t border-border mt-6 mb-2 flex-wrap">
           <Button
             type="button"
             variant="outline"
@@ -281,31 +271,31 @@ export function PODetailsModal({
             </>
           )}
 
+          {/* Inventory Manager: Edit Draft or Returned PO */}
+          {!isAdmin && (po.status === "Draft" || po.status === "Returned") && onEdit && (
+            <Button
+              type="button"
+              onClick={() => onEdit(po)}
+              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
+            >
+              {po.status === "Returned" ? "Edit & Re-Submit" : "Edit Draft"}
+            </Button>
+          )}
+
           {/* Inventory Manager: Cancel PO for Draft/Pending/Returned PO */}
           {!isAdmin && isCancellable && onCancel && (
             <Button
               type="button"
               variant="outline"
               onClick={() => onCancel(po)}
-              className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+              className="rounded-xl border border-destructive/40 text-destructive hover:bg-destructive/10 px-5 py-2.5 text-sm font-semibold transition-colors"
             >
               Cancel Purchase Order
             </Button>
           )}
 
-          {/* Inventory Manager: Mark as Ordered for Approved PO */}
-          {!isAdmin && isApproved && onOrder && (
-            <Button
-              type="button"
-              onClick={() => onOrder(po)}
-              className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm"
-            >
-              Mark as Ordered
-            </Button>
-          )}
-
-          {/* Inventory Manager: Schedule Delivery for Ordered PO */}
-          {!isAdmin && po.status === "Ordered" && onCreateDelivery && (
+          {/* Inventory Manager: Schedule Delivery for Approved or Ordered PO */}
+          {!isAdmin && (po.status === "Approved" || po.status === "Ordered") && onCreateDelivery && (
             <Button
               type="button"
               onClick={() => onCreateDelivery(po)}

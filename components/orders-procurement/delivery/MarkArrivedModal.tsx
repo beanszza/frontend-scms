@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { createPortal } from "react-dom";
-import { AlertCircle, Upload, Check, Trash2 } from "lucide-react";
+import { AlertCircle, Upload, Check, Trash2, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { Delivery } from "../types";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import { HR_EMPLOYEES } from "@/lib/employees";
 
@@ -32,13 +32,9 @@ export function MarkArrivedModal({
   const [actualArrivalDate, setActualArrivalDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
-  const [actualArrivalTime, setActualArrivalTime] = useState(
-    new Date().toTimeString().slice(0, 5)
-  );
   const [receivedBy, setReceivedBy] = useState(defaultReceiver);
   const [arrivalAttachmentBase64, setArrivalAttachmentBase64] = useState("");
   const [attachmentFileName, setAttachmentFileName] = useState("");
-  const [confirmModal, setConfirmModal] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,20 +52,17 @@ export function MarkArrivedModal({
     const reader = new FileReader();
     reader.onload = () => {
       setArrivalAttachmentBase64(reader.result as string);
+      setError(null);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
 
     if (!actualArrivalDate) {
       setError("Please specify the actual arrival date.");
-      return;
-    }
-
-    if (!actualArrivalTime) {
-      setError("Please specify the actual arrival time.");
       return;
     }
 
@@ -85,7 +78,7 @@ export function MarkArrivedModal({
 
     try {
       setSubmitting(true);
-      const combinedDateTime = new Date(`${actualArrivalDate}T${actualArrivalTime}:00`).toISOString();
+      const combinedDateTime = new Date(`${actualArrivalDate}T12:00:00Z`).toISOString();
 
       const payload = {
         actualArrivalDate: combinedDateTime,
@@ -94,15 +87,34 @@ export function MarkArrivedModal({
         attachmentUrl: arrivalAttachmentBase64,
       };
 
-      const res = await api.put(
+      // Try direct arrive endpoint
+      let res = await api.put(
         `/api/scms/api/deliveries/${delivery.deliveryId}/arrive`,
         payload
-      );
+      ).catch(async (err) => {
+        // If transitioning from Scheduled requires dispatch first on older backend
+        if (delivery.status === "Scheduled") {
+          try {
+            await api.put(`/api/scms/api/deliveries/${delivery.deliveryId}/dispatch`, {
+              dispatchedDate: new Date().toISOString(),
+              carrier: delivery.carrier || "In-House Logistics",
+            });
+            return await api.put(
+              `/api/scms/api/deliveries/${delivery.deliveryId}/arrive`,
+              payload
+            );
+          } catch {
+            throw err;
+          }
+        }
+        throw err;
+      });
 
-      if (res.data?.success) {
+      if (res?.data?.success) {
         onSuccess();
+        onClose();
       } else {
-        setError(res.data?.message || "Failed to confirm arrival.");
+        setError(res?.data?.message || "Failed to confirm arrival.");
       }
     } catch (err: any) {
       console.error("Arrival confirmation error:", err);
@@ -115,6 +127,12 @@ export function MarkArrivedModal({
     }
   };
 
+  const isFormValid = Boolean(
+    actualArrivalDate &&
+    receivedBy.trim() &&
+    arrivalAttachmentBase64.trim()
+  );
+
   return (
     <ModalWrapper
       open={!!delivery}
@@ -122,27 +140,31 @@ export function MarkArrivedModal({
       onClose={onClose}
       size="max-w-2xl"
     >
-      <form onSubmit={(e) => { e.preventDefault(); setConfirmModal(true); }} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs flex items-start gap-2.5">
+          <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs flex items-start gap-2.5 animate-in fade-in-50">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium">{error}</div>
           </div>
         )}
 
-        {/* Quick Reference Summary */}
-        <div className="rounded-xl border border-border bg-muted/20 p-3.5 text-xs grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {/* Quick Reference Summary Card with Status */}
+        <div className="rounded-xl border border-border bg-muted/20 p-4 text-xs grid grid-cols-2 sm:grid-cols-4 gap-3 items-center">
           <div>
-            <span className="text-muted-foreground block text-[11px]">Delivery No:</span>
+            <span className="text-muted-foreground block text-[11px] mb-0.5">Delivery No</span>
             <span className="font-mono font-bold text-foreground">{delivery.deliveryNumber}</span>
           </div>
           <div>
-            <span className="text-muted-foreground block text-[11px]">Purchase Order Reference:</span>
+            <span className="text-muted-foreground block text-[11px] mb-0.5">Purchase Order Ref</span>
             <span className="font-mono font-medium text-foreground">{delivery.poNumber}</span>
           </div>
-          <div className="col-span-2 sm:col-span-1">
-            <span className="text-muted-foreground block text-[11px]">Supplier:</span>
-            <span className="font-semibold text-foreground truncate block">{delivery.supplierName}</span>
+          <div>
+            <span className="text-muted-foreground block text-[11px] mb-0.5">Supplier</span>
+            <span className="font-semibold text-foreground truncate block">{delivery.supplierName || "—"}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block text-[11px] mb-0.5">Current Status</span>
+            <StatusBadge status={delivery.status} />
           </div>
         </div>
 
@@ -150,23 +172,23 @@ export function MarkArrivedModal({
         {delivery.items && delivery.items.length > 0 && (
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-foreground">
-              Arriving Items (available for GRN after arrival)
+              Arriving Items (will proceed to GRN after arrival)
             </label>
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-xs text-left">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-xs">
-                    <th className="px-3 py-2">Item</th>
-                    <th className="px-3 py-2">Unit of Measure</th>
-                    <th className="px-3 py-2 text-right">Shipment Qty</th>
+                    <th className="px-3.5 py-2">Item Name</th>
+                    <th className="px-3.5 py-2">Unit of Measure</th>
+                    <th className="px-3.5 py-2 text-right">Shipment Qty</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {delivery.items.map((item, idx) => (
                     <tr key={idx} className="hover:bg-muted/10">
-                      <td className="px-3 py-2 font-medium text-foreground">{item.itemName}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{item.purchaseUomName}</td>
-                      <td className="px-3 py-2 text-right font-mono font-bold text-foreground">
+                      <td className="px-3.5 py-2 font-medium text-foreground">{item.itemName}</td>
+                      <td className="px-3.5 py-2 text-muted-foreground">{item.purchaseUomName}</td>
+                      <td className="px-3.5 py-2 text-right font-mono font-bold text-foreground">
                         {item.declaredQuantity}
                       </td>
                     </tr>
@@ -177,88 +199,102 @@ export function MarkArrivedModal({
           </div>
         )}
 
-        {/* Row: Separate Date and Time (3 Columns: Date, Time, Received By) */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Streamlined Arrival Details: Date & Receiver (2 Columns, NO arrival time) */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
-              Actual Arrival Date <span className="text-destructive">*</span>
+              Arrival Date <span className="text-destructive">*</span>
             </label>
-            <Input
-              type="date"
-              min={new Date().toISOString().split("T")[0]}
-              value={actualArrivalDate}
-              onChange={(e) => setActualArrivalDate(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-foreground">
-              Actual Arrival Time <span className="text-destructive">*</span>
-            </label>
-            <Input
-              type="time"
-              value={actualArrivalTime}
-              onChange={(e) => setActualArrivalTime(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
-            />
+            <div className="relative">
+              <Input
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                value={actualArrivalDate}
+                onChange={(e) => setActualArrivalDate(e.target.value)}
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 pr-10 text-sm text-foreground cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+              <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-foreground">
               Received By <span className="text-destructive">*</span>
             </label>
-            <div>
-              <select
-                value={receivedBy}
-                onChange={(e) => setReceivedBy(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
-              >
-                {receivedBy && !HR_EMPLOYEES.includes(receivedBy as (typeof HR_EMPLOYEES)[number]) && (
-                  <option value={receivedBy}>{receivedBy}</option>
-                )}
-                {HR_EMPLOYEES.map((employee) => (
-                  <option key={employee} value={employee}>{employee}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={receivedBy}
+              onChange={(e) => setReceivedBy(e.target.value)}
+              className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {receivedBy && !HR_EMPLOYEES.includes(receivedBy as (typeof HR_EMPLOYEES)[number]) && (
+                <option value={receivedBy}>{receivedBy}</option>
+              )}
+              {HR_EMPLOYEES.map((employee) => (
+                <option key={employee} value={employee}>{employee}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Arrival Proof Photo (Required) */}
+        {/* Arrival Proof Photo (Required with Image Preview) */}
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-foreground">
-            Arrival Proof / Photo <span className="text-destructive">*</span>
+          <label className="mb-1.5 block text-xs font-semibold text-foreground flex items-center justify-between">
+            <span>
+              Arrival Proof / Photo <span className="text-destructive">*</span>
+            </span>
+            {!arrivalAttachmentBase64 && (
+              <span className="text-[11px] text-destructive font-normal">
+                Required to confirm arrival
+              </span>
+            )}
           </label>
           <div className="rounded-xl border border-dashed border-border bg-card p-4 transition-colors">
             {arrivalAttachmentBase64 ? (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 truncate">
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
-                    <Check className="w-4 h-4" />
-                  </div>
-                  <div className="truncate">
-                    <p className="text-xs font-medium text-foreground truncate">
-                      {attachmentFileName || "Arrival photo attached"}
-                    </p>
-                  </div>
+              <div className="space-y-3">
+                <div className="relative flex flex-col items-center justify-center p-3 bg-muted/20 rounded-xl border border-border">
+                  {arrivalAttachmentBase64.startsWith("data:image/") ? (
+                    <img
+                      src={arrivalAttachmentBase64}
+                      alt="Arrival proof"
+                      className="max-h-56 rounded-lg object-contain border border-border shadow-xs"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2.5 p-4 text-xs font-medium text-foreground">
+                      <FileText className="w-8 h-8 text-muted-foreground shrink-0" />
+                      <span className="truncate">{attachmentFileName || "Uploaded document"}</span>
+                    </div>
+                  )}
+                  <p className="mt-2 text-[11px] font-mono text-muted-foreground truncate max-w-xs text-center">
+                    {attachmentFileName || "Arrival proof photo"}
+                  </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setArrivalAttachmentBase64("");
-                    setAttachmentFileName("");
-                  }}
-                  className="text-muted-foreground hover:text-destructive h-8 px-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <label className="cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-colors flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5" />
+                    Change File
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArrivalAttachmentBase64("");
+                      setAttachmentFileName("");
+                    }}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove
+                  </button>
+                </div>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center cursor-pointer py-2">
-                <Upload className="w-5 h-5 text-muted-foreground mb-1.5" />
+              <label className="flex flex-col items-center justify-center cursor-pointer py-4 hover:bg-muted/30 rounded-xl transition-colors">
+                <Upload className="w-6 h-6 text-muted-foreground mb-2" />
                 <span className="text-xs font-medium text-foreground">
                   Click to upload arrival proof or photo <span className="text-destructive">*</span>
                 </span>
@@ -277,7 +313,7 @@ export function MarkArrivedModal({
         </div>
 
         {/* Footer Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-4">
           <Button
             type="button"
             variant="outline"
@@ -289,67 +325,13 @@ export function MarkArrivedModal({
           </Button>
           <Button
             type="submit"
-            disabled={submitting || !arrivalAttachmentBase64}
-            className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50"
+            disabled={submitting || !isFormValid}
+            className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             {submitting ? "Confirming..." : "Confirm Arrival"}
           </Button>
         </div>
       </form>
-
-      {/* Review Modal for Submission */}
-      {confirmModal && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div
-            style={{ width: "100%", maxWidth: "500px" }}
-            className="w-full rounded-2xl border border-border bg-card shadow-2xl p-6 flex flex-col shrink-0"
-          >
-            <h3 className="text-xl font-bold text-foreground">Confirm Arrival</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Please review the arrival details for {delivery.deliveryNumber} before confirming.
-            </p>
-
-            <div className="space-y-4 text-sm text-foreground mb-8">
-              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
-                <div>
-                  <span className="block text-xs text-muted-foreground mb-1">Date</span>
-                  <span className="font-medium">{actualArrivalDate}</span>
-                </div>
-                <div>
-                  <span className="block text-xs text-muted-foreground mb-1">Time</span>
-                  <span className="font-medium">{actualArrivalTime}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="block text-xs text-muted-foreground mb-1">Received By</span>
-                  <span className="font-medium">{receivedBy}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button
-                variant="outline"
-                onClick={() => setConfirmModal(false)}
-                className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setConfirmModal(false);
-                  handleSubmit();
-                }}
-                className="rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:bg-foreground/85"
-                disabled={submitting}
-              >
-                {submitting ? "Confirming..." : "Confirm Arrival"}
-              </Button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </ModalWrapper>
   );
 }

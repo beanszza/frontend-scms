@@ -28,8 +28,6 @@ export default function GrnTable({ grns, loading, onSelectGrn }: GrnTableProps) 
         <thead>
           <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase text-muted-foreground whitespace-nowrap">
             <th className="px-5 py-4">Goods Receipt Note No.</th>
-            <th className="px-5 py-4">Purchase Requisition Ref.</th>
-            <th className="px-5 py-4">Purchase Order Number</th>
             <th className="px-5 py-4">Delivery #</th>
             <th className="px-5 py-4">Supplier</th>
             <th className="px-5 py-4">Received Date</th>
@@ -40,27 +38,19 @@ export default function GrnTable({ grns, loading, onSelectGrn }: GrnTableProps) 
         <tbody className="divide-y divide-border">
           {grns.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-8 text-center text-xs text-muted-foreground">
+              <td colSpan={6} className="px-5 py-8 text-center text-xs text-muted-foreground">
                 No goods receipt notes found
               </td>
             </tr>
           ) : (
             grns.map((grn) => (
-              <tr key={grn.grnId} className="hover:bg-muted/20 transition-colors">
+              <tr
+                key={grn.grnId}
+                onClick={() => onSelectGrn(grn)}
+                className="hover:bg-muted/20 transition-colors cursor-pointer"
+              >
                 <td className="px-5 py-4 font-mono font-semibold text-foreground whitespace-nowrap">
                   {grn.grnNumber}
-                </td>
-                <td className="px-5 py-4 font-mono text-muted-foreground whitespace-nowrap">
-                  {grn.prNumber ? (
-                    <span className="bg-muted px-2 py-0.5 rounded text-[11px] font-semibold text-foreground">
-                      {grn.prNumber}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground/60">—</span>
-                  )}
-                </td>
-                <td className="px-5 py-4 font-mono font-medium text-foreground whitespace-nowrap">
-                  {grn.poNumber}
                 </td>
                 <td className="px-5 py-4 font-mono text-muted-foreground whitespace-nowrap">
                   {grn.deliveryNumber || "—"}

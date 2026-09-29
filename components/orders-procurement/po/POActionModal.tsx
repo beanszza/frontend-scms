@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { CheckCircle2, XCircle, RotateCcw, AlertCircle, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { AlertTriangle, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 
-export type POActionType = "approve" | "reject" | "return" | "cancel" | "order";
+export type POActionType = "approve" | "reject" | "return" | "cancel";
 
 interface POActionModalProps {
   actionType: POActionType;
   poNumber: string;
+  onConfirm: (notes?: string) => Promise<void> | void;
   onClose: () => void;
-  onConfirm: (notes?: string) => Promise<void>;
 }
 
 const ACTION_CONFIG: Record<
@@ -83,86 +82,141 @@ const ACTION_CONFIG: Record<
 export function POActionModal({ actionType, poNumber, onClose, onConfirm }: POActionModalProps) {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const config = ACTION_CONFIG[actionType];
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const requiresReason = actionType === "reject" || actionType === "return" || actionType === "cancel";
+
+  const getTitle = () => {
+    switch (actionType) {
+      case "approve":
+        return "Approve Purchase Order";
+      case "reject":
+        return "Reject Purchase Order";
+      case "return":
+        return "Return for Revision";
+      case "cancel":
+        return "Cancel Purchase Order";
+    }
+  };
+
+  const getDescription = () => {
+    switch (actionType) {
+      case "approve":
+        return `Are you sure you want to approve purchase order ${poNumber}? This will mark it as Approved and allow delivery shipments to be scheduled.`;
+      case "reject":
+        return `Please provide a reason for rejecting purchase order ${poNumber}. The purchase order will be closed and marked as Rejected.`;
+      case "return":
+        return `Please provide instructions or reasons for returning purchase order ${poNumber}. The requester will be able to revise and re-submit it.`;
+      case "cancel":
+        return `Are you sure you want to cancel purchase order ${poNumber}? This action cannot be undone.`;
+    }
+  };
 
   const handleConfirm = async () => {
-    if (config.requiresNotes && !notes.trim()) {
-      setError("This field is required.");
+    if (requiresReason && !reason.trim()) {
+      setError(true);
       return;
     }
+    setError(false);
     setLoading(true);
-    setError("");
     try {
-      await onConfirm(notes.trim() || undefined);
+      await onConfirm(reason.trim() || undefined);
+      onClose();
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <ModalWrapper
-      open={true}
-      title={config.title}
-      onClose={onClose}
-      size="max-w-md"
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      onClick={onClose}
     >
-      <div className="space-y-5">
-        {/* Info Banner */}
-        <div className="flex items-start gap-3 p-3.5 rounded-xl border border-border bg-muted/30">
-          <span className="shrink-0 mt-0.5">{config.icon}</span>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground">
-              Purchase Order: <span className="font-mono">{poNumber}</span>
-            </p>
-            <p className="text-xs text-muted-foreground leading-relaxed">{config.description}</p>
+      <div
+        style={{ width: "100%", maxWidth: "440px" }}
+        className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col p-6 text-foreground shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex flex-col items-center justify-center text-center">
+          {/* Circular Alert Icon */}
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-foreground">
+            <AlertTriangle className="w-6 h-6" />
           </div>
-        </div>
 
-        {/* Notes / Reason Input */}
-        {config.requiresNotes && (
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-foreground">
-              {config.notesLabel} <span className="text-foreground">*</span>
-            </label>
-            <Textarea
-              rows={4}
-              value={notes}
-              onChange={(e) => {
-                setNotes(e.target.value);
-                if (e.target.value.trim()) setError("");
-              }}
-              placeholder={config.notesPlaceholder}
-              className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground resize-none shadow-none focus-visible:ring-1 focus-visible:ring-foreground/30 leading-relaxed"
-            />
-            {error && <p className="mt-1 text-xs text-foreground font-medium">{error}</p>}
+          {/* Title */}
+          <h2 className="text-xl font-bold text-foreground mb-1">
+            {getTitle()}
+          </h2>
+
+          {/* PO Number / ID Subtitle */}
+          <p className="text-xs font-mono font-semibold text-muted-foreground mb-3">
+            Purchase Order No: {poNumber}
+          </p>
+
+          {/* Message / Description */}
+          <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+            {getDescription()}
+          </p>
+
+          {/* Reason / Notes Input */}
+          {requiresReason && (
+            <div className="w-full text-left space-y-1.5 mb-5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                Reason / Feedback Notes <span className="text-destructive">*</span>
+              </label>
+              <Textarea
+                rows={3}
+                placeholder={
+                  actionType === "reject"
+                    ? "Explain why this purchase order is rejected (required)..."
+                    : actionType === "return"
+                    ? "Specify adjustments or items needed for revision (required)..."
+                    : "Please state the reason for cancellation (required)..."
+                }
+                value={reason}
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  if (e.target.value.trim()) setError(false);
+                }}
+                className={`text-xs resize-none bg-background rounded-xl p-3 ${
+                  error ? "border-destructive focus-visible:ring-destructive" : "border-border"
+                }`}
+              />
+              {error && (
+                <p className="text-[11px] text-destructive flex items-center gap-1 mt-1 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> Reason is required for this action.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Uniform Action Buttons */}
+          <div className="flex justify-center gap-3 w-full">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-5 py-2.5 text-sm font-semibold text-foreground border border-border bg-card hover:bg-muted rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={loading || (requiresReason && !reason.trim())}
+              className="flex-1 px-5 py-2.5 text-sm font-semibold text-background bg-foreground hover:bg-foreground/85 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+            >
+              {loading ? "Processing..." : "Confirm"}
+            </button>
           </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-border bg-card hover:bg-muted text-foreground px-4 text-xs font-semibold"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleConfirm}
-            disabled={loading}
-            className={`gap-1.5 rounded-xl px-5 text-xs font-semibold shadow-sm ${config.confirmClass}`}
-          >
-            {loading ? "Processing..." : config.confirmLabel}
-          </Button>
         </div>
       </div>
-    </ModalWrapper>
+    </div>,
+    document.body
   );
 }

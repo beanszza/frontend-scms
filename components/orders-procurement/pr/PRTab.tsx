@@ -218,10 +218,10 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-10 w-[180px] rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
+                <SelectTrigger className="h-10 min-w-[210px] w-auto rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-sm focus:ring-1 focus:ring-ring">
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[210px]">
                   <SelectItem value="all">All Departments</SelectItem>
                   <SelectItem value="Inventory">Inventory</SelectItem>
                   <SelectItem value="Production">Production</SelectItem>
@@ -282,7 +282,7 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
-                <span>{tab === "Converted to PO" ? "Converted to Purchase Order" : tab}</span>
+                <span>{tab}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-medium ${
                     isSelected ? "bg-background text-foreground" : "bg-muted text-muted-foreground"
