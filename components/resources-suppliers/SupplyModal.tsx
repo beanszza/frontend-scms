@@ -10,7 +10,7 @@ import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import ModalWrapper from "./ModalWrapper";
-import { SupplyItem } from "./types";
+import { SupplyItem, UomOption } from "./types";
 
 interface Supplier {
   supplierId: number;
@@ -18,11 +18,18 @@ interface Supplier {
   supplierCode?: string;
 }
 
+export interface SupplyCategory {
+  categoryId: number;
+  categoryName: string;
+}
+
 interface SupplyModalProps {
   open: boolean;
   editingItem: SupplyItem | null;
   existingSupplies?: SupplyItem[];
   suppliers?: Supplier[];
+  categories?: SupplyCategory[];
+  uoms?: UomOption[];
   onClose: () => void;
   onSave: (data: {
     itemName: string;
@@ -40,12 +47,14 @@ export default function SupplyModal({
   editingItem,
   existingSupplies = [],
   suppliers = [],
+  categories = [],
+  uoms = [],
   onClose,
   onSave,
 }: SupplyModalProps) {
   const [itemName, setItemName] = useState("");
-  const [categoryId, setCategoryId] = useState(1);
-  const [uomId, setUomId] = useState(1);
+  const [categoryId, setCategoryId] = useState(0);
+  const [uomId, setUomId] = useState(0);
   const [minStock, setMinStock] = useState("");
   const [maxStock, setMaxStock] = useState("");
   const [supplyActive, setSupplyActive] = useState(true);
@@ -74,11 +83,11 @@ export default function SupplyModal({
     const trimmed = val.trim();
     if (!trimmed) { setMinStockError("Min Stock Level is required."); return false; }
     const num = Number(trimmed);
-    if (isNaN(num) || num < 1) { setMinStockError("Min Stock Level must be at least 1."); return false; }
+    if (isNaN(num) || num <= 0) { setMinStockError("Min Stock Level must be greater than 0."); return false; }
     setMinStockError("");
     if (currentMax.trim()) {
       const maxNum = Number(currentMax);
-      if (!isNaN(maxNum) && maxNum >= 1 && maxNum < num) setMaxStockError("Max stock cannot be less than min stock.");
+      if (!isNaN(maxNum) && maxNum > 0 && maxNum < num) setMaxStockError("Max stock cannot be less than min stock.");
       else setMaxStockError("");
     }
     return true;
@@ -88,7 +97,7 @@ export default function SupplyModal({
     const trimmed = val.trim();
     if (!trimmed) { setMaxStockError("Max Stock Level is required."); return false; }
     const num = Number(trimmed);
-    if (isNaN(num) || num < 1) { setMaxStockError("Max Stock Level must be at least 1."); return false; }
+    if (isNaN(num) || num <= 0) { setMaxStockError("Max Stock Level must be greater than 0."); return false; }
     if (currentMin.trim()) {
       const minNum = Number(currentMin);
       if (!isNaN(minNum) && num < minNum) { setMaxStockError("Max stock cannot be less than min stock."); return false; }
@@ -100,10 +109,8 @@ export default function SupplyModal({
     if (open) {
       if (editingItem) {
         setItemName(editingItem.itemName || "");
-        setCategoryId(
-          editingItem.categoryName === "Tools and Supplies" || editingItem.categoryName === "Tools & Supplies" ? 2 : 1
-        );
-        setUomId(editingItem.uomId || 1);
+        setCategoryId(editingItem.categoryId);
+        setUomId(editingItem.uomId || uoms[0]?.uomId || 0);
         setMinStock(editingItem.minStockLevel ? editingItem.minStockLevel.toString() : "1");
         setMaxStock(editingItem.maxStockLevel ? editingItem.maxStockLevel.toString() : "1");
         setSupplyActive(editingItem.isActive !== false);
@@ -111,7 +118,7 @@ export default function SupplyModal({
 
         if (editingItem.itemId) {
           api
-            .get(`/api/scms/api/SupplierItems/by-item/${editingItem.itemId}`)
+            .get(`/api/supplier-items/by-item/${editingItem.itemId}`)
             .then((res) => {
               const list = res.data?.data || res.data || [];
               if (Array.isArray(list) && list.length > 0) {
@@ -122,15 +129,15 @@ export default function SupplyModal({
             .catch(() => {});
         }
       } else {
-        setItemName(""); setCategoryId(1); setUomId(1);
+        setItemName(""); setCategoryId(categories[0]?.categoryId ?? 0); setUomId(uoms[0]?.uomId ?? 0);
         setMinStock(""); setMaxStock(""); setSupplyActive(true); setSelectedSupplierIds([]);
       }
       setItemNameError(""); setMinStockError(""); setMaxStockError(""); setSupplierError("");
     }
-  }, [editingItem, open]);
+  }, [editingItem, open, categories, uoms]);
 
   const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (["-", "+", "e", "E", "."].includes(e.key)) e.preventDefault();
+    if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault();
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,12 +146,14 @@ export default function SupplyModal({
   };
 
   const handleMinStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+    const val = e.target.value;
+    if (val !== "" && !/^\d*\.?\d{0,3}$/.test(val)) return;
     setMinStock(val); validateMinStock(val, maxStock);
   };
 
   const handleMaxStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+    const val = e.target.value;
+    if (val !== "" && !/^\d*\.?\d{0,3}$/.test(val)) return;
     setMaxStock(val); validateMaxStock(val, minStock);
   };
 
@@ -168,7 +177,7 @@ export default function SupplyModal({
 
   const hasErrors =
     !!itemNameError || !!minStockError || !!maxStockError || !!supplierError ||
-    !itemName.trim() || !minStock.trim() || !maxStock.trim() ||
+    !itemName.trim() || !categoryId || !uomId || !minStock.trim() || !maxStock.trim() ||
     selectedSupplierIds.length === 0;
 
   return (
@@ -210,8 +219,11 @@ export default function SupplyModal({
               onChange={(e) => setCategoryId(Number(e.target.value))}
               className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring"
             >
-              <option value={1}>Raw Materials</option>
-              <option value={2}>Tools &amp; Supplies</option>
+              {categories.map((category) => (
+                <option key={category.categoryId} value={category.categoryId}>
+                  {category.categoryName === "Tools and Supplies" ? "Tools & Supplies" : category.categoryName}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -221,15 +233,11 @@ export default function SupplyModal({
               onChange={(e) => setUomId(Number(e.target.value))}
               className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring"
             >
-              <option value={1}>kg</option>
-              <option value={2}>pcs</option>
-              <option value={3}>liters</option>
-              <option value={4}>m</option>
-              <option value={5}>grams</option>
-              <option value={6}>box</option>
-              <option value={7}>pack</option>
-              <option value={8}>roll</option>
-              <option value={9}>bottle</option>
+              {uoms.map((uom) => (
+                <option key={uom.uomId} value={uom.uomId}>
+                  {uom.name} ({uom.abbreviation})
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -241,8 +249,10 @@ export default function SupplyModal({
               Min Stock Level <span className="text-destructive">*</span>
             </label>
             <Input
-              type="text"
-              inputMode="numeric"
+              type="number"
+              inputMode="decimal"
+              min="0.001"
+              step="0.001"
               value={minStock}
               onKeyDown={handleNumberKeyDown}
               onChange={handleMinStockChange}
@@ -262,8 +272,10 @@ export default function SupplyModal({
               Max Stock Level <span className="text-destructive">*</span>
             </label>
             <Input
-              type="text"
-              inputMode="numeric"
+              type="number"
+              inputMode="decimal"
+              min="0.001"
+              step="0.001"
               value={maxStock}
               onKeyDown={handleNumberKeyDown}
               onChange={handleMaxStockChange}

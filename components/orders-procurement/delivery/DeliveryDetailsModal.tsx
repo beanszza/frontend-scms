@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, FileText } from "lucide-react";
+import { AlertCircle, Check, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import { Delivery } from "../types";
 import CreateGrnModal from "@/components/receiving/CreateGrnModal";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 interface DeliveryDetailsModalProps {
   delivery: Delivery | null;
@@ -53,7 +54,58 @@ export function DeliveryDetailsModal({
       onClose={onClose}
       size="max-w-4xl"
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
+        {/* Top Header Row with Status Badge & Document No */}
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={delivery.status} />
+            <span className="font-mono text-sm font-bold text-foreground">{delivery.deliveryNumber}</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Purchase Order Reference: <span className="font-mono font-medium text-foreground">{delivery.poNumber}</span>
+          </div>
+        </div>
+
+        {delivery.isPerBatch && (
+          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs">
+            <span className="font-semibold text-foreground">Per-batch delivery:</span>{" "}
+            <span className="font-mono text-muted-foreground">{delivery.batchReference}</span>
+          </div>
+        )}
+
+        {/* Visual Stepper */}
+        {!isCancelled && (
+          <div className="py-2">
+            <div className="flex items-center justify-between relative">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-foreground transition-all duration-500 ease-in-out"
+                  style={{ width: `${(currentStepIdx / (steps.length - 1)) * 100}%` }}
+                />
+              </div>
+              {steps.map((s, i) => {
+                const isActive = i <= currentStepIdx;
+                const isLast = i === currentStepIdx;
+                return (
+                  <div key={s} className="relative flex flex-col items-center gap-2 bg-background px-2">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 text-xs font-bold transition-all duration-500 z-10 ${
+                        isActive
+                          ? "bg-foreground border-foreground text-background shadow-md scale-110"
+                          : "bg-background border-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isActive && !isLast ? <Check className="w-4 h-4" /> : (i + 1)}
+                    </div>
+                    <span className={`text-[10px] uppercase tracking-wider font-bold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                      {s}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Cancellation Reason Notice */}
         {isCancelled && delivery.notes && (

@@ -37,6 +37,7 @@ export default function ViewInventory() {
   const [expiringSoonCount, setExpiringSoonCount] = useState(0);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
     "Raw Materials": 0,
+    "Ingredients": 0,
     "Tools": 0,
     "Finished Goods": 0,
   });
@@ -50,14 +51,16 @@ export default function ViewInventory() {
       const categoryFilter =
         activeTab === "Raw Materials"
           ? "Raw Material"
+          : activeTab === "Ingredients"
+          ? "Ingredients"
           : activeTab === "Tools"
           ? "Tool"
           : activeTab === "Finished Goods"
           ? "Finished Good"
           : "";
       const path = categoryFilter
-        ? `/api/scms/api/Inventories?categoryName=${categoryFilter}&page=${page}&pageSize=10`
-        : `/api/scms/api/Inventories?page=${page}&pageSize=10`;
+        ? `/api/inventory?categoryName=${categoryFilter}&page=${page}&pageSize=10`
+        : `/api/inventory?page=${page}&pageSize=10`;
 
       let res;
       try {
@@ -65,8 +68,8 @@ export default function ViewInventory() {
       } catch {
         res = await api.get(
           categoryFilter
-            ? `/api/Inventories?categoryName=${categoryFilter}&page=${page}&pageSize=10`
-            : `/api/Inventories?page=${page}&pageSize=10`
+            ? `/api/inventory?categoryName=${categoryFilter}&page=${page}&pageSize=10`
+            : `/api/inventory?page=${page}&pageSize=10`
         );
       }
 
@@ -85,9 +88,9 @@ export default function ViewInventory() {
       // 1. Fetch inventories for total count & low-stock count
       let invRes;
       try {
-        invRes = await api.get("/api/scms/api/Inventories?pageSize=100");
+        invRes = await api.get("/api/inventory?pageSize=100");
       } catch {
-        invRes = await api.get("/api/Inventories?pageSize=100");
+        invRes = await api.get("/api/inventory?pageSize=100");
       }
 
       if (invRes.data?.success) {
@@ -100,6 +103,7 @@ export default function ViewInventory() {
 
         const counts: Record<string, number> = {
           "Raw Materials": 0,
+          "Ingredients": 0,
           "Tools": 0,
           "Finished Goods": 0,
         };
@@ -107,6 +111,8 @@ export default function ViewInventory() {
           const cat = (item.categoryName || "").toLowerCase();
           if (cat.includes("raw")) {
             counts["Raw Materials"] = (counts["Raw Materials"] || 0) + 1;
+          } else if (cat.includes("ingredient")) {
+            counts["Ingredients"] = (counts["Ingredients"] || 0) + 1;
           } else if (cat.includes("tool") || cat.includes("equip") || cat.includes("suppl")) {
             counts["Tools"] = (counts["Tools"] || 0) + 1;
           } else if (cat.includes("finish") || cat.includes("prod")) {
@@ -119,9 +125,9 @@ export default function ViewInventory() {
       // 2. Fetch available lots for expiring soon count (<= 30 days)
       let lotsRes;
       try {
-        lotsRes = await api.get("/api/scms/api/Lots?status=Available&pageSize=100");
+        lotsRes = await api.get("/api/inventory/lots?status=Available&pageSize=100");
       } catch {
-        lotsRes = await api.get("/api/Lots?status=Available&pageSize=100");
+        lotsRes = await api.get("/api/inventory/lots?status=Available&pageSize=100");
       }
 
       if (lotsRes.data?.success) {
@@ -151,8 +157,8 @@ export default function ViewInventory() {
   // Order Now handler
   const handleOrderNow = (item: InventoryItem) => {
     const neededQty = Math.max(
-      1,
-      (item.maxStockLevel > 0 ? item.maxStockLevel : 10) - Math.floor(item.currentStock)
+      0.001,
+      Number(((item.maxStockLevel > 0 ? item.maxStockLevel : 10) - item.currentStock).toFixed(3))
     );
 
     const initialPR: Partial<PurchaseRequisition> = {
@@ -167,7 +173,7 @@ export default function ViewInventory() {
           itemId: item.itemId,
           itemCode: `SPL-${String(item.itemId).padStart(4, "0")}`,
           itemName: item.itemName,
-          uomName: item.uomName || "pcs",
+          uomName: item.uomName || "Unit",
           actualInventory: item.currentStock,
           requestedQuantity: neededQty,
         },
@@ -182,7 +188,7 @@ export default function ViewInventory() {
     <div className="w-full min-h-full py-8 px-6 md:px-8 space-y-6 animate-page-in">
       <PageHeader
         title="Inventory Management"
-        description="Monitor real-time warehouse stocks, raw materials, and finished goods"
+        description="Monitor real-time warehouse stocks, ingredients, raw materials, and finished goods"
         actions={
           isAuth && (
             <Button size="sm" variant="outline" asChild className="gap-1.5 cursor-pointer">
@@ -207,6 +213,7 @@ export default function ViewInventory() {
         <div className="flex items-center gap-2 overflow-x-auto">
           {[
             { id: "Raw Materials", label: "RAW MATERIALS" },
+            { id: "Ingredients", label: "INGREDIENTS" },
             { id: "Tools", label: "TOOLS & SUPPLIES" },
             { id: "Finished Goods", label: "FINISHED GOODS" },
           ].map((tab) => {

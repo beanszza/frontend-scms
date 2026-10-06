@@ -64,12 +64,28 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
   // Create and Edit PR Modals
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [editingPR, setEditingPR] = useState<PurchaseRequisition | null>(null);
+  const [prefillPR, setPrefillPR] = useState<any | null>(null);
+
+  // Check for prefilled PR data from Production Request Shortfall
+  useEffect(() => {
+    const rawPrefill = sessionStorage.getItem("prefill_pr");
+    if (rawPrefill) {
+      try {
+        const parsed = JSON.parse(rawPrefill);
+        sessionStorage.removeItem("prefill_pr");
+        setPrefillPR(parsed);
+        setOpenCreateModal(true);
+      } catch (e) {
+        console.error("Failed to parse prefill_pr:", e);
+      }
+    }
+  }, []);
 
   // Fetch Requisitions
   const fetchRequisitions = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get("/api/scms/api/PurchaseRequisitions");
+      const res = await api.get("/api/purchase-requisitions");
       if (res.data?.success) {
         const raw = res.data.data || [];
         setRequisitions(raw);
@@ -138,7 +154,7 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
   // Action handlers
   const handleStatusUpdate = async (prId: number, status: string, notes?: string) => {
     try {
-      await api.put(`/api/scms/api/PurchaseRequisitions/${prId}/status`, {
+      await api.put(`/api/purchase-requisitions/${prId}/status`, {
         status,
         adminNotes: notes || null,
       });
@@ -360,9 +376,15 @@ export function PRTab({ onCreatePo }: { onCreatePo?: (prId: number) => void }) {
       {openCreateModal && (
         <CreatePRModal
           open={openCreateModal}
-          onClose={() => setOpenCreateModal(false)}
+          initialData={prefillPR || undefined}
+          isEdit={false}
+          onClose={() => {
+            setOpenCreateModal(false);
+            setPrefillPR(null);
+          }}
           onSuccess={() => {
             setOpenCreateModal(false);
+            setPrefillPR(null);
             fetchRequisitions();
           }}
         />

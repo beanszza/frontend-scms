@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { SupplyItem, Supplier, Recipe, FinishedProduct } from "@/components/resources-suppliers/types";
+import { SupplyItem, Supplier, Recipe, FinishedProduct, UomOption } from "@/components/resources-suppliers/types";
 import SupplyTab from "@/components/resources-suppliers/SupplyTab";
 import SupplierTab from "@/components/resources-suppliers/SupplierTab";
 import RecipeTab from "@/components/resources-suppliers/RecipeTab";
-import SupplyModal from "@/components/resources-suppliers/SupplyModal";
+import SupplyModal, { SupplyCategory } from "@/components/resources-suppliers/SupplyModal";
 import SupplyDetailsModal from "@/components/resources-suppliers/SupplyDetailsModal";
 import SupplierModal from "@/components/resources-suppliers/SupplierModal";
 import SupplierDetailsModal from "@/components/resources-suppliers/SupplierDetailsModal";
@@ -26,6 +26,8 @@ export default function ResourcesSuppliersPage() {
   const [supplierData, setSupplierData] = useState<Supplier[]>([]);
   const [recipeData, setRecipeData] = useState<Recipe[]>([]);
   const [finishedProductData, setFinishedProductData] = useState<FinishedProduct[]>([]);
+  const [supplyCategories, setSupplyCategories] = useState<SupplyCategory[]>([]);
+  const [uoms, setUoms] = useState<UomOption[]>([]);
 
   // Search & Filter State
   const [supplyFilter, setSupplyFilter] = useState("All");
@@ -54,12 +56,14 @@ export default function ResourcesSuppliersPage() {
   const fetchData = async () => {
     try {
       const results = await Promise.allSettled([
-        api.get(`/api/scms/api/Items?page=1&pageSize=1000`),
-        api.get(`/api/scms/api/Suppliers?page=1&pageSize=1000`),
-        api.get("/api/scms/api/Recipes"),
-        api.get("/api/scms/api/FinishedProducts"),
+        api.get(`/api/items?page=1&pageSize=1000`),
+        api.get(`/api/suppliers?page=1&pageSize=1000`),
+        api.get("/api/recipes"),
+        api.get("/api/finished-products"),
+        api.get("/api/categories/supplies"),
+        api.get("/api/unit-of-measures"),
       ]);
-      const [itemsRes, suppliersRes, recipesRes, fpRes] = results.map((r) => (r.status === "fulfilled" ? r.value : null));
+      const [itemsRes, suppliersRes, recipesRes, fpRes, categoriesRes, uomsRes] = results.map((r) => (r.status === "fulfilled" ? r.value : null));
       if (itemsRes?.data?.success) {
         const rawItems = itemsRes.data.data.items || itemsRes.data.data || [];
         const suppliesOnly = rawItems.filter(
@@ -80,6 +84,8 @@ export default function ResourcesSuppliersPage() {
           productId: p.productId, itemName: p.itemName || "", variant: p.variant || "",
         })));
       }
+      if (categoriesRes?.data?.success) setSupplyCategories(categoriesRes.data.data || []);
+      if (uomsRes?.data?.success) setUoms(uomsRes.data.data || []);
     } catch (e) {
       console.error(e);
     }
@@ -95,10 +101,10 @@ export default function ResourcesSuppliersPage() {
       };
       let itemId: number;
       if (editingSupply) {
-        await api.put(`/api/scms/api/Items/${editingSupply.itemId}`, payload);
+        await api.put(`/api/items/${editingSupply.itemId}`, payload);
         itemId = editingSupply.itemId;
       } else {
-        const res = await api.post("/api/scms/api/Items", payload);
+        const res = await api.post("/api/items", payload);
         itemId = res?.data?.data?.itemId || res?.data?.itemId;
       }
       // Sync linked suppliers
@@ -106,42 +112,44 @@ export default function ResourcesSuppliersPage() {
         const targetSupplierIds: number[] = data.supplierIds || [];
         if (editingSupply) {
           try {
-            const curRes = await api.get(`/api/scms/api/SupplierItems/by-item/${itemId}`);
+            const curRes = await api.get(`/api/supplier-items/by-item/${itemId}`);
             const existingItems = curRes.data?.data || curRes.data || [];
             const existingIds: number[] = existingItems.map((s: any) => s.supplierId);
 
             const removedIds = existingIds.filter((id) => !targetSupplierIds.includes(id));
             await Promise.allSettled(
-              removedIds.map((supplierId) => api.delete(`/api/scms/api/SupplierItems/${supplierId}/${itemId}`).catch(() => {}))
+              removedIds.map((supplierId) => api.delete(`/api/supplier-items/${supplierId}/${itemId}`).catch(() => {}))
             );
 
             const addedIds = targetSupplierIds.filter((id) => !existingIds.includes(id));
             await Promise.allSettled(
               addedIds.map((supplierId) =>
-                api.post("/api/scms/api/SupplierItems", {
-                  SupplierId: supplierId,
-                  ItemId: itemId,
-                  UnitPrice: 0,
-                  LeadTimeDays: 3,
-                  PackSize: 1,
-                  MinOrderQuantity: 1,
-                  IsPreferred: false,
-                  IsActive: true,
+                api.post("/api/supplier-items", {
+                  supplierId: supplierId,
+                  itemId: itemId,
+                  purchaseUomId: data.uomId,
+                  unitPrice: 0,
+                  leadTimeDays: 3,
+                  packSize: 1,
+                  minOrderQuantity: 1,
+                  isPreferred: false,
+                  isActive: true,
                 }).catch(() => {})
               )
             );
           } catch {
             await Promise.allSettled(
               targetSupplierIds.map((supplierId) =>
-                api.post("/api/scms/api/SupplierItems", {
-                  SupplierId: supplierId,
-                  ItemId: itemId,
-                  UnitPrice: 0,
-                  LeadTimeDays: 3,
-                  PackSize: 1,
-                  MinOrderQuantity: 1,
-                  IsPreferred: false,
-                  IsActive: true,
+                api.post("/api/supplier-items", {
+                  supplierId: supplierId,
+                  itemId: itemId,
+                  purchaseUomId: data.uomId,
+                  unitPrice: 0,
+                  leadTimeDays: 3,
+                  packSize: 1,
+                  minOrderQuantity: 1,
+                  isPreferred: false,
+                  isActive: true,
                 }).catch(() => {})
               )
             );
@@ -149,15 +157,16 @@ export default function ResourcesSuppliersPage() {
         } else if (targetSupplierIds.length > 0) {
           await Promise.allSettled(
             targetSupplierIds.map((supplierId: number) =>
-              api.post("/api/scms/api/SupplierItems", {
-                SupplierId: supplierId,
-                ItemId: itemId,
-                UnitPrice: 0,
-                LeadTimeDays: 3,
-                PackSize: 1,
-                MinOrderQuantity: 1,
-                IsPreferred: false,
-                IsActive: true,
+              api.post("/api/supplier-items", {
+                supplierId: supplierId,
+                itemId: itemId,
+                purchaseUomId: data.uomId,
+                unitPrice: 0,
+                leadTimeDays: 3,
+                packSize: 1,
+                minOrderQuantity: 1,
+                isPreferred: false,
+                isActive: true,
               }).catch(() => {})
             )
           );
@@ -172,8 +181,8 @@ export default function ResourcesSuppliersPage() {
 
   const handleSaveSupplier = async (data: any) => {
     try {
-      if (editingSupplier) await api.put(`/api/scms/api/Suppliers/${editingSupplier.supplierId}`, data);
-      else await api.post("/api/scms/api/Suppliers", data);
+      if (editingSupplier) await api.put(`/api/suppliers/${editingSupplier.supplierId}`, data);
+      else await api.post("/api/suppliers", data);
       setOpenSupplierModal(false); setEditingSupplier(null); setSupplierPage(1); fetchData();
     } catch { alert("Failed to save supplier."); }
   };
@@ -181,11 +190,15 @@ export default function ResourcesSuppliersPage() {
   const handleSaveRecipe = async (data: any) => {
     try {
       const payload = {
-        recipeName: data.recipeName, productId: data.productId, outputQuantity: data.outputQuantity,
-        notes: data.notes, isActive: data.isActive, ingredients: data.ingredients,
+        recipeName: data.recipeName,
+        productId: data.productId,
+        outputQuantity: data.outputQuantity,
+        notes: data.notes,
+        isActive: data.isActive,
+        ingredients: data.ingredients,
       };
-      if (editingRecipe) await api.put(`/api/scms/api/Recipes/${editingRecipe.recipeId}`, payload);
-      else await api.post("/api/scms/api/Recipes", payload);
+      if (editingRecipe) await api.put(`/api/recipes/${editingRecipe.recipeId}`, payload);
+      else await api.post("/api/recipes", payload);
       setOpenRecipeModal(false); setEditingRecipe(null); setRecipePage(1); fetchData();
     } catch { alert("Failed to save recipe."); }
   };
@@ -262,6 +275,8 @@ export default function ResourcesSuppliersPage() {
         editingItem={editingSupply}
         existingSupplies={supplyData}
         suppliers={supplierData.map((s: any) => ({ supplierId: s.supplierId, companyName: s.companyName, supplierCode: s.supplierCode }))}
+        categories={supplyCategories}
+        uoms={uoms}
         onClose={() => { setOpenSupplyModal(false); setEditingSupply(null); }}
         onSave={handleSaveSupply}
       />

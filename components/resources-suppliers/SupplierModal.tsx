@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ModalWrapper from "./ModalWrapper";
 import { Supplier } from "./types";
+import AddressSelector from "@/components/shared/AddressSelector";
 
 interface SupplierModalProps {
   open: boolean;
@@ -32,7 +33,10 @@ export default function SupplierModal({
   const [contactPerson, setContactPerson] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [barangay, setBarangay] = useState("");
+  const [city, setCity] = useState("");
+  const [province, setProvince] = useState("");
   const [website, setWebsite] = useState("");
   const [supplierActive, setSupplierActive] = useState(true);
 
@@ -79,11 +83,11 @@ export default function SupplierModal({
     setPhoneError(""); return true;
   };
 
-  const validateAddress = (val: string) => {
-    const trimmed = val.trim();
-    if (!trimmed) { setAddressError("Address is required."); return false; }
-    if (trimmed.length < 5) { setAddressError("Please enter a complete address (at least 5 characters)."); return false; }
-    if (trimmed.length > 100) { setAddressError("Address cannot exceed 100 characters."); return false; }
+  const validateAddress = (st: string, brgy: string, ct: string, pr: string) => {
+    if (!st.trim() || !brgy.trim() || !ct.trim() || !pr.trim()) { setAddressError("All address fields (Street, Barangay, City, Province) are required."); return false; }
+    const full = `${st.trim()}, ${brgy.trim()}, ${ct.trim()}, ${pr.trim()}`;
+    if (full.length < 5) { setAddressError("Please enter a complete address (at least 5 characters)."); return false; }
+    if (full.length > 150) { setAddressError("Address cannot exceed 150 characters."); return false; }
     setAddressError(""); return true;
   };
 
@@ -108,12 +112,22 @@ export default function SupplierModal({
         else if (rawPhone.startsWith("63") && rawPhone.length > 10) rawPhone = rawPhone.slice(2);
         else if (rawPhone.startsWith("0") && rawPhone.length === 11) rawPhone = rawPhone.slice(1);
         setPhone(rawPhone.replace(/\D/g, "").slice(0, 10));
-        setAddress(editingSupplier.address || "");
+        
+        if (editingSupplier.address) {
+          const parts = editingSupplier.address.split(", ");
+          setStreetNumber(parts[0] || "");
+          setBarangay(parts[1] || "");
+          setCity(parts[2] || "");
+          setProvince(parts[3] || "");
+        } else {
+          setStreetNumber(""); setBarangay(""); setCity(""); setProvince("");
+        }
+
         setWebsite(editingSupplier.website || "");
         setSupplierActive(editingSupplier.isActive !== false);
       } else {
         setCompanyName(""); setContactPerson(""); setEmail("");
-        setPhone(""); setAddress(""); setWebsite(""); setSupplierActive(true);
+        setPhone(""); setStreetNumber(""); setBarangay(""); setCity(""); setProvince(""); setWebsite(""); setSupplierActive(true);
       }
       setCompanyNameError(""); setContactPersonError(""); setEmailError("");
       setPhoneError(""); setAddressError(""); setWebsiteError("");
@@ -144,9 +158,21 @@ export default function SupplierModal({
     setPhone(digits); validatePhone(digits);
   };
 
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.slice(0, 100);
-    setAddress(val); validateAddress(val);
+  const handleStreetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.slice(0, 50);
+    setStreetNumber(val); validateAddress(val, barangay, city, province);
+  };
+  const handleBarangayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.slice(0, 50);
+    setBarangay(val); validateAddress(streetNumber, val, city, province);
+  };
+  const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.slice(0, 50);
+    setCity(val); validateAddress(streetNumber, barangay, val, province);
+  };
+  const handleProvinceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.slice(0, 50);
+    setProvince(val); validateAddress(streetNumber, barangay, city, val);
   };
 
   const handleWebsiteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,7 +185,7 @@ export default function SupplierModal({
     const v2 = validateContactPerson(contactPerson);
     const v3 = validateEmail(email);
     const v4 = validatePhone(phone);
-    const v5 = validateAddress(address);
+    const v5 = validateAddress(streetNumber, barangay, city, province);
     const v6 = validateWebsite(website);
     if (!v1 || !v2 || !v3 || !v4 || !v5 || !v6) return;
 
@@ -169,7 +195,7 @@ export default function SupplierModal({
       contactPerson: contactPerson.trim(),
       email: email.trim(),
       phone: formattedPhone,
-      address: address.trim(),
+      address: `${streetNumber.trim()}, ${barangay.trim()}, ${city.trim()}, ${province.trim()}`,
       website: website.trim() || undefined,
       isActive: supplierActive,
       suppliedItemIds: [],
@@ -180,7 +206,7 @@ export default function SupplierModal({
     !!companyNameError || !!contactPersonError || !!emailError ||
     !!phoneError || !!addressError || !!websiteError ||
     !companyName.trim() || !contactPerson.trim() || !email.trim() ||
-    !phone.trim() || !address.trim();
+    !phone.trim() || !streetNumber.trim() || !barangay.trim() || !city.trim() || !province.trim();
 
   const fieldClass = (err: string) =>
     `w-full rounded-xl border ${err ? "!border-destructive focus-visible:!ring-destructive" : "border-border"} bg-card text-foreground px-4 py-2.5 text-sm transition-colors`;
@@ -210,11 +236,11 @@ export default function SupplierModal({
         {/* Contact Person */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-foreground">
-            Contact Person <span className="text-destructive">*</span>
+            Contact Person (Last Name, First Name) <span className="text-destructive">*</span>
           </label>
           <Input type="text" maxLength={50} value={contactPerson} onChange={handleContactPersonChange}
             aria-invalid={!!contactPersonError} style={fieldStyle(contactPersonError)}
-            placeholder="e.g. John Doe" className={fieldClass(contactPersonError)} />
+            placeholder="e.g. Doe, John" className={fieldClass(contactPersonError)} />
           {contactPersonError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{contactPersonError}</p>}
         </div>
 
@@ -250,9 +276,13 @@ export default function SupplierModal({
           <label className="mb-1.5 block text-xs font-semibold text-foreground">
             Address <span className="text-destructive">*</span>
           </label>
-          <Input type="text" maxLength={100} value={address} onChange={handleAddressChange}
-            aria-invalid={!!addressError} style={fieldStyle(addressError)}
-            placeholder="e.g. 123 Main St, Manila" className={fieldClass(addressError)} />
+          <AddressSelector
+            streetNumber={streetNumber} setStreetNumber={setStreetNumber}
+            barangay={barangay} setBarangay={setBarangay}
+            city={city} setCity={setCity}
+            province={province} setProvince={setProvince}
+            addressError={addressError}
+          />
           {addressError && <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{addressError}</p>}
         </div>
 

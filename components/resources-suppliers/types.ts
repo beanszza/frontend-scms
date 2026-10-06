@@ -2,6 +2,7 @@ export type SupplyItem = {
   itemId: number;
   itemCode?: string;
   itemName: string;
+  categoryId: number;
   categoryName: string;
   uomId: number;
   uomName: string;
@@ -37,12 +38,14 @@ export type Recipe = {
   recipeId: number;
   recipeCode?: string;
   recipeName: string;
+  displayName?: string;
+  yieldLabel?: string;
   finishedProduct: string;
   productId: number;
   outputQuantity: number;
   notes: string;
   isActive: boolean;
-  ingredients: { itemId: number; standardQuantity: number }[];
+  ingredients: { itemId: number; uomId: number; standardQuantity: number }[];
 };
 
 export type FinishedProduct = {
@@ -58,5 +61,9 @@ export type CategoryOption = {
 
 export type UomOption = {
   uomId: number;
-  uomName: string;
+  code: string;
+  name: string;
+  abbreviation: string;
+  uomType: string;
+  conversionFactor: number;
 };

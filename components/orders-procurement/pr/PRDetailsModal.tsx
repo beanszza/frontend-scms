@@ -30,6 +30,14 @@ export function PRDetailsModal({
 
   const isPending = pr.status === "Pending Approval" || (pr.status as any) === "Pending";
   const isApproved = pr.status === "Approved";
+  const duplicateItemIds = new Set(
+    (pr.items || [])
+      .filter((item, index, items) => items.findIndex((candidate) => candidate.itemId === item.itemId) !== index)
+      .map((item) => item.itemId)
+  );
+  const duplicateNames = Array.from(
+    new Set((pr.items || []).filter((item) => duplicateItemIds.has(item.itemId)).map((item) => item.itemName))
+  );
 
   const formattedRequestDate = pr.requestDate
     ? new Date(pr.requestDate).toLocaleDateString("en-US", {
@@ -173,6 +181,12 @@ export function PRDetailsModal({
 
         {/* Requested Supplies & Ingredients Table */}
         <div className="space-y-3">
+          {duplicateNames.map((name) => (
+            <div key={name} className="flex items-start gap-2 rounded-xl border border-red-400 bg-red-50 p-3 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>Warning: Duplicate ingredient detected - {name}. Please review and consolidate before proceeding.</span>
+            </div>
+          ))}
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground">
               Requested Supplies &amp; Ingredients
@@ -196,7 +210,12 @@ export function PRDetailsModal({
               <tbody className="divide-y divide-border">
                 {pr.items && pr.items.length > 0 ? (
                   pr.items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-muted/20 transition-colors">
+                    <tr
+                      key={idx}
+                      className={duplicateItemIds.has(item.itemId)
+                        ? "bg-red-50 text-red-800 dark:bg-red-950/50"
+                        : "hover:bg-muted/20 transition-colors"}
+                    >
                       <td className="px-4 py-3 font-medium text-foreground">
                         {item.itemName}
                       </td>
@@ -204,7 +223,7 @@ export function PRDetailsModal({
                         {item.itemCode || `SPL-${item.itemId}`}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {item.uomName || "pcs"}
+                        {item.uomName || "Unit"}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-muted-foreground">
                         {Number(item.actualInventory || 0).toLocaleString()}

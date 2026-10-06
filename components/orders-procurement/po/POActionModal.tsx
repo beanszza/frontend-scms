@@ -2,10 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  RotateCcw,
+  ShoppingBag,
+  XCircle,
+} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
-export type POActionType = "approve" | "reject" | "return" | "cancel";
+export type POActionType = "approve" | "reject" | "return" | "cancel" | "order";
 
 interface POActionModalProps {
   actionType: POActionType;
@@ -14,15 +21,75 @@ interface POActionModalProps {
   onClose: () => void;
 }
 
-export function POActionModal({
-  actionType,
-  poNumber,
-  onConfirm,
-  onClose,
-}: POActionModalProps) {
-  const [mounted, setMounted] = useState(false);
+const ACTION_CONFIG: Record<
+  POActionType,
+  {
+    title: string;
+    icon: React.ReactNode;
+    description: string;
+    requiresNotes: boolean;
+    notesLabel: string;
+    notesPlaceholder: string;
+    confirmLabel: string;
+    confirmClass: string;
+  }
+> = {
+  approve: {
+    title: "Approve Purchase Order",
+    icon: <CheckCircle2 className="w-5 h-5 text-foreground" />,
+    description: "Approving this Purchase Order will move it to Approved status. The requester can then mark it as Ordered.",
+    requiresNotes: false,
+    notesLabel: "",
+    notesPlaceholder: "",
+    confirmLabel: "Approve",
+    confirmClass: "bg-foreground text-background hover:bg-foreground/85",
+  },
+  reject: {
+    title: "Reject Purchase Order",
+    icon: <XCircle className="w-5 h-5 text-foreground" />,
+    description: "Rejecting this Purchase Order will close it. Please provide a reason.",
+    requiresNotes: true,
+    notesLabel: "Rejection Reason",
+    notesPlaceholder: "State the reason for rejection (required)...",
+    confirmLabel: "Reject",
+    confirmClass: "bg-foreground text-background hover:bg-foreground/85",
+  },
+  return: {
+    title: "Return for Revision",
+    icon: <RotateCcw className="w-5 h-5 text-foreground" />,
+    description: "Returning this Purchase Order will allow the requester to revise and resubmit. Please provide your notes.",
+    requiresNotes: true,
+    notesLabel: "Revision Notes",
+    notesPlaceholder: "Describe what needs to be revised (required)...",
+    confirmLabel: "Return for Revision",
+    confirmClass: "bg-foreground text-background hover:bg-foreground/85",
+  },
+  cancel: {
+    title: "Cancel Purchase Order",
+    icon: <AlertCircle className="w-5 h-5 text-foreground shrink-0" />,
+    description: "Are you sure you want to cancel this Purchase Order? This action cannot be undone. This Purchase Order number will be permanently marked as cancelled and cannot be reused.",
+    requiresNotes: true,
+    notesLabel: "Cancellation Reason & Notes",
+    notesPlaceholder: "Please provide the reason for cancelling this purchase order (required)...",
+    confirmLabel: "Confirm Cancellation",
+    confirmClass: "bg-foreground text-background hover:bg-foreground/85",
+  },
+  order: {
+    title: "Mark as Ordered",
+    icon: <ShoppingBag className="w-5 h-5 text-foreground" />,
+    description: "Marking as Ordered sends the Purchase Order to the supplier through the configured Gmail account, then changes the status to Ordered.",
+    requiresNotes: false,
+    notesLabel: "",
+    notesPlaceholder: "",
+    confirmLabel: "Mark as Ordered",
+    confirmClass: "bg-foreground text-background hover:bg-foreground/85",
+  },
+};
+
+export function POActionModal({ actionType, poNumber, onClose, onConfirm }: POActionModalProps) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -41,6 +108,8 @@ export function POActionModal({
         return "Return for Revision";
       case "cancel":
         return "Cancel Purchase Order";
+      case "order":
+        return "Mark as Ordered";
     }
   };
 
@@ -54,6 +123,8 @@ export function POActionModal({
         return `Please provide instructions or reasons for returning purchase order ${poNumber}. The requester will be able to revise and re-submit it.`;
       case "cancel":
         return `Are you sure you want to cancel purchase order ${poNumber}? This action cannot be undone.`;
+      case "order":
+        return `Mark purchase order ${poNumber} as ordered and send it to the supplier?`;
     }
   };
 

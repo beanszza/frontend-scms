@@ -49,6 +49,8 @@ export function CreateDeliveryModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [deliveryGrouping, setDeliveryGrouping] = useState<"grouped" | "per-batch">("grouped");
+  const [batchReference, setBatchReference] = useState("");
 
   // Form Fields
   const [paymentType, setPaymentType] = useState("Payable");
@@ -97,8 +99,8 @@ export function CreateDeliveryModal({
       try {
         setLoadingPOs(true);
         const [delivRes, poRes] = await Promise.allSettled([
-          api.get("/api/scms/api/deliveries?page=1&pageSize=1000"),
-          api.get("/api/scms/api/PurchaseOrders?page=1&pageSize=1000&eligibleForDelivery=true"),
+          api.get("/api/deliveries?page=1&pageSize=1000"),
+          api.get("/api/purchase-orders?page=1&pageSize=1000&eligibleForDelivery=true"),
         ]);
 
         let deliveryList: any[] = [];
@@ -134,7 +136,7 @@ export function CreateDeliveryModal({
             candidate.map(async (po) => {
               try {
                 let poItems: any[] = [];
-                const outRes = await api.get(`/api/scms/api/deliveries/po/${po.poId}/outstanding`);
+                const outRes = await api.get(`/api/deliveries/po/${po.poId}/outstanding`);
                 if (outRes.data?.success && Array.isArray(outRes.data.data) && outRes.data.data.length > 0) {
                   poItems = outRes.data.data;
                 } else if (po.items && po.items.length > 0) {
@@ -203,6 +205,8 @@ export function CreateDeliveryModal({
       setPaymentType("Payable");
       setError(null);
       setFieldErrors({});
+      setDeliveryGrouping("grouped");
+      setBatchReference("");
     }
 
     fetchInitialData();
@@ -233,7 +237,7 @@ export function CreateDeliveryModal({
       try {
         setLoadingItems(true);
         setError(null);
-        const res = await api.get(`/api/scms/api/deliveries/po/${selectedPoId}/outstanding`);
+        const res = await api.get(`/api/deliveries/po/${selectedPoId}/outstanding`);
         if (res.data?.success && Array.isArray(res.data.data)) {
           const rows: ItemRow[] = res.data.data.map((i: any) => {
             const ordered = Number(i.poOrderedQuantity) || 0;
@@ -253,7 +257,7 @@ export function CreateDeliveryModal({
               itemId: i.itemId,
               itemName: i.itemName,
               itemCode: i.itemCode || "",
-              purchaseUomName: i.purchaseUomName || "pcs",
+              purchaseUomName: i.purchaseUomName || "Unit",
               poOrderedQuantity: ordered,
               poTotalReceivedQuantity: received,
               alreadyScheduledQuantity: inFlight,
@@ -281,7 +285,7 @@ export function CreateDeliveryModal({
                 itemId: i.itemId,
                 itemName: i.itemName,
                 itemCode: "",
-                purchaseUomName: i.purchaseUomName || "pcs",
+                purchaseUomName: i.purchaseUomName || "Unit",
                 poOrderedQuantity: ordered,
                 poTotalReceivedQuantity: received,
                 alreadyScheduledQuantity: inFlight,
@@ -373,8 +377,8 @@ export function CreateDeliveryModal({
     const errs: Record<number, string> = {};
     items.forEach((item) => {
       if (item.availableToSchedule > 0) {
-        if (item.orderQuantity <= 0) {
-          errs[item.poItemId] = "Order quantity must be greater than 0.";
+        if (item.orderQuantity < 0) {
+          errs[item.poItemId] = "Order quantity cannot be negative.";
         } else if (item.orderQuantity > item.availableToSchedule) {
           errs[item.poItemId] = `Cannot exceed available balance (${item.availableToSchedule} ${item.purchaseUomName}).`;
         }
@@ -395,6 +399,9 @@ export function CreateDeliveryModal({
     const errs: Record<string, string> = {};
     if (!selectedPoId) {
       errs.poId = "Purchase Order selection is required.";
+    }
+    if (deliveryGrouping === "per-batch" && !batchReference.trim()) {
+      errs.batchReference = "Batch reference is required for per-batch delivery.";
     }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
@@ -435,10 +442,12 @@ export function CreateDeliveryModal({
         carrier: null,
         driverName: null,
         vehiclePlateNumber: null,
+        isPerBatch: deliveryGrouping === "per-batch",
+        batchReference: deliveryGrouping === "per-batch" ? batchReference.trim() : null,
         items: itemsToSchedule,
       };
 
-      const res = await api.post("/api/scms/api/deliveries", payload);
+      const res = await api.post("/api/deliveries", payload);
       if (res.data?.success) {
         onSuccess();
       } else {
@@ -483,7 +492,7 @@ export function CreateDeliveryModal({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
+              <label className={`mb-1.5 block text-xs font-semibold ${fieldErrors.poId ? "text-destructive" : "text-foreground"}`}>
                 Purchase Order <span className="text-destructive">*</span>
               </label>
               {initialPo ? (
@@ -520,6 +529,40 @@ export function CreateDeliveryModal({
                 </>
               )}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Delivery Grouping</label>
+              <select
+                value={deliveryGrouping}
+                onChange={(e) => {
+                  setDeliveryGrouping(e.target.value as "grouped" | "per-batch");
+                  setFieldErrors((previous) => ({ ...previous, batchReference: "" }));
+                }}
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
+              >
+                <option value="grouped">Grouped Delivery</option>
+                <option value="per-batch">Per Batch</option>
+              </select>
+            </div>
+            {deliveryGrouping === "per-batch" && (
+              <div>
+                <label className={`mb-1.5 block text-xs font-semibold ${fieldErrors.batchReference ? "text-destructive" : "text-foreground"}`}>
+                  Batch Reference <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={batchReference}
+                  onChange={(e) => {
+                    setBatchReference(e.target.value);
+                    setFieldErrors((previous) => ({ ...previous, batchReference: "" }));
+                  }}
+                  placeholder="e.g. SUPPLIER-BATCH-2026-001"
+                  className={fieldErrors.batchReference ? "!border-destructive focus-visible:!ring-destructive" : "border-border"}
+                />
+                {fieldErrors.batchReference && <p className="mt-1 text-xs font-medium text-destructive">{fieldErrors.batchReference}</p>}
+              </div>
+            )}
           </div>
 
           {/* If NO PO is selected, show instructional prompt */}

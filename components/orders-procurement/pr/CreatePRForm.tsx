@@ -11,6 +11,7 @@ import ModalWrapper from "@/components/resources-suppliers/ModalWrapper";
 import api from "@/lib/api";
 import { PurchaseRequisition, PRItem } from "../types";
 import { useAuth } from "@/context/AuthContext";
+import ConfirmModal from "@/components/ConfirmModal";
 import { HR_EMPLOYEES } from "@/lib/employees";
 
 export interface CreatePRModalProps {
@@ -61,6 +62,11 @@ export function CreatePRModal({
   const defaultAccountName = user?.firstName
     ? `${user.firstName} ${user.lastName}`.trim()
     : (user?.username || "");
+  const detectedDepartment = user?.roles?.some((role) => role.toLowerCase().includes("cook"))
+    ? "Production"
+    : user?.roles?.some((role) => role.toLowerCase().includes("admin"))
+      ? "Administration"
+      : "Inventory";
 
   const [requestedBy, setRequestedBy] = useState(
     initialData?.requestedBy && initialData.requestedBy !== "Unauthenticated"
@@ -147,8 +153,8 @@ export function CreatePRModal({
             year: "numeric",
           })
         );
-        setRequestedBy("");
-        setDepartment("");
+        setRequestedBy(defaultAccountName || "Inventory Manager");
+        setDepartment(detectedDepartment);
         setRequestType("");
         setPriority("");
         setRequiredDate("");
@@ -159,7 +165,7 @@ export function CreatePRModal({
         setErrors({});
       }
     }
-  }, [open, initialData, user, defaultAccountName]);
+  }, [open, initialData, user, defaultAccountName, detectedDepartment]);
 
   // Fetch supplies and next PR number
   useEffect(() => {
@@ -169,9 +175,9 @@ export function CreatePRModal({
       try {
         setLoadingSupplies(true);
         const [itemsRes, invRes, prRes] = await Promise.allSettled([
-          api.get("/api/scms/api/Items?page=1&pageSize=1000"),
-          api.get("/api/scms/api/Inventories?page=1&pageSize=1000"),
-          api.get("/api/scms/api/PurchaseRequisitions"),
+          api.get("/api/items"),
+          api.get("/api/inventory?page=1&pageSize=1000"),
+          api.get("/api/purchase-requisitions"),
         ]);
 
         let rawItems: any[] = [];
@@ -196,7 +202,7 @@ export function CreatePRModal({
             itemId: it.itemId,
             itemCode: it.itemCode || `SPL-${String(it.itemId).padStart(4, "0")}`,
             itemName: it.itemName,
-            uomName: it.uomName || it.uom?.abbreviation || it.stockUom?.abbreviation || "pcs",
+            uomName: it.uomName || it.uom?.abbreviation || it.stockUom?.abbreviation || "Unit",
             currentStock: stockMap[it.itemId] ?? 0,
           }));
 
@@ -313,6 +319,15 @@ export function CreatePRModal({
     if (items.length === 0) {
       newErrors.items = "At least one supply or ingredient must be requested.";
     } else {
+      const duplicateIds = new Set<number>();
+      const seenIds = new Set<number>();
+      items.forEach((item) => {
+        if (seenIds.has(item.itemId)) duplicateIds.add(item.itemId);
+        seenIds.add(item.itemId);
+      });
+      if (duplicateIds.size > 0) {
+        newErrors.items = "Duplicate ingredients must be consolidated before saving.";
+      }
       items.forEach((it, idx) => {
         if (!it.requestedQuantity || it.requestedQuantity <= 0) {
           newErrors[`item_qty_${idx}`] = "Quantity must be greater than 0.";
@@ -353,13 +368,16 @@ export function CreatePRModal({
         items: items.map((it) => ({
           itemId: it.itemId,
           requestedQuantity: it.requestedQuantity,
+          purchaseUomId: it.purchaseUomId || 1, // Fallback if missing
+          estimatedUnitPrice: it.estimatedUnitPrice || 0,
+          suggestedSupplierId: (it as any).suggestedSupplierId || null,
         })),
       };
 
       if (isEdit && initialData?.prId) {
-        await api.put(`/api/scms/api/PurchaseRequisitions/${initialData.prId}`, payload);
+        await api.put(`/api/purchase-requisitions/${initialData.prId}`, payload);
       } else {
-        await api.post("/api/scms/api/PurchaseRequisitions", payload);
+        await api.post("/api/purchase-requisitions", payload);
       }
 
       if (onSuccess) {
@@ -426,36 +444,7 @@ export function CreatePRModal({
                 {requestDate}
               </div>
             </div>
-
-            {/* Required Date */}
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground">
-                Required Date <span className="text-destructive">*</span>
-              </label>
-              <div className="relative">
-                <Input
-                  type="date"
-                  min={new Date().toISOString().split("T")[0]}
-                  value={requiredDate}
-                  onChange={(e) => {
-                    setRequiredDate(e.target.value);
-                    setErrors((prev) => {
-                      const c = { ...prev };
-                      delete c.requiredDate;
-                      return c;
-                    });
-                  }}
-                  className={`w-full h-10 rounded-xl border ${
-                    errors.requiredDate ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
-                  } bg-card px-3.5 py-2 pr-10 text-xs text-foreground transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
-                />
-                <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
-              {errors.requiredDate && (
-                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.requiredDate}</p>
-              )}
-            </div>
-
+          </div>
             {/* Requested By */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">
@@ -585,12 +574,55 @@ export function CreatePRModal({
                 <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.priority}</p>
               )}
             </div>
+
+            {/* Required Date */}
+            <div>
+              <label className={`mb-1.5 block text-xs font-semibold ${errors.requiredDate ? "text-destructive" : "text-foreground"}`}>
+                Required Date <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  value={requiredDate}
+                  onChange={(e) => {
+                    setRequiredDate(e.target.value);
+                    setErrors((prev) => {
+                      const c = { ...prev };
+                      delete c.requiredDate;
+                      return c;
+                    });
+                  }}
+                  className={`w-full h-10 rounded-xl border ${
+                    errors.requiredDate ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                  } bg-card px-3.5 py-2 pr-10 text-xs text-foreground transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                />
+                <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+              {errors.requiredDate && (
+                <p className="mt-1 text-[11px] font-medium text-destructive animate-in fade-in-50">{errors.requiredDate}</p>
+              )}
+            </div>
+
+            {/* Status (Read-Only) */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Status</label>
+              <div className="flex items-center h-10 px-3.5 rounded-xl border border-border bg-muted/40 text-xs font-medium text-foreground">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${
+                  statusText === "Approved" ? "bg-emerald-500/10 text-emerald-600" :
+                  statusText === "Rejected" ? "bg-rose-500/10 text-rose-600" :
+                  "bg-amber-500/10 text-amber-600"
+                }`}>
+                  {statusText}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Supplies & Ingredients Table */}
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-foreground">
+              <label className={`block text-xs font-semibold ${errors.items ? "text-destructive" : "text-foreground"}`}>
                 Requested Supplies &amp; Ingredients <span className="text-destructive">*</span>
               </label>
             </div>
@@ -599,7 +631,7 @@ export function CreatePRModal({
               <p className="text-xs font-medium text-destructive animate-in fade-in-50 mb-2">{errors.items}</p>
             )}
 
-            <div className="border border-border rounded-xl overflow-hidden bg-card">
+            <div className={`border rounded-xl overflow-hidden bg-card ${errors.items ? "border-destructive" : "border-border"}`}>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground">
@@ -623,76 +655,71 @@ export function CreatePRModal({
                       const qtyErrorKey = `item_qty_${idx}`;
                       const hasQtyError = !!errors[qtyErrorKey] || (item.requestedQuantity !== undefined && item.requestedQuantity <= 0);
 
-                      return (
-                        <tr key={idx} className="hover:bg-muted/10 transition-colors">
-                          <td className="px-3.5 py-2">
-                            <select
-                              value={item.itemId}
-                              onChange={(e) => handleSelectSupply(idx, parseInt(e.target.value))}
-                              className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-ring"
-                            >
-                              {suppliesList.map((sup) => (
-                                <option key={sup.itemId} value={sup.itemId}>
-                                  {sup.itemName}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-3.5 py-2 font-mono text-muted-foreground">
-                            {item.itemCode || `SPL-${item.itemId}`}
-                          </td>
-                          <td className="px-3.5 py-2 text-muted-foreground">
-                            {item.uomName || "pcs"}
-                          </td>
-                          <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
-                            {Number(item.actualInventory || 0).toLocaleString()}
-                          </td>
-                          <td className="px-3.5 py-2 text-right">
-                            <div className="flex flex-col items-end">
-                              <Input
-                                type="number"
-                                step="any"
-                                min="0.001"
-                                value={item.requestedQuantity || ""}
-                                onKeyDown={(e) => {
-                                  if (e.key === "-" || e.key === "e" || e.key === "+") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onChange={(e) => {
-                                  handleQuantityChange(idx, e.target.value);
-                                  if (errors[qtyErrorKey]) {
-                                    setErrors((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[qtyErrorKey];
-                                      return copy;
-                                    });
-                                  }
-                                }}
-                                className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
-                                  hasQtyError ? "!border-destructive !text-destructive bg-destructive/5 focus-visible:!ring-destructive" : "border-border"
-                                }`}
-                              />
-                              {hasQtyError && (
-                                <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
-                                  {errors[qtyErrorKey] || "Must be > 0"}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3.5 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(idx)}
-                              className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors cursor-pointer"
-                              title="Remove"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                        return (
+                          <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                            <td className="px-3.5 py-2">
+                              <select
+                                value={item.itemId}
+                                onChange={(e) => handleSelectSupply(idx, parseInt(e.target.value))}
+                                className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-ring"
+                              >
+                                {suppliesList.map((sup) => (
+                                  <option key={sup.itemId} value={sup.itemId}>
+                                    {sup.itemName}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3.5 py-2 font-mono text-muted-foreground">
+                              {item.itemCode || `SPL-${item.itemId}`}
+                            </td>
+                            <td className="px-3.5 py-2 text-muted-foreground">
+                              {item.uomName || "Unit"}
+                            </td>
+                            <td className="px-3.5 py-2 text-right font-mono text-muted-foreground">
+                              {Number(item.actualInventory || 0).toLocaleString()}
+                            </td>
+                            <td className="px-3.5 py-2 text-right">
+                              <div className="flex flex-col items-end">
+                                <Input
+                                  type="number"
+                                  step="any"
+                                  min="0.001"
+                                  value={item.requestedQuantity || ""}
+                                  onChange={(e) => {
+                                    handleQuantityChange(idx, e.target.value);
+                                    if (errors[qtyErrorKey]) {
+                                      setErrors((prev) => {
+                                        const copy = { ...prev };
+                                        delete copy[qtyErrorKey];
+                                        return copy;
+                                      });
+                                    }
+                                  }}
+                                  className={`h-8 text-xs text-right font-mono font-bold rounded-lg ${
+                                    hasQtyError ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                                  }`}
+                                />
+                                {hasQtyError && (
+                                  <p className="mt-1 text-[10px] font-medium text-destructive text-right whitespace-nowrap animate-in fade-in-50">
+                                    {errors[qtyErrorKey]}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(idx)}
+                                className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors cursor-pointer"
+                                title="Remove"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>
@@ -708,13 +735,52 @@ export function CreatePRModal({
             </button>
           </div>
 
-          {/* Notes (Purpose removed as requested) */}
-          <div className="pt-2 border-t border-border">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-foreground">
-                Notes <span className="text-muted-foreground font-normal">(Optional)</span>
-              </label>
-              <span className="text-[10px] text-muted-foreground">{notes.length}/300</span>
+          {/* Row 5: Purpose / Justification & Notes (2 Columns) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2 border-t border-border">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={`text-xs font-semibold ${errors.purpose ? "text-destructive" : "text-foreground"}`}>
+                  Purpose / Justification <span className="text-destructive">*</span>
+                </label>
+                <span className="text-[10px] text-muted-foreground">{purpose.length}/500</span>
+              </div>
+              <Textarea
+                rows={3}
+                maxLength={500}
+                placeholder="Enter purpose or justification..."
+                value={purpose}
+                onChange={(e) => {
+                  setPurpose(e.target.value);
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.purpose;
+                    return copy;
+                  });
+                }}
+                className={`w-full rounded-xl border ${
+                  errors.purpose ? "!border-destructive focus-visible:!ring-destructive" : "border-border"
+                } bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring resize-none`}
+              />
+              {errors.purpose && (
+                <p className="mt-1.5 text-xs font-medium text-destructive animate-in fade-in-50">{errors.purpose}</p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Notes <span className="text-muted-foreground font-normal">(Optional)</span>
+                </label>
+                <span className="text-[10px] text-muted-foreground">{notes.length}/300</span>
+              </div>
+              <Textarea
+                rows={3}
+                maxLength={300}
+                placeholder="Enter additional notes (optional)..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-ring resize-none"
+              />
             </div>
             <Textarea
               rows={3}
@@ -772,7 +838,7 @@ export function CreatePRModal({
               Submit for Approval
             </Button>
           </div>
-        </div>
+
       </ModalWrapper>
 
       {/* Review Modal for Submit/Draft */}
