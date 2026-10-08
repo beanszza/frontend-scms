@@ -52,7 +52,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
     setLoading(true);
 
     api
-      .get("/api/GoodsReceipts")
+      .get("/api/goods-receipts")
       .then(({ data }) => {
         const list: GRN[] = Array.isArray(data?.data) ? data.data : [];
         const eligible = list.filter(
@@ -77,7 +77,7 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
 
     try {
       const [grnDetailRes, invRes] = await Promise.all([
-        api.get(`/api/GoodsReceipts/${grnId}`),
+        api.get(`/api/goods-receipts/${grnId}`),
         api.get("/api/Inventory?pageSize=1000").catch(() => ({ data: { data: [] } })),
       ]);
 
@@ -323,18 +323,10 @@ export default function CreateStockInModal({ open, onClose, onSuccess }: Props) 
           <button
             type="button"
             disabled={lines.length === 0 || submitting}
-            onClick={() => handleTrySubmit(false)}
-            className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-          >
-            {submitting ? "Saving…" : "Save as Draft"}
-          </button>
-          <button
-            type="button"
-            disabled={lines.length === 0 || submitting}
             onClick={() => handleTrySubmit(true)}
             className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:bg-foreground/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
           >
-            {submitting ? "Submitting…" : "Submit for Approval"}
+            {submitting ? "Committing…" : "Commit to Inventory"}
           </button>
         </div>
       </div>

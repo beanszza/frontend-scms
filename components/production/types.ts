@@ -128,7 +128,11 @@ export interface ProductionRequestEntity {
     | "Ready for Production"
     | "In Production"
     | "In Progress"
-    | "Completed";
+    | "For QA"
+    | "For Stock-in"
+    | "Stocked In"
+    | "Completed"
+    | (string & {});
   linkedPrId: number | null;
   linkedPrNumber: string | null;
   adminNotes: string;
@@ -239,10 +243,25 @@ export interface ProductionBatchEntity {
   status: string;
   assignedCook: string;
   fgLotId: number | null;
+  fgLotCode?: string;
+  finalQuantity?: number;
+  requestedQty?: number;
+  requestedBy?: string;
+  approvedBy?: string;
+  imageUrl?: string;
   totalMaterialCost: number;
   unitCost: number;
   yieldPercentage: number;
   consumptions: BatchConsumptionDTO[];
+  reservations?: Array<{
+    reservationId: number;
+    ingredientId: number;
+    itemId: number;
+    itemName: string;
+    lotId: number;
+    lotCode: string;
+    reservedQuantity: number;
+  }>;
 }
 
 // ── LEGACY COMPATIBILITY TYPES ──────────────────────────────────────────────
